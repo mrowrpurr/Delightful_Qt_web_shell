@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/web">
+        <file alias="assets/index-IkwFKpyQ.css">C:/Code/mrowr/SkyrimScriptingBeta/Skykit/v3/qt-web-shell-example/web/dist/assets/index-IkwFKpyQ.css</file>
+        <file alias="assets/index-WYS24YiK.js">C:/Code/mrowr/SkyrimScriptingBeta/Skykit/v3/qt-web-shell-example/web/dist/assets/index-WYS24YiK.js</file>
+        <file alias="index.html">C:/Code/mrowr/SkyrimScriptingBeta/Skykit/v3/qt-web-shell-example/web/dist/index.html</file>
+    </qresource>
+</RCC>

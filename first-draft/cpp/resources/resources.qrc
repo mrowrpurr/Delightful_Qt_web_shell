@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Skykit.ico</file>
+        <file>Skykit.png</file>
+    </qresource>
+</RCC>
