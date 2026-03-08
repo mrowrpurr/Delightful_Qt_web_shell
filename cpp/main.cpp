@@ -5,6 +5,8 @@
 //   QTWEBENGINE_REMOTE_DEBUGGING=9222 ./desktop.exe
 
 #include <QApplication>
+#include <QCommandLineOption>
+#include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QFile>
 #include <QFileInfo>
@@ -99,8 +101,17 @@ int main(int argc, char* argv[]) {
     QWebEngineUrlScheme::registerScheme(scheme);
 
     QApplication app(argc, argv);
-    app.styleHints()->setColorScheme(Qt::ColorScheme::Dark);
     app.setApplicationName("Delightful Qt Web Shell");
+
+    QCommandLineParser parser;
+    parser.addHelpOption();
+    QCommandLineOption devOption("dev",
+        "Dev mode: load from Vite dev server (localhost:5173) with hot reload");
+    parser.addOption(devOption);
+    parser.process(app);
+    bool devMode = parser.isSet(devOption);
+
+    app.styleHints()->setColorScheme(Qt::ColorScheme::Dark);
     app.setWindowIcon(QIcon(":/icon.ico"));
 
     // Dark palette — prevents white flash on first frame (FOUC).
@@ -178,10 +189,17 @@ int main(int argc, char* argv[]) {
         devToolsView->activateWindow();
     });
 
-    // ── Serve embedded web UI ─────────────────────────────────
-    auto* handler = new SchemeHandler(profile);
-    profile->installUrlSchemeHandler("app", handler);
-    view->setUrl(QUrl("app://shell/"));
+    // ── Serve web UI ─────────────────────────────────────────
+    if (devMode) {
+        // Dev mode: Vite dev server with HMR. QWebChannel still works
+        // because qwebchannel.js is injected into any page by WebEngine.
+        view->setUrl(QUrl("http://localhost:5173"));
+    } else {
+        // Production: serve from embedded Qt resources via custom scheme
+        auto* handler = new SchemeHandler(profile);
+        profile->installUrlSchemeHandler("app", handler);
+        view->setUrl(QUrl("app://shell/"));
+    }
 
     // ── Loading overlay ───────────────────────────────────────
     auto* stack = new QWidget(&window);

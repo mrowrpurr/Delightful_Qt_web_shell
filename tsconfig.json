@@ -1,4 +1,6 @@
 {
+  // Root tsconfig for Bun tests, Playwright specs, and test-server code.
+  // The web/ directory has its own tsconfig for the Vite/React build.
   "compilerOptions": {
     // Environment setup & latest features
     "lib": ["ESNext"],

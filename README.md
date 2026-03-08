@@ -59,9 +59,9 @@ signals:
 };
 ```
 
-### TypeScript side: `createWsBridge<T>()`
+### TypeScript side: `createWsBridge<T>()` and `createQtBridge<T>()`
 
-A `Proxy` that turns any TypeScript interface into WebSocket calls. Zero per-method code. The interface *is* the implementation.
+Both bridges are `Proxy`-based. Zero per-method code. The interface *is* the implementation.
 
 ```typescript
 interface TodoBridge {
@@ -70,10 +70,26 @@ interface TodoBridge {
   onDataChanged(callback: () => void): () => void
 }
 
-// That's it. This works:
+// Works over WebSocket (dev/test):
 const bridge = createWsBridge<TodoBridge>('ws://localhost:9876')
+
+// Works over QWebChannel (production):
+const bridge = createQtBridge<TodoBridge>()
+
+// Either way:
 const lists = await bridge.listLists()
 ```
+
+### Convention-based event subscriptions
+
+Methods starting with `on` + a capital letter automatically become event subscriptions. No hardcoding per signal.
+
+```typescript
+bridge.onDataChanged(() => refresh())   // → listens for "dataChanged"
+bridge.onItemAdded(() => recount())     // → listens for "itemAdded"
+```
+
+On the C++ side, `expose_as_ws()` already forwards all parameterless signals as events. On the TypeScript side, both `createWsBridge` and `createQtBridge` detect the `on*` convention and wire up listeners automatically. Add a new signal to your QObject, add it to your TypeScript interface, done.
 
 ### Auto-detection
 
@@ -82,7 +98,7 @@ The React app doesn't care which bridge it's using:
 ```typescript
 export function createBridge(): TodoBridge {
   if (window.qt?.webChannelTransport)
-    return new QtBridge()         // production (QWebChannel)
+    return createQtBridge<TodoBridge>()      // production (QWebChannel)
   else
     return createWsBridge<TodoBridge>(wsUrl)  // dev/test (WebSocket)
 }
@@ -159,7 +175,7 @@ test('create a list and add todos', async ({ page }) => {
 
 ```
 xmake run test-e2e
-# 4 tests, real C++ backend
+# 4 tests against real C++ backend
 ```
 
 You can also run against the Bun mock server:
@@ -211,22 +227,53 @@ xmake run test-all
 
 The first three are fast and reliable. The smoke tests are slower and can be flaky (GPU, window manager) — run them in CI, don't gate on them locally.
 
+## Dev Mode
+
+For development with hot module replacement:
+
+```bash
+# Terminal 1: Vite dev server
+cd web && bun run dev
+
+# Terminal 2: Qt desktop pointing at Vite
+xmake run desktop -- --dev
+```
+
+The `--dev` flag tells the Qt shell to load from `http://localhost:5173` instead of the embedded resources. QWebChannel still works — the bridge script is injected into any page by WebEngine. Edit a React component, save, and see it update instantly inside the native Qt window.
+
+For browser-only development (no Qt at all):
+
+```bash
+# Terminal 1: C++ backend over WebSocket
+xmake run test-server
+
+# Terminal 2: Vite dev server
+cd web && bun run dev
+
+# Open http://localhost:5173 in any browser
+```
+
+The React app auto-detects QWebChannel vs WebSocket — same code, both paths.
+
 ## Getting Started
 
 ### Prerequisites
 
 - [xmake](https://xmake.io)
-- [Qt 6.x](https://www.qt.io) with WebEngine
+- [Qt 6.x](https://www.qt.io) with these modules installed:
+  - **Qt WebEngine** — the Chromium-based web view
+  - **Qt WebChannel** — bridge between C++ and JavaScript
+  - **Qt WebSockets** — for the test server and dev/test bridge
+  - **Qt Positioning** — required by WebEngine at runtime
 - [Bun](https://bun.sh)
 - [Node.js](https://nodejs.org) (for Playwright)
+- **Linux only:** `libnss3-dev` and `libasound2-dev` (Chromium dependencies)
 
 ### Build and Run
 
 ```bash
 # Configure (point to your Qt installation)
-xmake f -p windows -a x64 --qt=C:/Qt/6.10.2/msvc2022_64  # Windows
-xmake f -p macosx --qt=/usr/local/opt/qt                   # macOS
-xmake f -p linux --qt=/usr/lib/qt6                          # Linux
+xmake f --qt=/path/to/qt  # e.g. C:/Qt/6.10.2/msvc2022_64 or ~/Qt/6.10.2/macos
 
 # Build the desktop app (also builds the React app via Vite)
 xmake build desktop
@@ -263,7 +310,7 @@ tests/
   bridge_proxy_test.ts  Bun unit tests for the Proxy bridge
 
 e2e/
-  todo-lists.spec.ts    Playwright end-to-end tests
+  todo-lists.spec.ts    Playwright end-to-end tests (CRUD, toggle, isolation)
 
 smoke/
   qt-renders-react.spec.ts  CDP smoke tests against real Qt app

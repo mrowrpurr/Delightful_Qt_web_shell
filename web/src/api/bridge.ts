@@ -34,6 +34,17 @@ export interface TodoBridge {
   onDataChanged(callback: () => void): () => void
 }
 
+// ── Convention: on* methods → event subscriptions ────────────────────
+// onDataChanged → listens for "dataChanged" event/signal
+// onItemAdded   → listens for "itemAdded" event/signal
+// Works automatically for any signal. No per-method code needed.
+
+function eventNameFromProp(prop: string): string | null {
+  const match = prop.match(/^on([A-Z].*)$/)
+  if (!match) return null
+  return match[1][0].toLowerCase() + match[1].slice(1)
+}
+
 // ── WebSocket bridge (dev / test / Playwright) ────────────────────────
 // A Proxy that turns any interface into WebSocket JSON-RPC calls.
 // Zero per-method code. The interface IS the implementation.
@@ -63,10 +74,12 @@ export function createWsBridge<T extends object>(url: string): T {
   })
 
   return new Proxy({} as T, {
-    get(_, prop: string) {
-      if (prop === 'onDataChanged') {
+    get(_, prop) {
+      if (typeof prop === 'symbol' || prop === 'then' || prop === 'toJSON') return undefined
+      const eventName = eventNameFromProp(prop)
+      if (eventName) {
         return (callback: () => void) => {
-          const listeners = eventListeners['dataChanged'] ??= []
+          const listeners = eventListeners[eventName] ??= []
           listeners.push(callback)
           return () => {
             const idx = listeners.indexOf(callback)
@@ -87,6 +100,9 @@ export function createWsBridge<T extends object>(url: string): T {
 }
 
 // ── Qt WebChannel bridge (production) ─────────────────────────────────
+// Also a Proxy — same zero-boilerplate pattern as WsBridge.
+// Methods route through QWebChannel's callback API.
+// on* methods connect to Qt signals via signal.connect().
 
 declare global {
   interface Window {
@@ -98,52 +114,48 @@ declare global {
   }
 }
 
-class QtBridge implements TodoBridge {
-  private bridge: any = null
-  private ready: Promise<void>
-
-  constructor() {
-    this.ready = new Promise<void>((resolve) => {
-      new window.QWebChannel!(window.qt!.webChannelTransport, (channel) => {
-        this.bridge = channel.objects.bridge
-        resolve()
-      })
+export function createQtBridge<T extends object>(): T {
+  let bridge: any = null
+  const ready = new Promise<void>((resolve) => {
+    new window.QWebChannel!(window.qt!.webChannelTransport, (channel) => {
+      bridge = channel.objects.bridge
+      resolve()
     })
-  }
+  })
 
-  private async call<T>(method: string, ...args: any[]): Promise<T> {
-    await this.ready
-    return new Promise((resolve, reject) => {
-      this.bridge[method](...args, (result: string) => {
-        try {
-          const data = JSON.parse(result)
-          if (data.error) reject(new Error(data.error))
-          else resolve(data)
-        } catch (e) {
-          reject(e)
+  return new Proxy({} as T, {
+    get(_, prop) {
+      if (typeof prop === 'symbol' || prop === 'then' || prop === 'toJSON') return undefined
+      const eventName = eventNameFromProp(prop)
+      if (eventName) {
+        return (callback: () => void) => {
+          let disconnected = false
+          ready.then(() => {
+            if (disconnected) return
+            bridge?.[eventName]?.connect(callback)
+          })
+          return () => {
+            disconnected = true
+            bridge?.[eventName]?.disconnect(callback)
+          }
         }
-      })
-    })
-  }
-
-  async listLists(): Promise<TodoList[]> { return this.call('listLists') }
-  async getList(listId: string): Promise<ListDetail> { return this.call('getList', listId) }
-  async addList(name: string): Promise<TodoList> { return this.call('addList', name) }
-  async addItem(listId: string, text: string): Promise<TodoItem> { return this.call('addItem', listId, text) }
-  async toggleItem(itemId: string): Promise<TodoItem> { return this.call('toggleItem', itemId) }
-  async search(query: string): Promise<TodoItem[]> { return this.call('search', query) }
-
-  onDataChanged(callback: () => void): () => void {
-    let disconnected = false
-    this.ready.then(() => {
-      if (disconnected) return
-      this.bridge?.dataChanged?.connect(callback)
-    })
-    return () => {
-      disconnected = true
-      this.bridge?.dataChanged?.disconnect(callback)
-    }
-  }
+      }
+      return async (...args: any[]) => {
+        await ready
+        return new Promise((resolve, reject) => {
+          bridge[prop](...args, (result: string) => {
+            try {
+              const data = JSON.parse(result)
+              if (data.error) reject(new Error(data.error))
+              else resolve(data)
+            } catch (e) {
+              reject(e)
+            }
+          })
+        })
+      }
+    },
+  }) as T
 }
 
 // ── Auto-detect (singleton) ───────────────────────────────────────────
@@ -152,9 +164,9 @@ let _bridge: TodoBridge | null = null
 
 export function createBridge(): TodoBridge {
   if (!_bridge) {
-    if (window.qt?.webChannelTransport && window.QWebChannel) {
-      _bridge = new QtBridge()
-    } else {
+    if (window.qt?.webChannelTransport && window.QWebChannel)
+      _bridge = createQtBridge<TodoBridge>()
+    else {
       const wsUrl = import.meta.env.VITE_BRIDGE_WS_URL || 'ws://localhost:9876'
       _bridge = createWsBridge<TodoBridge>(wsUrl)
     }
