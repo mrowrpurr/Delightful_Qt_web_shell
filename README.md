@@ -4,6 +4,8 @@ A template for building desktop apps with **Qt WebEngine + React** — with five
 
 The core insight: a generic WebSocket bridge makes your C++ backend testable from *any* JavaScript test runner, without writing a single line of glue code per method.
 
+![Delightful Qt Web Shell](screenshot.png)
+
 ## Architecture
 
 ```
@@ -218,12 +220,12 @@ xmake run test-all
 
 ## What Each Layer Proves
 
-| Layer | What breaks if this fails |
-|-------|--------------------------|
-| Catch2 | Your domain logic is wrong |
-| Bun | Your bridge protocol is wrong |
-| Playwright e2e | Your UI + backend integration is wrong |
-| CDP smoke | Qt isn't rendering your React app at all |
+| Layer          | What breaks if this fails                |
+| -------------- | ---------------------------------------- |
+| Catch2         | Your domain logic is wrong               |
+| Bun            | Your bridge protocol is wrong            |
+| Playwright e2e | Your UI + backend integration is wrong   |
+| CDP smoke      | Qt isn't rendering your React app at all |
 
 The first three are fast and reliable. The smoke tests are slower and can be flaky (GPU, window manager) — run them in CI, don't gate on them locally.
 
@@ -328,4 +330,19 @@ Everything else — Qt, C++ standard library, Vite, Playwright — is cross-plat
 
 ## License
 
-MIT
+Use however, no attribution required.
+
+```
+BSD Zero Clause License (SPDX: 0BSD)
+
+Permission to use, copy, modify, and/or distribute this software for any purpose
+with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
+OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
+TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+THIS SOFTWARE.
+```
