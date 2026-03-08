@@ -5,11 +5,12 @@
   "private": true,
   "devDependencies": {
     "@playwright/test": "^1.58.2",
-    "@types/bun": "latest",
-    "@types/ws": "^8.18.1",
-    "ws": "^8.19.0"
+    "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "patchedDependencies": {
+    "playwright-core@1.58.2": "patches/playwright-core@1.58.2.patch"
   }
 }

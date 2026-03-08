@@ -1,0 +1,13 @@
+diff --git a/lib/server/chromium/crBrowser.js b/lib/server/chromium/crBrowser.js
+index 9cf6f63d155b7c8e230871d9f11fa7bf748e0fb8..74bd5ce6d811523d2821a8bc907c7857b3c08307 100644
+--- a/lib/server/chromium/crBrowser.js
++++ b/lib/server/chromium/crBrowser.js
+@@ -304,7 +304,7 @@ class CRBrowserContext extends import_browserContext.BrowserContext {
+         browserContextId: this._browserContextId,
+         downloadPath: this._browser.options.downloadsPath,
+         eventsEnabled: true
+-      }));
++      }).catch(() => {}));
+     }
+     await Promise.all(promises);
+   }
