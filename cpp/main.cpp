@@ -101,6 +101,7 @@ int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     app.styleHints()->setColorScheme(Qt::ColorScheme::Dark);
     app.setApplicationName("Delightful Qt Web Shell");
+    app.setWindowIcon(QIcon(":/icon.ico"));
 
     // Dark palette — prevents white flash on first frame (FOUC).
     // setColorScheme handles menus/buttons, but the palette ensures the
@@ -197,11 +198,12 @@ int main(int argc, char* argv[]) {
     auto* overlayLayout = new QVBoxLayout(overlay);
     overlayLayout->setAlignment(Qt::AlignCenter);
 
-    auto* label = new QLabel("Loading...", overlay);
-    label->setStyleSheet("color: #555; font-size: 14px;");
-    label->setAlignment(Qt::AlignCenter);
+    auto* logo = new QLabel(overlay);
+    logo->setPixmap(QPixmap(":/icon.png").scaled(128, 128, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    logo->setAlignment(Qt::AlignCenter);
     overlayLayout->addStretch();
-    overlayLayout->addWidget(label);
+    overlayLayout->addWidget(logo);
+    overlayLayout->addSpacing(24);
 
     auto* progressBar = new QProgressBar(overlay);
     progressBar->setRange(0, 0);

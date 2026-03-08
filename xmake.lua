@@ -20,6 +20,7 @@ target("desktop")
     add_files(
         "cpp/main.cpp",
         "cpp/bridge.hpp",
+        "cpp/resources/resources.qrc",
         "cpp/web_dist_resources.cpp"
     )
     add_frameworks(
