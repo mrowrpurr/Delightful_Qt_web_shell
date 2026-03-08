@@ -19,88 +19,17 @@
                                      └──────────────┘
 ```
 
-In production, the React app talks to C++ through QWebChannel — same process, zero serialization overhead. In dev and test, the same Bridge is exposed over WebSocket, so Playwright, Bun, or a browser can call it identically.
+In **production**, the React app talks to C++ through QWebChannel — same process, zero serialization overhead. In **dev and test**, the same Bridge is exposed over WebSocket, so Playwright, Bun, or a browser can call it identically.
 
-## The Pattern: Zero-Boilerplate Bridging
+## The Proxy Pattern
 
-### C++ side: `expose_as_ws()`
+Both sides use zero-boilerplate Proxies. On C++, `expose_as_ws()` introspects `Q_INVOKABLE` methods via `QMetaObject` and dispatches calls automatically. On TypeScript, `createWsBridge<T>()` and `createQtBridge<T>()` are `Proxy` objects — the interface *is* the implementation. Add a method to both sides and the plumbing connects them with no glue code.
 
-Give it any QObject. It introspects `Q_INVOKABLE` methods via `QMetaObject` and dispatches WebSocket JSON-RPC calls to them. Signals are forwarded as events. No per-method routing code.
-
-```cpp
-// test_server.cpp — the entire file
-Bridge bridge;
-auto* server = expose_as_ws(&bridge, 9876);
-```
-
-Your Bridge just follows one convention: Q_INVOKABLE methods take `QString` args and return JSON `QString`.
-
-```cpp
-class Bridge : public QObject {
-    Q_OBJECT
-    TodoStore store_;
-public:
-    Q_INVOKABLE QString listLists() {
-        // ... serialize store_.list_lists() to JSON
-    }
-    Q_INVOKABLE QString addItem(const QString& listId, const QString& text) {
-        auto item = store_.add_item(listId.toStdString(), text.toStdString());
-        emit dataChanged();
-        return /* JSON */;
-    }
-signals:
-    void dataChanged();  // auto-forwarded as {"event":"dataChanged"}
-};
-```
-
-### TypeScript side: `createWsBridge<T>()` and `createQtBridge<T>()`
-
-Both bridges are `Proxy`-based. Zero per-method code. The interface *is* the implementation.
-
-```typescript
-interface TodoBridge {
-  listLists(): Promise<TodoList[]>
-  addItem(listId: string, text: string): Promise<TodoItem>
-  onDataChanged(callback: () => void): () => void
-}
-
-// Works over WebSocket (dev/test):
-const bridge = createWsBridge<TodoBridge>('ws://localhost:9876')
-
-// Works over QWebChannel (production):
-const bridge = createQtBridge<TodoBridge>()
-
-// Either way:
-const lists = await bridge.listLists()
-```
-
-### Convention-based event subscriptions
-
-Methods starting with `on` + a capital letter automatically become event subscriptions. No hardcoding per signal.
-
-```typescript
-bridge.onDataChanged(() => refresh())   // → listens for "dataChanged"
-bridge.onItemAdded(() => recount())     // → listens for "itemAdded"
-```
-
-On the C++ side, `expose_as_ws()` already forwards all parameterless signals as events. On the TypeScript side, both `createWsBridge` and `createQtBridge` detect the `on*` convention and wire up listeners automatically. Add a new signal to your QObject, add it to your TypeScript interface, done.
-
-### Auto-detection
-
-The React app doesn't care which bridge it's using:
-
-```typescript
-export function createBridge(): TodoBridge {
-  if (window.qt?.webChannelTransport)
-    return createQtBridge<TodoBridge>()      // production (QWebChannel)
-  else
-    return createWsBridge<TodoBridge>(wsUrl)  // dev/test (WebSocket)
-}
-```
+See [BRIDGE_GUIDE.md](BRIDGE_GUIDE.md) for a step-by-step walkthrough of adding features, wiring signals, and how the Proxy works under the hood.
 
 ## Testing
 
-See [TESTING.md](TESTING.md) for detailed documentation on all five testing layers (Catch2, Bun, Playwright e2e, CDP smoke, and the combined `test-all` runner).
+Five layers from fast unit tests to full Qt smoke tests. See [TESTING_GUIDE.md](TESTING_GUIDE.md) for practical guidance on what to test, how to debug failures, and how to add new tests.
 
 ## Cross-Platform
 
