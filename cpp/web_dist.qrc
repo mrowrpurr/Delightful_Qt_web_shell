@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/web">
+        <file alias="assets/index-BoxiryDk.css">C:/Code/mrowr/mrowrpurr/Delightful_Qt_web_shell/web/dist/assets/index-BoxiryDk.css</file>
+        <file alias="assets/index-CVNCoXM9.js">C:/Code/mrowr/mrowrpurr/Delightful_Qt_web_shell/web/dist/assets/index-CVNCoXM9.js</file>
+        <file alias="index.html">C:/Code/mrowr/mrowrpurr/Delightful_Qt_web_shell/web/dist/index.html</file>
+    </qresource>
+</RCC>

@@ -38,7 +38,7 @@ export interface TodoBridge {
 // A Proxy that turns any interface into WebSocket JSON-RPC calls.
 // Zero per-method code. The interface IS the implementation.
 
-export function createWsBridge<T>(url: string): T {
+export function createWsBridge<T extends object>(url: string): T {
   let ws: WebSocket | null = null
   let nextId = 0
   const pending = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void }>()

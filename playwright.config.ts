@@ -9,11 +9,18 @@ const bridgeServer = useBun
   : { command: 'xmake run test-server', port: 9876, stdout: 'pipe' as const }
 
 export default defineConfig({
-  testDir: './e2e',
   timeout: 30_000,
-  use: {
-    baseURL: 'http://localhost:5173',
-  },
+  projects: [
+    {
+      name: 'e2e',
+      testDir: './e2e',
+      use: { baseURL: 'http://localhost:5173' },
+    },
+    {
+      name: 'smoke',
+      testDir: './smoke',
+    },
+  ],
   webServer: [
     {
       command: 'bun run dev',
