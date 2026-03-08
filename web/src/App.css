@@ -11,21 +11,147 @@ body {
 }
 
 .app {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 48px 24px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  gap: 12px;
+  gap: 16px;
 }
 
 h1 {
   font-size: 2rem;
   font-weight: 300;
   color: #ffffff;
+  text-align: center;
+}
+
+h2 {
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: #ffffff;
+  margin-bottom: 8px;
 }
 
 p {
   color: #a0a0a0;
   font-size: 1rem;
+  text-align: center;
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.create-list, .add-item {
+  display: flex;
+  gap: 8px;
+}
+
+input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  background: #1a1a1a;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+input:focus {
+  border-color: #4a9eff;
+}
+
+button {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  background: #4a9eff;
+  color: #fff;
+  font-size: 0.95rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+button:hover {
+  background: #3a8eef;
+}
+
+.lists {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.list-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #1a1a2e;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.list-card:hover {
+  border-color: #4a9eff44;
+}
+
+.list-card.selected {
+  border-color: #4a9eff;
+  background: #1a1a3e;
+}
+
+.list-name {
+  font-weight: 500;
+}
+
+.list-count {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.detail {
+  margin-top: 8px;
+  padding: 16px;
+  background: #1a1a2e;
+  border: 1px solid #4a9eff44;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.todo-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.todo-item:hover {
+  background: #ffffff08;
+}
+
+.todo-item.done .todo-text {
+  text-decoration: line-through;
+  color: #666;
+}
+
+.checkbox {
+  font-size: 1.1rem;
+  color: #4a9eff;
+  width: 20px;
+  text-align: center;
+}
+
+.todo-item.done .checkbox {
+  color: #555;
 }

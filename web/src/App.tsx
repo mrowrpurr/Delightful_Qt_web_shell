@@ -1,8 +1,132 @@
+import { useEffect, useState, useCallback } from 'react'
+import { createBridge, type TodoList, type TodoItem, type ListDetail } from './api/bridge'
+
+const bridge = createBridge()
+
 export default function App() {
+  const [lists, setLists] = useState<TodoList[]>([])
+  const [selectedListId, setSelectedListId] = useState<string | null>(null)
+  const [detail, setDetail] = useState<ListDetail | null>(null)
+  const [newListName, setNewListName] = useState('')
+  const [newItemText, setNewItemText] = useState('')
+
+  const loadLists = useCallback(async () => {
+    const result = await bridge.listLists()
+    setLists(result)
+  }, [])
+
+  const loadDetail = useCallback(async (listId: string) => {
+    const result = await bridge.getList(listId)
+    setDetail(result)
+  }, [])
+
+  useEffect(() => {
+    loadLists()
+    return bridge.onDataChanged(() => {
+      loadLists()
+      if (selectedListId) loadDetail(selectedListId)
+    })
+  }, [loadLists, loadDetail, selectedListId])
+
+  const selectList = useCallback((listId: string) => {
+    setSelectedListId(listId)
+    loadDetail(listId)
+  }, [loadDetail])
+
+  const handleCreateList = useCallback(async () => {
+    const name = newListName.trim()
+    if (!name) return
+    await bridge.addList(name)
+    setNewListName('')
+    await loadLists()
+  }, [newListName, loadLists])
+
+  const handleAddItem = useCallback(async () => {
+    const text = newItemText.trim()
+    if (!text || !selectedListId) return
+    await bridge.addItem(selectedListId, text)
+    setNewItemText('')
+    await loadDetail(selectedListId)
+    await loadLists()
+  }, [newItemText, selectedListId, loadDetail, loadLists])
+
+  const handleToggleItem = useCallback(async (itemId: string) => {
+    if (!selectedListId) return
+    await bridge.toggleItem(itemId)
+    await loadDetail(selectedListId)
+  }, [selectedListId, loadDetail])
+
   return (
     <div className="app">
       <h1 data-testid="heading">Delightful Qt Web Shell</h1>
       <p>A template for Qt + React apps with real testing.</p>
+
+      <div className="create-list">
+        <input
+          data-testid="new-list-input"
+          placeholder="New list name"
+          value={newListName}
+          onChange={e => setNewListName(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleCreateList()}
+        />
+        <button data-testid="create-list-button" onClick={handleCreateList}>
+          Create
+        </button>
+      </div>
+
+      {lists.length === 0 && (
+        <p data-testid="empty-state" className="hint">No lists yet. Create one above.</p>
+      )}
+
+      <div className="lists">
+        {lists.map(list => (
+          <div
+            key={list.id}
+            data-testid="todo-list"
+            className={`list-card ${list.id === selectedListId ? 'selected' : ''}`}
+            onClick={() => selectList(list.id)}
+          >
+            <span className="list-name">{list.name}</span>
+            <span className="list-count">{list.item_count}</span>
+          </div>
+        ))}
+      </div>
+
+      {detail && (
+        <div className="detail" data-testid="list-detail">
+          <h2>{detail.list.name}</h2>
+
+          <div className="add-item">
+            <input
+              data-testid="new-item-input"
+              placeholder="Add todo"
+              value={newItemText}
+              onChange={e => setNewItemText(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAddItem()}
+            />
+            <button data-testid="add-item-button" onClick={handleAddItem}>
+              Add
+            </button>
+          </div>
+
+          {detail.items.length === 0 && (
+            <p className="hint">No items yet.</p>
+          )}
+
+          {detail.items.map(item => (
+            <div
+              key={item.id}
+              data-testid="todo-item"
+              data-done={item.done}
+              className={`todo-item ${item.done ? 'done' : ''}`}
+              onClick={() => handleToggleItem(item.id)}
+            >
+              <span className="checkbox">{item.done ? '✓' : '○'}</span>
+              <span className="todo-text">{item.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
