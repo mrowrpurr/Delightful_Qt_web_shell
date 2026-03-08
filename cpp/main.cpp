@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
     QWebEngineUrlScheme::registerScheme(scheme);
 
     QApplication app(argc, argv);
-    app.setApplicationName("Delightful Qt Web Shell");
+    app.setApplicationName(APP_NAME);
 
     QCommandLineParser parser;
     parser.addHelpOption();
@@ -123,14 +123,14 @@ int main(int argc, char* argv[]) {
     app.setPalette(darkPalette);
 
     // Named profile = persistent localStorage/IndexedDB
-    auto* profile = new QWebEngineProfile("DelightfulShell", &app);
+    auto* profile = new QWebEngineProfile(APP_SLUG, &app);
     QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
     profile->setCachePath(dataDir + "/cache");
     profile->setPersistentStoragePath(dataDir + "/webdata");
     profile->setHttpCacheType(QWebEngineProfile::DiskHttpCache);
 
     QMainWindow window;
-    window.setWindowTitle("Delightful Qt Web Shell");
+    window.setWindowTitle(APP_NAME);
     window.resize(900, 640);
 
     // Center on primary screen

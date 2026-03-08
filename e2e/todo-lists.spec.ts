@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 
 test('shows empty state when no lists exist', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByTestId('heading')).toHaveText('Delightful Qt Web Shell')
+  await expect(page.getByTestId('heading')).toBeVisible()
   await expect(page.getByTestId('empty-state')).toBeVisible()
 })
 

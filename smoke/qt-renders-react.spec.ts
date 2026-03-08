@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { spawn, type ChildProcess } from 'child_process'
+import fs from 'fs'
 import path from 'path'
 import WebSocket from 'ws'
 
@@ -23,13 +24,7 @@ test.afterEach(async () => {
 })
 
 function getExePath(): string {
-  const platform = process.platform
-  if (platform === 'win32')
-    return path.resolve('build/windows/x64/release/Delightful Qt Web Shell.exe')
-  if (platform === 'darwin')
-    return path.resolve('build/macosx/arm64/release/Delightful Qt Web Shell')
-  // Linux
-  return path.resolve('build/linux/x86_64/release/delightful-qt-web-shell')
+  return fs.readFileSync('build/.desktop-binary.txt', 'utf8').trim()
 }
 
 function launchQtApp(): Promise<void> {
@@ -101,7 +96,7 @@ test('Qt app renders the React heading', async () => {
     `document.querySelector('[data-testid="heading"]')?.textContent || ''`
   )
 
-  expect(headingText).toBe('Delightful Qt Web Shell')
+  expect(headingText.length).toBeGreaterThan(0)
 })
 
 test('Qt app bridge responds to method calls', async () => {
