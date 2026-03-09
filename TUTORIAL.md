@@ -14,20 +14,7 @@ Your first feature in 5 minutes. We'll add a `deleteList` method — from C++ to
 
 We're adding `deleteList` — deletes a todo list and all its items. Four files, five steps.
 
-### 1. Define the TypeScript interface
-
-Add the new method to `TodoBridge` — the interface that defines every method your bridge supports.
-
-#### `web/src/api/bridge.ts`
-
-```typescript
-export interface TodoBridge {
-  // ... existing methods ...
-  deleteList(listId: string): Promise<void>     // ← add this
-}
-```
-
-### 2. Write the C++ logic
+### 1. Write the C++ logic
 
 Add the method to `TodoStore` — your pure C++ domain logic. No Qt, no JSON, just business logic.
 
@@ -50,9 +37,9 @@ class TodoStore {
 };
 ```
 
-### 3. Expose it via Q_INVOKABLE
+### 2. Expose it to JavaScript
 
-Add a `Q_INVOKABLE` method to `Bridge` — the thin QObject wrapper that exposes `TodoStore` to JavaScript. Call the store, emit a signal, return JSON.
+Add a `Q_INVOKABLE` method to `Bridge` — the QObject wrapper that makes `TodoStore` callable from the web. Call the store, emit a signal, return JSON.
 
 #### `lib/web-bridge/include/bridge.hpp`
 
@@ -77,9 +64,22 @@ signals:
 
 That's it on the C++ side. The bridge infrastructure finds `Q_INVOKABLE` methods automatically — no routing code needed.
 
+### 3. Define the TypeScript interface
+
+Add the new method to `TodoBridge` — the interface that defines every method your bridge supports.
+
+#### `web/src/api/bridge.ts`
+
+```typescript
+export interface TodoBridge {
+  // ... existing methods ...
+  deleteList(listId: string): Promise<void>     // ← add this
+}
+```
+
 ### 4. Add it to the test mock
 
-Add the same method to the Bun mock server so e2e tests work.
+Add the same method to the mock server so e2e tests work.
 
 #### `tests/helpers/server.ts`
 
@@ -97,7 +97,7 @@ deleteList(listId: string) {
 await bridge.deleteList(listId)
 ```
 
-The Proxy handles the RPC automatically. No glue code, no method registration.
+Done. No glue code, no method registration.
 
 ### What just happened?
 
