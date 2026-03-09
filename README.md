@@ -1,6 +1,6 @@
 # Delightful Qt Web Shell
 
-A template for building desktop, mobile, and web apps with **Qt WebEngine + React** (desktop), **Android WebView + NDK** (mobile), and **Bun HTTP server** (hosted web) — with five layers of automated testing that actually work.
+A template for building desktop apps with **Qt WebEngine + React** — with four layers of automated testing that actually work.
 
 ![Delightful Qt Web Shell](screenshot.png)
 
@@ -74,54 +74,9 @@ cd web && bun run dev
 
 The React app auto-detects QWebChannel vs WebSocket — same code, both paths.
 
-## Android Build
-
-The Android shell runs the same React app in a native WebView, with TodoStore compiled via NDK/JNI.
-
-### Prerequisites
-
-- [Android Studio](https://developer.android.com/studio) or Android SDK with NDK and CMake
-- [Bun](https://bun.sh) (for building the React app)
-
-### Build & Run
-
-```bash
-# Build the web assets first
-cd web && bun run build && cd ..
-
-# Set your Android SDK path
-echo "sdk.dir=/path/to/Android/Sdk" > android/local.properties
-
-# Build the debug APK (also builds web assets automatically via preBuild)
-cd android && ./gradlew assembleDebug
-
-# Install on a connected device or emulator
-adb install app/build/outputs/apk/debug/app-debug.apk
-```
-
-The bridge auto-detects the Android environment — `window.AndroidBridge.invoke()` routes through JNI to the same C++ TodoStore used on desktop.
-
-## Hosted Web
-
-Deploy the React app as a regular website with a Bun HTTP server backend. The server loads the C++ TodoStore as a shared library via `bun:ffi` — same domain logic as desktop and Android. All connected clients share the same store instance; changes in one browser tab appear in all others via SSE.
-
-```bash
-# Build the C++ shared library
-xmake build todos-ffi
-
-# Build the React app
-cd web && bun run build && cd ..
-
-# Start the server
-xmake run server
-# → http://localhost:3000
-```
-
-The bridge auto-detects the hosted environment — production builds without a native shell use `fetch` + `EventSource` to talk to the API server.
-
 ## Testing
 
-Five layers, from fast unit tests to full Qt smoke tests:
+Four layers, from fast unit tests to full Qt smoke tests:
 
 | Layer | Command | What it proves |
 |-------|---------|----------------|
@@ -157,21 +112,12 @@ desktop/                Qt desktop shell with WebEngine
   src/main.cpp
   resources/
 
-android/                Android shell with WebView + NDK
-  app/src/main/
-    kotlin/             Kotlin activity + JNI declarations
-    cpp/                JNI bridge → TodoStore (pure C++)
-    assets/web/         React app (copied from web/dist/ at build time)
-
-server/
-  index.ts              Bun HTTP server (static files + REST API + SSE)
-
 cli/
   test-server/          Headless C++ test server
     src/test_server.cpp
 
 web/
-  src/api/bridge.ts     TodoBridge interface + WsBridge + QtBridge + AndroidBridge + ApiBridge + auto-detect
+  src/api/bridge.ts     TodoBridge interface + WsBridge + QtBridge + auto-detect
 
 tests/
   e2e/                  Playwright end-to-end tests (browser + desktop)

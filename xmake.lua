@@ -18,7 +18,6 @@ if is_plat("windows") then
 end
 
 add_requires("catch2 3.x")
-add_requires("nlohmann_json")
 
 -- ── Libraries ────────────────────────────────────────────────────────
 
@@ -33,18 +32,6 @@ includes("desktop/xmake.lua")
 -- ── CLI tools ────────────────────────────────────────────────────────
 
 includes("cli/test-server/xmake.lua")
-
--- ── Hosted web server ──────────────────────────────────────────────
-
-target("server")
-    set_kind("phony")
-    set_default(false)
-    add_deps("todos-ffi")
-    on_run(function()
-        print(">>> bun server/index.ts")
-        local base = os.scriptdir()
-        os.execv("bun", {"server/index.ts"}, {curdir = base})
-    end)
 
 -- ── C++ unit tests (Catch2, no Qt) ──────────────────────────────────
 
