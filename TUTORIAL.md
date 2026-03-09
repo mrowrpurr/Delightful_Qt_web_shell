@@ -10,20 +10,9 @@ Your first feature in 5 minutes. We'll add a `deleteList` method — from C++ to
 └── tests/helpers/server.ts                 ← test mock
 ```
 
-## The Bridge
-
-`createBridge()` connects your React app to C++. You call methods, they run in C++, results come back as Promises:
-
-```typescript
-const bridge = createBridge()
-const lists = await bridge.listLists()
-```
-
-That's the entire API. The bridge handles everything else.
-
 ## Adding a Feature
 
-We're adding `deleteList` — deletes a todo list and all its items.
+We're adding `deleteList` — deletes a todo list and all its items. Four files, five steps.
 
 ### 1. Define the TypeScript interface
 
