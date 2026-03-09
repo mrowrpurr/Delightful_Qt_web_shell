@@ -2,6 +2,14 @@
 
 Your first feature in 5 minutes. We'll add a `deleteList` method — from C++ to React — and see how the pieces connect.
 
+```
+lib/
+  todos/include/todo_store.hpp        ← C++ domain logic
+  web-bridge/include/bridge.hpp       ← Q_INVOKABLE wrapper
+web/src/api/bridge.ts                 ← TypeScript interface
+tests/helpers/server.ts               ← test mock
+```
+
 ## The Bridge
 
 `createBridge()` connects your React app to C++. You call methods, they run in C++, results come back as Promises:
