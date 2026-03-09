@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <ctime>
+#include <ranges>
 #include <string>
 #include <vector>
 
@@ -49,9 +50,8 @@ class TodoStore {
     }
 
     int count_items(const std::string& list_id) const {
-        return static_cast<int>(std::count_if(
-            items_.begin(), items_.end(),
-            [&](const TodoItem& i) { return i.list_id == list_id; }
+        return static_cast<int>(std::ranges::count_if(
+            items_, [&](const TodoItem& i) { return i.list_id == list_id; }
         ));
     }
 
@@ -64,7 +64,7 @@ public:
     }
 
     ListDetail get_list(const std::string& list_id) const {
-        auto it = std::find_if(lists_.begin(), lists_.end(),
+        auto it = std::ranges::find_if(lists_,
             [&](const TodoList& l) { return l.id == list_id; });
         if (it == lists_.end()) return {};
 
@@ -90,7 +90,7 @@ public:
     }
 
     TodoItem toggle_item(const std::string& item_id) {
-        auto it = std::find_if(items_.begin(), items_.end(),
+        auto it = std::ranges::find_if(items_,
             [&](const TodoItem& i) { return i.id == item_id; });
         if (it == items_.end()) return {};
         it->done = !it->done;
@@ -100,12 +100,12 @@ public:
     std::vector<TodoItem> search(const std::string& query) const {
         std::vector<TodoItem> results;
         std::string lower_query = query;
-        std::transform(lower_query.begin(), lower_query.end(), lower_query.begin(), ::tolower);
+        std::ranges::transform(lower_query, lower_query.begin(), ::tolower);
 
         for (const auto& item : items_) {
             std::string lower_text = item.text;
-            std::transform(lower_text.begin(), lower_text.end(), lower_text.begin(), ::tolower);
-            if (lower_text.find(lower_query) != std::string::npos)
+            std::ranges::transform(lower_text, lower_text.begin(), ::tolower);
+            if (lower_text.contains(lower_query))
                 results.push_back(item);
         }
         return results;

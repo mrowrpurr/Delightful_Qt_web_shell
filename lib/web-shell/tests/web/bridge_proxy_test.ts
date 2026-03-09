@@ -12,7 +12,10 @@ afterEach(() => {
   servers = []
 })
 
-function startServer(handler: (ws: any, data: any) => void) {
+function startServer(
+  handler: (ws: any, data: any) => void,
+  signals: string[] = ['dataChanged'],
+) {
   const server = Bun.serve({
     port: 0,
     fetch(req, server) {
@@ -21,7 +24,12 @@ function startServer(handler: (ws: any, data: any) => void) {
     },
     websocket: {
       message(ws: any, msg: string | Buffer) {
-        handler(ws, JSON.parse(msg as string))
+        const data = JSON.parse(msg as string)
+        if (data.method === '__meta__') {
+          ws.send(JSON.stringify({ id: data.id, result: { signals } }))
+          return
+        }
+        handler(ws, data)
       },
     },
   })
@@ -114,7 +122,7 @@ test('increments request IDs for concurrent calls', async () => {
   expect(ids[0]).not.toBe(ids[1])
 })
 
-test('onDataChanged fires when server pushes an event', async () => {
+test('dataChanged fires when server pushes an event', async () => {
   let sendEvent: (() => void) | null = null
   const server = startServer((ws, data) => {
     ws.send(JSON.stringify({ id: data.id, result: [] }))
@@ -129,7 +137,7 @@ test('onDataChanged fires when server pushes an event', async () => {
 
   // Register listener
   let eventFired = false
-  bridge.onDataChanged(() => { eventFired = true })
+  bridge.dataChanged(() => { eventFired = true })
 
   // Push the event
   sendEvent!()
@@ -139,7 +147,7 @@ test('onDataChanged fires when server pushes an event', async () => {
   expect(eventFired).toBe(true)
 })
 
-test('onDataChanged cleanup removes the listener', async () => {
+test('dataChanged cleanup removes the listener', async () => {
   let sendEvent: (() => void) | null = null
   const server = startServer((ws, data) => {
     ws.send(JSON.stringify({ id: data.id, result: [] }))
@@ -150,7 +158,7 @@ test('onDataChanged cleanup removes the listener', async () => {
   await bridge.listLists()
 
   let count = 0
-  const cleanup = bridge.onDataChanged(() => { count++ })
+  const cleanup = bridge.dataChanged(() => { count++ })
 
   sendEvent!()
   await new Promise(r => setTimeout(r, 50))

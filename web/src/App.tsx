@@ -22,7 +22,7 @@ export default function App() {
 
   useEffect(() => {
     loadLists()
-    return bridge.onDataChanged(() => {
+    return bridge.dataChanged(() => {
       loadLists()
       if (selectedListId) loadDetail(selectedListId)
     })

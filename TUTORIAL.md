@@ -6,13 +6,12 @@ Your first feature in 5 minutes. We'll add a `deleteList` method — from C++ to
 ├── lib/
 │   ├── todos/include/todo_store.hpp        ← C++ domain logic
 │   └── web-bridge/include/bridge.hpp       ← Q_INVOKABLE wrapper
-├── web/src/api/bridge.ts                   ← TypeScript interface
-└── tests/helpers/server.ts                 ← test mock
+└── web/src/api/bridge.ts                   ← TypeScript interface
 ```
 
 ## Adding a Feature
 
-We're adding `deleteList` — deletes a todo list and all its items. Four files, five steps.
+We're adding `deleteList` — deletes a todo list and all its items. Three files, four steps.
 
 ### 1. Write the C++ logic
 
@@ -25,14 +24,8 @@ class TodoStore {
     // ... existing methods: add_list, add_item, toggle_item, etc.
 
     void delete_list(const std::string& list_id) {
-        lists_.erase(
-            std::remove_if(lists_.begin(), lists_.end(),
-                [&](const TodoList& l) { return l.id == list_id; }),
-            lists_.end());
-        items_.erase(
-            std::remove_if(items_.begin(), items_.end(),
-                [&](const TodoItem& i) { return i.list_id == list_id; }),
-            items_.end());
+        std::erase_if(lists_, [&](const TodoList& l) { return l.id == list_id; });
+        std::erase_if(items_, [&](const TodoItem& i) { return i.list_id == list_id; });
     }
 };
 ```
@@ -93,21 +86,7 @@ export interface TodoBridge {
 }
 ```
 
-### 4. Add it to the test mock
-
-Add the same method to the mock server so e2e tests work.
-
-#### `tests/helpers/server.ts`
-
-```typescript
-deleteList(listId: string) {
-  state.lists = state.lists.filter(l => l.id !== listId)
-  state.items = state.items.filter(i => i.list_id !== listId)
-  return {}
-},
-```
-
-### 5. Call it from React
+### 4. Call it from React
 
 ```typescript
 await bridge.deleteList(listId)
@@ -117,14 +96,13 @@ Done. No glue code, no method registration.
 
 ### What just happened?
 
-You touched four files, and none of them were wiring or plumbing:
+You touched three files, and none of them were wiring or plumbing:
 
 | File | What you wrote |
 |------|----------------|
-| `web/src/api/bridge.ts` | The TypeScript interface method |
 | `lib/todos/include/todo_store.hpp` | The actual logic |
 | `lib/web-bridge/include/bridge.hpp` | Q_INVOKABLE wrapper + signal |
-| `tests/helpers/server.ts` | Mock implementation for tests |
+| `web/src/api/bridge.ts` | The TypeScript interface method |
 
 The bridge infrastructure didn't change at all.
 
@@ -140,17 +118,17 @@ Any parameterless `Q_SIGNAL` on Bridge is automatically forwarded to connected c
 
 ```cpp
 signals:
-    void dataChanged();    // → fires onDataChanged in React
-    void listDeleted();    // → fires onListDeleted in React
+    void dataChanged();
+    void listDeleted();
 ```
 
-### TypeScript — subscribe with on*
+The transport layer discovers signals automatically via `QMetaObject` introspection — no naming conventions, no registration.
 
-Methods starting with `on` + a capital letter are event subscriptions. The naming convention is the wiring — no registration needed.
+### TypeScript — subscribe by signal name
 
 ```typescript
-bridge.onDataChanged(() => refresh())    // listens for "dataChanged"
-bridge.onListDeleted(() => recount())    // listens for "listDeleted"
+bridge.dataChanged(() => refresh())
+bridge.listDeleted(() => recount())
 ```
 
 ### Adding a new signal
@@ -182,14 +160,14 @@ bridge.onListDeleted(() => recount())    // listens for "listDeleted"
    ```typescript
    export interface TodoBridge {
      // ...
-     onListDeleted(callback: () => void): () => void  // ← new
+     listDeleted(callback: () => void): () => void  // ← new
    }
    ```
 
 4. Use it in React:
 
    ```typescript
-   const cleanup = bridge.onListDeleted(() => {
+   const cleanup = bridge.listDeleted(() => {
      console.log('a list was deleted')
    })
    // later: cleanup() to unsubscribe
@@ -197,11 +175,11 @@ bridge.onListDeleted(() => recount())    // listens for "listDeleted"
 
 ### Cleanup
 
-Every `on*` call returns an unsubscribe function. Call it when your component unmounts:
+Every signal subscription returns an unsubscribe function. Call it when your component unmounts:
 
 ```typescript
 useEffect(() => {
-  const cleanup = bridge.onDataChanged(() => setStale(true))
+  const cleanup = bridge.dataChanged(() => setStale(true))
   return cleanup
 }, [])
 ```
@@ -213,7 +191,6 @@ useEffect(() => {
 | Add/change business logic | `todo_store.hpp` |
 | Expose a method to the UI | `bridge.hpp` |
 | Define the TypeScript API | `bridge.ts` |
-| Add a mock for tests | `server.ts` |
 | Use it in React | `bridge.methodName()` |
 | Push an event from C++ to JS | Signal in `bridge.hpp` + `on*` in `bridge.ts` |
 

@@ -142,7 +142,21 @@ inline QWebSocketServer* expose_as_ws(QObject* bridge, int port, QObject* parent
                 QJsonArray args = request["args"].toArray();
                 qint64 id = request["id"].toInteger(-1);
 
-                QJsonValue result_value = invoke_bridge_method(bridge, method, args);
+                QJsonValue result_value;
+
+                if (method == "__meta__") {
+                    // Return signal names from QMetaObject
+                    const QMetaObject* meta = bridge->metaObject();
+                    QJsonArray signal_names;
+                    for (int i = meta->methodOffset(); i < meta->methodCount(); ++i) {
+                        QMetaMethod m = meta->method(i);
+                        if (m.methodType() == QMetaMethod::Signal && m.parameterCount() == 0)
+                            signal_names.append(QString::fromLatin1(m.name()));
+                    }
+                    result_value = QJsonObject{{"signals", signal_names}};
+                } else {
+                    result_value = invoke_bridge_method(bridge, method, args);
+                }
 
                 QJsonObject response;
                 if (id >= 0) response["id"] = id;

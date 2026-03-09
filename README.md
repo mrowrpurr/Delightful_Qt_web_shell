@@ -124,7 +124,6 @@ tests/
   e2e/                    Playwright end-to-end tests
     todo-lists.spec.ts
   helpers/
-    server.ts             Mock server for tests
     test-server/          Headless C++ test server
 ```
 

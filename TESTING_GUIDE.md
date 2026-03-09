@@ -7,7 +7,7 @@ Four test layers catch bugs at different levels — from pure C++ logic to full 
 | What changed | What to do |
 |---|---|
 | Domain logic in `todo_store.hpp` | Add a Catch2 test |
-| New bridge method in `bridge.hpp` | Add the method to the test mock |
+| New bridge method in `bridge.hpp` | Nothing — the test server uses the real Bridge |
 | UI behavior changed | Add a Playwright e2e test |
 | Nothing visible changed | You probably don't need a new test |
 
@@ -59,11 +59,6 @@ All tests passed (33 assertions in 11 test cases)
 **Playwright** starts a backend, launches a browser, runs through UI flows:
 ```
 4 passed
-```
-
-You can also run e2e against the Bun mock server instead of the C++ server:
-```bash
-BRIDGE_SERVER=bun xmake run test-browser
 ```
 
 **Desktop e2e** runs the same test suite against the real Qt app. It's slower and can be less stable (GPU, window manager). Good for CI, don't gate on it locally.
@@ -124,20 +119,6 @@ test('delete a list', async ({ page }) => {
 ```
 
 Run: `xmake run test-browser`
-
-### Test mock — keeping it in sync
-
-When you add a new bridge method, add the matching handler so e2e tests work.
-
-#### `tests/helpers/server.ts`
-
-```typescript
-deleteList(listId: string) {
-  state.lists = state.lists.filter(l => l.id !== listId)
-  state.items = state.items.filter(i => i.list_id !== listId)
-  return {}
-},
-```
 
 ## Test Architecture at a Glance
 

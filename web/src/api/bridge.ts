@@ -1,3 +1,5 @@
+import { createQtBridge, createWsBridge } from './bridge-transport'
+
 // ── Domain types ──────────────────────────────────────────────────────
 
 export interface TodoList {
@@ -31,13 +33,11 @@ export interface TodoBridge {
   addItem(listId: string, text: string): Promise<TodoItem>
   toggleItem(itemId: string): Promise<TodoItem>
   search(query: string): Promise<TodoItem[]>
-  onDataChanged(callback: () => void): () => void
+  dataChanged(callback: () => void): () => void
 }
 
 // ── Bridge singleton ─────────────────────────────────────────────────
 // Auto-detects the right transport. You never need to think about this.
-
-import { createQtBridge, createWsBridge } from './bridge-transport'
 
 let _bridge: TodoBridge | null = null
 
