@@ -23,9 +23,9 @@ In **production**, the React app talks to C++ through QWebChannel — same proce
 
 ## The Proxy Pattern
 
-Both sides use zero-boilerplate Proxies. On C++, `expose_as_ws()` introspects `Q_INVOKABLE` methods via `QMetaObject` and dispatches calls automatically. On TypeScript, `createWsBridge<T>()` and `createQtBridge<T>()` are `Proxy` objects — the interface *is* the implementation. Add a method to both sides and the plumbing connects them with no glue code.
+Both sides use zero-boilerplate Proxies. On C++, the bridge infrastructure introspects `Q_INVOKABLE` methods via `QMetaObject` and dispatches calls automatically. On TypeScript, `createBridge()` returns a `Proxy` — the interface *is* the implementation. Add a method to both sides and the plumbing connects them with no glue code.
 
-See [BRIDGE_GUIDE.md](BRIDGE_GUIDE.md) for a step-by-step walkthrough of adding features, wiring signals, and how the Proxy works under the hood.
+See [TUTORIAL.md](TUTORIAL.md) to add your first feature in 5 minutes.
 
 ## Testing
 

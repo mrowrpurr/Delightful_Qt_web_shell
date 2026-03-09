@@ -114,7 +114,7 @@ test('sends deleteList with the list ID', async () => {
     ws.send(JSON.stringify({ id: data.id, result: {} }))
   })
 
-  const bridge = createWsBridge<TodoBridge>(`ws://localhost:${server.port}`)
+  const bridge = createWsBridge<TodoBridge>(`ws://localhost:${server.port}`)  // from bridge-transport
   await bridge.deleteList('list-1')
 
   expect(received[0].method).toBe('deleteList')

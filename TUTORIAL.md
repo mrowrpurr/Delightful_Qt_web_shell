@@ -1,34 +1,23 @@
-# Bridge Guide
+# Tutorial
 
-How the C++ ↔ TypeScript bridge works, and how to extend it for your app.
+Your first feature in 5 minutes. This walks through adding a new method to your app — from C++ to React — and shows how the pieces connect.
 
-## Why Are There Two Bridges?
+## The Bridge
 
-| | QWebChannel (production) | WebSocket (dev/test) |
-|---|---|---|
-| **How** | Qt injects it into WebEngine — in-process, zero network overhead | JSON-RPC over WebSocket on `localhost:9876` |
-| **When** | The real desktop app | `--dev` mode, Playwright tests, browser-only dev, Bun unit tests |
-| **Speed** | Fastest possible — same process | Fast enough — local loopback |
-
-You don't choose between them. `createBridge()` auto-detects which one is available:
+`createBridge()` connects your React app to C++. You call methods on it, they run in C++, results come back as Promises:
 
 ```typescript
-// web/src/api/bridge.ts
-export function createBridge(): TodoBridge {
-  if (window.qt?.webChannelTransport && window.QWebChannel)
-    return createQtBridge<TodoBridge>()
-  else
-    return createWsBridge<TodoBridge>(wsUrl)
-}
+const bridge = createBridge()
+const lists = await bridge.listLists()
 ```
 
-You write your code once. It works both ways.
+That's the entire API. The bridge handles everything else.
 
-## How Do I Add a Feature?
+## Adding a Feature
 
-Walk through adding `deleteList` to your app.
+Let's add `deleteList` — a method that deletes a todo list and all its items.
 
-### Step 1: Add the method to your TypeScript interface
+### 1. Define the TypeScript interface
 
 **`web/src/api/bridge.ts`** — this is the single source of truth for what your bridge can do:
 
@@ -45,7 +34,7 @@ export interface TodoBridge {
 }
 ```
 
-### Step 2: Add the domain logic in pure C++
+### 2. Write the C++ logic
 
 **`lib/todos/include/todo_store.hpp`** — no Qt, no JSON, just your business logic:
 
@@ -62,7 +51,7 @@ void delete_list(const std::string& list_id) {
 }
 ```
 
-### Step 3: Wrap it in the Bridge
+### 3. Expose it via Q_INVOKABLE
 
 **`lib/web-bridge/include/bridge.hpp`** — thin QObject wrapper. Q_INVOKABLE + JSON in/out:
 
@@ -74,9 +63,9 @@ Q_INVOKABLE QString deleteList(const QString& listId) {
 }
 ```
 
-That's it on the C++ side. `expose_as_ws()` finds this method automatically via `QMetaObject` introspection — no routing code needed.
+That's it on the C++ side. The bridge infrastructure finds this method automatically via `QMetaObject` introspection — no routing code needed.
 
-### Step 4: Add it to the Bun mock server
+### 4. Add it to the test mock
 
 **`tests/helpers/server.ts`** — so Bun-based tests have the same method:
 
@@ -88,7 +77,7 @@ deleteList(listId: string) {
 },
 ```
 
-### Step 5: Use it in React
+### 5. Call it from React
 
 ```typescript
 await bridge.deleteList(listId)
@@ -107,19 +96,19 @@ You touched four files, and none of them were wiring or plumbing:
 | `lib/web-bridge/include/bridge.hpp` | Q_INVOKABLE wrapper + signal |
 | `tests/helpers/server.ts` | Mock implementation for tests |
 
-The bridge infrastructure (`expose_as_ws`, `createWsBridge`, `createQtBridge`, `createBridge`) didn't change at all.
+The bridge infrastructure didn't change at all.
 
 ## How Do Events/Signals Work?
 
 ### C++ side
 
-Emit a signal from your Bridge. `expose_as_ws()` automatically forwards all parameterless signals as JSON events to connected WebSocket clients:
+Emit a signal from your Bridge. The infrastructure automatically forwards all parameterless signals as events to connected clients:
 
 ```cpp
 // lib/web-bridge/include/bridge.hpp
 signals:
-    void dataChanged();    // → {"event":"dataChanged"}
-    void listDeleted();    // → {"event":"listDeleted"}
+    void dataChanged();    // → fires onDataChanged in React
+    void listDeleted();    // → fires onListDeleted in React
 ```
 
 No registration needed — any `Q_SIGNAL` with zero parameters is forwarded.
@@ -133,7 +122,7 @@ bridge.onDataChanged(() => refresh())    // listens for "dataChanged"
 bridge.onListDeleted(() => recount())    // listens for "listDeleted"
 ```
 
-The `on*` convention is detected by the Proxy. It strips the `on` prefix, lowercases the first letter, and subscribes to that event name. Works identically for both `createWsBridge` and `createQtBridge`.
+The `on*` convention is detected by the Proxy. It strips the `on` prefix, lowercases the first letter, and subscribes to that event name.
 
 ### Adding a new signal
 
@@ -190,16 +179,14 @@ useEffect(() => {
 | Add a mock for tests | `tests/helpers/server.ts` |
 | Use a bridge method in React | Just call `bridge.methodName()` — the Proxy handles it |
 | Push an event from C++ to JS | Add a signal to `bridge.hpp`, add `on*` to the TS interface |
-| Change how the WebSocket protocol works | `lib/web-shell/include/expose_as_ws.hpp` (you probably don't need to) |
-| Change how the Proxy works | `web/src/api/bridge.ts` — `createWsBridge` / `createQtBridge` (you probably don't need to) |
 
 ## How the Proxy Works (If You're Curious)
 
-Both `createWsBridge<T>()` and `createQtBridge<T>()` return a JavaScript `Proxy`. When you call any method on it:
+`createBridge()` returns a JavaScript `Proxy`. When you call any method on it:
 
 1. The Proxy intercepts the property access
 2. If the name matches `on*` → it sets up an event listener
-3. Otherwise → it sends a JSON-RPC message (`{method, args, id}`) and returns a Promise
-4. When the response arrives (`{id, result}`), the Promise resolves
+3. Otherwise → it sends a message to C++ and returns a Promise
+4. When the response arrives, the Promise resolves
 
 The TypeScript interface is the implementation. There are no method stubs, no switch statements, no registration. Add a method to the interface, add the Q_INVOKABLE on the C++ side, and the Proxy connects them automatically.

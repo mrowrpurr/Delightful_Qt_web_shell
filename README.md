@@ -72,7 +72,7 @@ cd web && bun run dev
 # Open http://localhost:5173 in any browser
 ```
 
-The React app auto-detects QWebChannel vs WebSocket — same code, both paths.
+The React app connects to the C++ backend automatically — same code whether you're in Qt or a browser.
 
 ## Testing
 
@@ -93,7 +93,7 @@ bun install
 npx playwright install chromium
 ```
 
-See [TESTING_GUIDE.md](TESTING_GUIDE.md) for details on each layer, [BRIDGE_GUIDE.md](BRIDGE_GUIDE.md) for a walkthrough of adding features, or [ARCHITECTURE.md](ARCHITECTURE.md) for the big picture.
+See [TUTORIAL.md](TUTORIAL.md) to add your first feature, [TESTING_GUIDE.md](TESTING_GUIDE.md) for the test layers, or [ARCHITECTURE.md](ARCHITECTURE.md) for the big picture.
 
 ## Project Structure
 
@@ -113,7 +113,7 @@ desktop/                Qt desktop shell with WebEngine
   resources/
 
 web/
-  src/api/bridge.ts     TodoBridge interface + WsBridge + QtBridge + auto-detect
+  src/api/bridge.ts     TodoBridge interface + createBridge() (the only API you need)
 
 tests/
   e2e/                  Playwright end-to-end tests (browser + desktop)
