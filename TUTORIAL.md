@@ -27,20 +27,14 @@ We're adding `deleteList` — deletes a todo list and all its items.
 
 ### 1. Define the TypeScript interface
 
-Add the new method to the `TodoBridge` interface. This is the single source of truth for what your bridge can do.
+Add the new method to `TodoBridge` — the interface that defines every method your bridge supports.
 
 #### `web/src/api/bridge.ts`
 
 ```typescript
 export interface TodoBridge {
-  listLists(): Promise<TodoList[]>
-  getList(listId: string): Promise<ListDetail>
-  addList(name: string): Promise<TodoList>
-  deleteList(listId: string): Promise<void>     // ← new
-  addItem(listId: string, text: string): Promise<TodoItem>
-  toggleItem(itemId: string): Promise<TodoItem>
-  search(query: string): Promise<TodoItem[]>
-  onDataChanged(callback: () => void): () => void
+  // ... existing methods ...
+  deleteList(listId: string): Promise<void>     // ← add this
 }
 ```
 
@@ -211,12 +205,12 @@ useEffect(() => {
 
 | I want to... | File |
 |---|---|
-| Add/change business logic | `lib/todos/include/todo_store.hpp` |
-| Expose a method to the UI | `lib/web-bridge/include/bridge.hpp` — add a Q_INVOKABLE method |
-| Define the TypeScript API | `web/src/api/bridge.ts` — update the interface |
-| Add a mock for tests | `tests/helpers/server.ts` |
-| Use a bridge method in React | Just call `bridge.methodName()` — the Proxy handles it |
-| Push an event from C++ to JS | Add a signal to `bridge.hpp`, add `on*` to the TS interface |
+| Add/change business logic | `todo_store.hpp` |
+| Expose a method to the UI | `bridge.hpp` |
+| Define the TypeScript API | `bridge.ts` |
+| Add a mock for tests | `server.ts` |
+| Use it in React | `bridge.methodName()` |
+| Push an event from C++ to JS | Signal in `bridge.hpp` + `on*` in `bridge.ts` |
 
 ## How the Proxy Works (If You're Curious)
 

@@ -71,7 +71,7 @@ The `--dev` flag loads from `http://localhost:5173` instead of embedded resource
 For browser-only development (no Qt at all):
 
 ```bash
-# Terminal 1: C++ backend over WebSocket
+# Terminal 1: C++ backend
 xmake run test-server
 
 # Terminal 2: Vite dev server
@@ -105,30 +105,27 @@ npx playwright install chromium
 
 ```
 lib/
-  todos/                Pure C++ domain logic (no Qt)
+  todos/                  Pure C++ domain logic (no Qt)
     include/todo_store.hpp
-    tests/unit/todo_store_test.cpp    Catch2 unit tests
-  web-bridge/           QObject wrapper — Q_INVOKABLE methods
+    tests/unit/             Catch2 unit tests
+  web-bridge/             Bridge — exposes C++ to JavaScript
     include/bridge.hpp
-  web-shell/            Generic WebSocket adapter (Delightful infrastructure)
+  web-shell/              Bridge infrastructure (you won't need to touch this)
     include/expose_as_ws.hpp
-    tests/web/bridge_proxy_test.ts    Bun unit tests for the Proxy bridge
 
-desktop/                Qt desktop shell with WebEngine
+desktop/                  Qt desktop shell
   src/main.cpp
   resources/
 
 web/
-  src/api/bridge.ts     TodoBridge interface + createBridge() (the only API you need)
+  src/api/bridge.ts       Your app's bridge interface
 
 tests/
-  e2e/                  Playwright end-to-end tests (browser + desktop)
-    fixture.ts          Unified test fixture (DESKTOP=1 switches to Qt CDP)
-    todo-lists.spec.ts  CRUD, toggle, isolation
+  e2e/                    Playwright end-to-end tests
+    todo-lists.spec.ts
   helpers/
-    server.ts           Bun WebSocket mock server (per-connection isolation)
-    test-server/        Headless C++ WebSocket server (real backend, no GUI)
-      src/test_server.cpp
+    server.ts             Mock server for tests
+    test-server/          Headless C++ test server
 ```
 
 ## License
