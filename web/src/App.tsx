@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createBridge, type TodoList, type TodoItem, type ListDetail } from './api/bridge'
 
-const bridge = createBridge()
+const bridge = await createBridge()
 
 export default function App() {
   const [lists, setLists] = useState<TodoList[]>([])

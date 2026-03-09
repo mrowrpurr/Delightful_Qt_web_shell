@@ -31,8 +31,7 @@ public slots:
 
 // ── invoke_bridge_method ──────────────────────────────────────────────
 // Calls a Q_INVOKABLE method by name with QString args from a JSON array.
-// Bridge methods can return QJsonObject, QJsonArray, or QString.
-// The result is returned as a QJsonValue — no re-parsing needed.
+// Bridge methods return QJsonObject or QJsonArray.
 inline QJsonValue invoke_bridge_method(QObject* bridge, const QString& method_name, const QJsonArray& args) {
     const QMetaObject* meta = bridge->metaObject();
 
@@ -94,18 +93,8 @@ inline QJsonValue invoke_bridge_method(QObject* bridge, const QString& method_na
         return result;
     }
 
-    // QString fallback
-    QString result;
-    INVOKE(QString, result)
     #undef INVOKE
-
-    if (!ok) return QJsonObject{{"error", "Method invocation failed"}};
-
-    // Parse QString as JSON (legacy path)
-    QJsonDocument doc = QJsonDocument::fromJson(result.toUtf8());
-    if (doc.isArray())  return doc.array();
-    if (doc.isObject()) return doc.object();
-    return QJsonValue(result);
+    return QJsonObject{{"error", "Unsupported return type"}};
 }
 
 // ── expose_as_ws ──────────────────────────────────────────────────────

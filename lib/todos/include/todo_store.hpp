@@ -28,7 +28,6 @@ struct ListDetail {
 };
 
 // In-memory todo store. Pure C++, no Qt dependency.
-// The same interface that the Bun test server implements.
 class TodoStore {
     std::vector<TodoList> lists_;
     std::vector<TodoItem> items_;

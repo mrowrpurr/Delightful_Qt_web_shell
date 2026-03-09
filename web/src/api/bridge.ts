@@ -39,9 +39,9 @@ export interface TodoBridge {
 // ── Bridge singleton ─────────────────────────────────────────────────
 // Auto-detects the right transport. You never need to think about this.
 
-let _bridge: TodoBridge | null = null
+let _bridge: Promise<TodoBridge> | null = null
 
-export function createBridge(): TodoBridge {
+export function createBridge(): Promise<TodoBridge> {
   if (!_bridge) {
     if (window.qt?.webChannelTransport && window.QWebChannel)
       _bridge = createQtBridge<TodoBridge>()
