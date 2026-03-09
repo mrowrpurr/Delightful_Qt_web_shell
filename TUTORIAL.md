@@ -108,7 +108,7 @@ The bridge infrastructure didn't change at all.
 
 ## Events and Signals
 
-Push real-time updates from C++ to React. Emit a signal on the C++ side, subscribe with `on*` on the TypeScript side.
+Push real-time updates from C++ to React. Emit a signal on the C++ side, subscribe by name on the TypeScript side.
 
 ### C++ — emit a signal
 
@@ -192,15 +192,13 @@ useEffect(() => {
 | Expose a method to the UI | `bridge.hpp` |
 | Define the TypeScript API | `bridge.ts` |
 | Use it in React | `bridge.methodName()` |
-| Push an event from C++ to JS | Signal in `bridge.hpp` + `on*` in `bridge.ts` |
+| Push an event from C++ to JS | Signal in `bridge.hpp` + subscription in `bridge.ts` |
 
 ## How the Proxy Works (If You're Curious)
 
-`createBridge()` returns a JavaScript `Proxy`. When you call any method on it:
+`await createBridge()` connects to the C++ backend, queries its signals via `QMetaObject`, and returns a JavaScript `Proxy`. When you access a property on it:
 
-1. The Proxy intercepts the property access
-2. If the name matches `on*` → it sets up an event listener
-3. Otherwise → it sends a message to C++ and returns a Promise
-4. When the response arrives, the Promise resolves
+1. If it's a verified signal → returns a subscribe function
+2. If it's a method → sends a JSON-RPC message to C++ and returns a Promise
 
 The TypeScript interface is the implementation. There are no method stubs, no switch statements, no registration. Add a method to the interface, add the Q_INVOKABLE on the C++ side, and the Proxy connects them automatically.
