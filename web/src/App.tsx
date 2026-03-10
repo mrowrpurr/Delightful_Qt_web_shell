@@ -38,23 +38,19 @@ export default function App() {
     if (!name) return
     await bridge.addList(name)
     setNewListName('')
-    await loadLists()
-  }, [newListName, loadLists])
+  }, [newListName])
 
   const handleAddItem = useCallback(async () => {
     const text = newItemText.trim()
     if (!text || !selectedListId) return
     await bridge.addItem(selectedListId, text)
     setNewItemText('')
-    await loadDetail(selectedListId)
-    await loadLists()
-  }, [newItemText, selectedListId, loadDetail, loadLists])
+  }, [newItemText, selectedListId])
 
   const handleToggleItem = useCallback(async (itemId: string) => {
     if (!selectedListId) return
     await bridge.toggleItem(itemId)
-    await loadDetail(selectedListId)
-  }, [selectedListId, loadDetail])
+  }, [selectedListId])
 
   return (
     <div className="app">

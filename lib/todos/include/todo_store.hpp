@@ -98,13 +98,15 @@ public:
     }
 
     std::vector<TodoItem> search(std::string_view query) const {
+        auto to_lower = [](unsigned char c) -> char { return static_cast<char>(std::tolower(c)); };
+
         std::vector<TodoItem> results;
         std::string lower_query{query};
-        std::ranges::transform(lower_query, lower_query.begin(), ::tolower);
+        std::ranges::transform(lower_query, lower_query.begin(), to_lower);
 
         for (const auto& item : items_) {
             std::string lower_text = item.text;
-            std::ranges::transform(lower_text, lower_text.begin(), ::tolower);
+            std::ranges::transform(lower_text, lower_text.begin(), to_lower);
             if (lower_text.contains(lower_query))
                 results.push_back(item);
         }

@@ -147,9 +147,14 @@ inline QWebSocketServer* expose_as_ws(QObject* bridge, int port, QObject* parent
                     result_value = invoke_bridge_method(bridge, method, args);
                 }
 
+                // Promote error responses to the top level so clients
+                // can distinguish errors from successful results.
                 QJsonObject response;
                 if (id >= 0) response["id"] = id;
-                response["result"] = result_value;
+                if (auto obj = result_value.toObject(); obj.contains("error"))
+                    response["error"] = obj["error"];
+                else
+                    response["result"] = result_value;
 
                 socket->sendTextMessage(
                     QString::fromUtf8(QJsonDocument(response).toJson(QJsonDocument::Compact)));
@@ -157,13 +162,12 @@ inline QWebSocketServer* expose_as_ws(QObject* bridge, int port, QObject* parent
 
         // ── Forward signals as events ────────────────────────────
         const QMetaObject* meta = bridge->metaObject();
+        const int forwardSlot = SignalForwarder::staticMetaObject.indexOfSlot("forward()");
         for (int i = meta->methodOffset(); i < meta->methodCount(); ++i) {
             QMetaMethod m = meta->method(i);
             if (m.methodType() == QMetaMethod::Signal && m.parameterCount() == 0) {
                 auto* fwd = new SignalForwarder(socket, QString::fromLatin1(m.name()), socket);
-                QObject::connect(
-                    bridge, QByteArray("2" + m.methodSignature()).constData(),
-                    fwd,    SLOT(forward()));
+                QMetaObject::connect(bridge, i, fwd, forwardSlot);
             }
         }
 
