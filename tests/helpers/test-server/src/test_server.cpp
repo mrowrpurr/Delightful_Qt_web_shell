@@ -11,6 +11,7 @@
 
 #include "bridge.hpp"
 #include "expose_as_ws.hpp"
+#include "web_shell.hpp"
 
 int main(int argc, char* argv[]) {
     QCoreApplication app(argc, argv);
@@ -22,8 +23,10 @@ int main(int argc, char* argv[]) {
 
     int port = parser.value("port").toInt();
 
-    Bridge bridge;
-    auto* server = expose_as_ws(&bridge, port);
+    WebShell shell;
+    auto* bridge = new Bridge;
+    shell.addBridge("todos", bridge);
+    auto* server = expose_as_ws(&shell, port);
     if (!server) return 1;
 
     return app.exec();

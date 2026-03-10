@@ -77,15 +77,6 @@ public:
         return arr;
     }
 
-    // Called by the React app after the bridge connects and the first
-    // frame renders. The Qt shell listens for appReady() to fade out
-    // the loading overlay — so the user never sees unhydrated content.
-    Q_INVOKABLE QJsonObject appReady() {
-        emit ready();
-        return {};
-    }
-
 signals:
     void dataChanged();
-    void ready();
 };

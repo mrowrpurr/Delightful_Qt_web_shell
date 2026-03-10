@@ -1,4 +1,4 @@
-import { createQtBridge, createWsBridge } from './bridge-transport'
+import { createQtConnection, createWsConnection, type BridgeConnection } from './bridge-transport'
 
 // ── Domain types ──────────────────────────────────────────────────────
 // Snake_case field names match the C++ structs and JSON wire format.
@@ -35,23 +35,34 @@ export interface TodoBridge {
   addItem(listId: string, text: string): Promise<TodoItem>
   toggleItem(itemId: string): Promise<TodoItem>
   search(query: string): Promise<TodoItem[]>
-  appReady(): Promise<void>
   dataChanged(callback: () => void): () => void
 }
 
-// ── Bridge singleton ─────────────────────────────────────────────────
+// ── Connection singleton ────────────────────────────────────────────
 // Auto-detects the right transport. You never need to think about this.
 
-let _bridge: Promise<TodoBridge> | null = null
+let _connection: Promise<BridgeConnection> | null = null
 
-export function createBridge(): Promise<TodoBridge> {
-  if (!_bridge) {
+function getConnection(): Promise<BridgeConnection> {
+  if (!_connection) {
     if (window.qt?.webChannelTransport && window.QWebChannel)
-      _bridge = createQtBridge<TodoBridge>()
+      _connection = createQtConnection()
     else {
       const wsUrl = import.meta.env.VITE_BRIDGE_WS_URL || 'ws://localhost:9876'
-      _bridge = createWsBridge<TodoBridge>(wsUrl)
+      _connection = createWsConnection(wsUrl)
     }
   }
-  return _bridge
+  return _connection
+}
+
+// ── Public API ──────────────────────────────────────────────────────
+
+export async function useBridge<T extends object>(name: string): Promise<T> {
+  const conn = await getConnection()
+  return conn.bridge<T>(name)
+}
+
+export async function signalReady(): Promise<void> {
+  const conn = await getConnection()
+  return conn.signalReady()
 }

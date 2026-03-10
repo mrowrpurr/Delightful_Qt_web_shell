@@ -9,20 +9,26 @@
 #include <QWebSocket>
 #include <QWebSocketServer>
 
+#include "web_shell.hpp"
+
 // ── SignalForwarder ───────────────────────────────────────────────────
 // Bridges a Qt signal to a WebSocket JSON event.
+// Includes the bridge name so clients know which bridge emitted it.
 // Destroyed when the socket disconnects (parent = socket).
 class SignalForwarder : public QObject {
     Q_OBJECT
     QWebSocket* socket_;
+    QString     bridge_name_;
     QString     event_name_;
 public:
-    SignalForwarder(QWebSocket* socket, const QString& name, QObject* parent = nullptr)
-        : QObject(parent), socket_(socket), event_name_(name) {}
+    SignalForwarder(QWebSocket* socket, const QString& bridge, const QString& event, QObject* parent = nullptr)
+        : QObject(parent), socket_(socket), bridge_name_(bridge), event_name_(event) {}
 public slots:
     void forward() {
         if (!socket_ || !socket_->isValid()) return;
         QJsonObject msg;
+        if (!bridge_name_.isEmpty())
+            msg["bridge"] = bridge_name_;
         msg["event"] = event_name_;
         socket_->sendTextMessage(
             QString::fromUtf8(QJsonDocument(msg).toJson(QJsonDocument::Compact)));
@@ -97,19 +103,50 @@ inline QJsonValue invoke_bridge_method(QObject* bridge, const QString& method_na
     return QJsonObject{{"error", "Unsupported return type"}};
 }
 
+// ── collect_signal_names ─────────────────────────────────────────────
+inline QJsonArray collect_signal_names(const QObject* obj) {
+    const QMetaObject* meta = obj->metaObject();
+    QJsonArray names;
+    for (int i = meta->methodOffset(); i < meta->methodCount(); ++i) {
+        QMetaMethod m = meta->method(i);
+        if (m.methodType() == QMetaMethod::Signal && m.parameterCount() == 0)
+            names.append(QString::fromLatin1(m.name()));
+    }
+    return names;
+}
+
+// ── forward_signals ──────────────────────────────────────────────────
+inline void forward_signals(QObject* source, const QString& bridgeName, QWebSocket* socket) {
+    const QMetaObject* meta = source->metaObject();
+    const int forwardSlot = SignalForwarder::staticMetaObject.indexOfSlot("forward()");
+    for (int i = meta->methodOffset(); i < meta->methodCount(); ++i) {
+        QMetaMethod m = meta->method(i);
+        if (m.methodType() == QMetaMethod::Signal && m.parameterCount() == 0) {
+            auto* fwd = new SignalForwarder(socket, bridgeName, QString::fromLatin1(m.name()), socket);
+            QMetaObject::connect(source, i, fwd, forwardSlot);
+        }
+    }
+}
+
 // ── expose_as_ws ──────────────────────────────────────────────────────
-// Takes any QObject with Q_INVOKABLE methods and exposes it as a
-// WebSocket JSON-RPC server. Works with ANY bridge, not just TodoBridge.
+// Exposes a WebShell and all its registered bridges as a WebSocket
+// JSON-RPC server. Each message can target a specific bridge by name.
 //
 // Protocol:
-//   → {"method": "listLists", "args": [], "id": 1}
+//   → {"bridge": "todos", "method": "listLists", "args": [], "id": 1}
 //   ← {"id": 1, "result": [...]}
 //
-//   ← {"event": "dataChanged"}   (pushed when a signal fires)
+//   → {"method": "appReady", "args": [], "id": 2}         (no bridge = shell)
+//   ← {"id": 2, "result": {}}
+//
+//   ← {"bridge": "todos", "event": "dataChanged"}         (pushed on signal)
+//
+//   → {"method": "__meta__", "args": [], "id": 0}
+//   ← {"id": 0, "result": {"bridges": {"todos": {"signals": ["dataChanged"]}}}}
 //
 // Convention: Q_INVOKABLE methods take QStrings, return QJsonObject or QJsonArray.
 //             Parameterless signals are forwarded as events.
-inline QWebSocketServer* expose_as_ws(QObject* bridge, int port, QObject* parent = nullptr) {
+inline QWebSocketServer* expose_as_ws(WebShell* shell, int port, QObject* parent = nullptr) {
     auto* server = new QWebSocketServer(
         QStringLiteral("BridgeServer"), QWebSocketServer::NonSecureMode, parent);
 
@@ -119,14 +156,15 @@ inline QWebSocketServer* expose_as_ws(QObject* bridge, int port, QObject* parent
         return nullptr;
     }
 
-    QObject::connect(server, &QWebSocketServer::newConnection, server, [bridge, server]() {
+    QObject::connect(server, &QWebSocketServer::newConnection, server, [shell, server]() {
         auto* socket = server->nextPendingConnection();
         if (!socket) return;
 
         // ── Method dispatch ──────────────────────────────────────
         QObject::connect(socket, &QWebSocket::textMessageReceived, server,
-            [bridge, socket](const QString& message) {
+            [shell, socket](const QString& message) {
                 QJsonObject request = QJsonDocument::fromJson(message.toUtf8()).object();
+                QString bridgeName = request["bridge"].toString();
                 QString method = request["method"].toString();
                 QJsonArray args = request["args"].toArray();
                 qint64 id = request["id"].toInteger(-1);
@@ -134,17 +172,21 @@ inline QWebSocketServer* expose_as_ws(QObject* bridge, int port, QObject* parent
                 QJsonValue result_value;
 
                 if (method == "__meta__") {
-                    // Return signal names from QMetaObject
-                    const QMetaObject* meta = bridge->metaObject();
-                    QJsonArray signal_names;
-                    for (int i = meta->methodOffset(); i < meta->methodCount(); ++i) {
-                        QMetaMethod m = meta->method(i);
-                        if (m.methodType() == QMetaMethod::Signal && m.parameterCount() == 0)
-                            signal_names.append(QString::fromLatin1(m.name()));
-                    }
-                    result_value = QJsonObject{{"signals", signal_names}};
+                    // Return all bridges and their signals
+                    QJsonObject bridges;
+                    for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it)
+                        bridges[it.key()] = QJsonObject{{"signals", collect_signal_names(it.value())}};
+                    result_value = QJsonObject{{"bridges", bridges}};
                 } else {
-                    result_value = invoke_bridge_method(bridge, method, args);
+                    // Route: no bridge name → shell, otherwise → named bridge
+                    QObject* target = bridgeName.isEmpty()
+                        ? static_cast<QObject*>(shell)
+                        : shell->bridges().value(bridgeName);
+
+                    if (!target)
+                        result_value = QJsonObject{{"error", "Unknown bridge: " + bridgeName}};
+                    else
+                        result_value = invoke_bridge_method(target, method, args);
                 }
 
                 // Promote error responses to the top level so clients
@@ -160,16 +202,9 @@ inline QWebSocketServer* expose_as_ws(QObject* bridge, int port, QObject* parent
                     QString::fromUtf8(QJsonDocument(response).toJson(QJsonDocument::Compact)));
             });
 
-        // ── Forward signals as events ────────────────────────────
-        const QMetaObject* meta = bridge->metaObject();
-        const int forwardSlot = SignalForwarder::staticMetaObject.indexOfSlot("forward()");
-        for (int i = meta->methodOffset(); i < meta->methodCount(); ++i) {
-            QMetaMethod m = meta->method(i);
-            if (m.methodType() == QMetaMethod::Signal && m.parameterCount() == 0) {
-                auto* fwd = new SignalForwarder(socket, QString::fromLatin1(m.name()), socket);
-                QMetaObject::connect(bridge, i, fwd, forwardSlot);
-            }
-        }
+        // ── Forward signals from all registered bridges ──────────
+        for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it)
+            forward_signals(it.value(), it.key(), socket);
 
         // ── Cleanup on disconnect ────────────────────────────────
         QObject::connect(socket, &QWebSocket::disconnected, socket, &QWebSocket::deleteLater);

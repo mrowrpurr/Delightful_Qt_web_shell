@@ -6,6 +6,7 @@ target("test-server")
     add_files(
         "src/test_server.cpp",
         path.join(os.projectdir(), "lib/web-bridge/include/bridge.hpp"),
-        path.join(os.projectdir(), "lib/web-shell/include/expose_as_ws.hpp")
+        path.join(os.projectdir(), "lib/web-shell/include/expose_as_ws.hpp"),
+        path.join(os.projectdir(), "lib/web-shell/include/web_shell.hpp")
     )
     add_frameworks("QtCore", "QtNetwork", "QtWebSockets")

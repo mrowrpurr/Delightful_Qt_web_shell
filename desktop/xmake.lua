@@ -10,6 +10,7 @@ target("desktop")
     add_files(
         "src/main.cpp",
         path.join(os.projectdir(), "lib/web-bridge/include/bridge.hpp"),
+        path.join(os.projectdir(), "lib/web-shell/include/web_shell.hpp"),
         "resources/resources.qrc",
         "web_dist_resources.cpp"
     )

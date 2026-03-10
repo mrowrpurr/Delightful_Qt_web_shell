@@ -1,9 +1,9 @@
 import { test, expect, afterEach } from 'bun:test'
-import { createWsBridge } from '../../../../web/src/api/bridge-transport'
+import { createWsConnection } from '../../../../web/src/api/bridge-transport'
 import type { TodoBridge } from '../../../../web/src/api/bridge'
 
 // Each test spins up its own WebSocket server on a random port.
-// The Proxy bridge connects and we verify the JSON-RPC protocol.
+// The connection is established and we verify the JSON-RPC protocol.
 
 let servers: Array<{ stop(): void }> = []
 
@@ -14,7 +14,7 @@ afterEach(() => {
 
 function startServer(
   handler: (ws: any, data: any) => void,
-  signals: string[] = ['dataChanged'],
+  bridgeSignals: Record<string, string[]> = { todos: ['dataChanged'] },
 ) {
   const server = Bun.serve({
     port: 0,
@@ -26,7 +26,10 @@ function startServer(
       message(ws: any, msg: string | Buffer) {
         const data = JSON.parse(msg as string)
         if (data.method === '__meta__') {
-          ws.send(JSON.stringify({ id: data.id, result: { signals } }))
+          const bridges: Record<string, any> = {}
+          for (const [name, signals] of Object.entries(bridgeSignals))
+            bridges[name] = { signals }
+          ws.send(JSON.stringify({ id: data.id, result: { bridges } }))
           return
         }
         handler(ws, data)
@@ -44,10 +47,12 @@ test('sends correct JSON-RPC message for a no-arg method', async () => {
     ws.send(JSON.stringify({ id: data.id, result: [] }))
   })
 
-  const bridge = await createWsBridge<TodoBridge>(`ws://localhost:${server.port}`)
+  const conn = await createWsConnection(`ws://localhost:${server.port}`)
+  const bridge = conn.bridge<TodoBridge>('todos')
   await bridge.listLists()
 
   expect(received).toHaveLength(1)
+  expect(received[0].bridge).toBe('todos')
   expect(received[0].method).toBe('listLists')
   expect(received[0].args).toEqual([])
   expect(typeof received[0].id).toBe('number')
@@ -60,9 +65,11 @@ test('sends args for methods with parameters', async () => {
     ws.send(JSON.stringify({ id: data.id, result: { id: '1', name: 'Test' } }))
   })
 
-  const bridge = await createWsBridge<TodoBridge>(`ws://localhost:${server.port}`)
+  const conn = await createWsConnection(`ws://localhost:${server.port}`)
+  const bridge = conn.bridge<TodoBridge>('todos')
   await bridge.addList('Groceries')
 
+  expect(received[0].bridge).toBe('todos')
   expect(received[0].method).toBe('addList')
   expect(received[0].args).toEqual(['Groceries'])
 })
@@ -74,9 +81,11 @@ test('sends multiple args correctly', async () => {
     ws.send(JSON.stringify({ id: data.id, result: { id: '1', text: 'Milk' } }))
   })
 
-  const bridge = await createWsBridge<TodoBridge>(`ws://localhost:${server.port}`)
+  const conn = await createWsConnection(`ws://localhost:${server.port}`)
+  const bridge = conn.bridge<TodoBridge>('todos')
   await bridge.addItem('list-1', 'Milk')
 
+  expect(received[0].bridge).toBe('todos')
   expect(received[0].method).toBe('addItem')
   expect(received[0].args).toEqual(['list-1', 'Milk'])
 })
@@ -91,7 +100,8 @@ test('resolves with the result from the server', async () => {
     }))
   })
 
-  const bridge = await createWsBridge<TodoBridge>(`ws://localhost:${server.port}`)
+  const conn = await createWsConnection(`ws://localhost:${server.port}`)
+  const bridge = conn.bridge<TodoBridge>('todos')
   const lists = await bridge.listLists()
 
   expect(lists).toHaveLength(1)
@@ -104,7 +114,8 @@ test('rejects when server returns an error', async () => {
     ws.send(JSON.stringify({ id: data.id, error: 'Not found' }))
   })
 
-  const bridge = await createWsBridge<TodoBridge>(`ws://localhost:${server.port}`)
+  const conn = await createWsConnection(`ws://localhost:${server.port}`)
+  const bridge = conn.bridge<TodoBridge>('todos')
   try {
     await bridge.getList('nonexistent')
     throw new Error('should have thrown')
@@ -120,7 +131,8 @@ test('increments request IDs for concurrent calls', async () => {
     ws.send(JSON.stringify({ id: data.id, result: [] }))
   })
 
-  const bridge = await createWsBridge<TodoBridge>(`ws://localhost:${server.port}`)
+  const conn = await createWsConnection(`ws://localhost:${server.port}`)
+  const bridge = conn.bridge<TodoBridge>('todos')
   await Promise.all([bridge.listLists(), bridge.search('test')])
 
   const ids = received.map(r => r.id)
@@ -132,10 +144,11 @@ test('dataChanged fires when server pushes an event', async () => {
   const server = startServer((ws, data) => {
     ws.send(JSON.stringify({ id: data.id, result: [] }))
     // Save a reference so we can push events later
-    sendEvent = () => ws.send(JSON.stringify({ event: 'dataChanged' }))
+    sendEvent = () => ws.send(JSON.stringify({ bridge: 'todos', event: 'dataChanged' }))
   })
 
-  const bridge = await createWsBridge<TodoBridge>(`ws://localhost:${server.port}`)
+  const conn = await createWsConnection(`ws://localhost:${server.port}`)
+  const bridge = conn.bridge<TodoBridge>('todos')
 
   // Make an initial call to establish the connection
   await bridge.listLists()
@@ -152,15 +165,15 @@ test('dataChanged fires when server pushes an event', async () => {
   expect(eventFired).toBe(true)
 })
 
-test('appReady sends a no-arg call and resolves', async () => {
+test('signalReady sends appReady and resolves', async () => {
   const received: any[] = []
   const server = startServer((ws, data) => {
     received.push(data)
     ws.send(JSON.stringify({ id: data.id, result: {} }))
-  }, ['dataChanged', 'ready'])
+  }, { todos: ['dataChanged'] })
 
-  const bridge = await createWsBridge<TodoBridge>(`ws://localhost:${server.port}`)
-  await bridge.appReady()
+  const conn = await createWsConnection(`ws://localhost:${server.port}`)
+  await conn.signalReady()
 
   expect(received).toHaveLength(1)
   expect(received[0].method).toBe('appReady')
@@ -171,10 +184,11 @@ test('dataChanged cleanup removes the listener', async () => {
   let sendEvent: (() => void) | null = null
   const server = startServer((ws, data) => {
     ws.send(JSON.stringify({ id: data.id, result: [] }))
-    sendEvent = () => ws.send(JSON.stringify({ event: 'dataChanged' }))
+    sendEvent = () => ws.send(JSON.stringify({ bridge: 'todos', event: 'dataChanged' }))
   })
 
-  const bridge = await createWsBridge<TodoBridge>(`ws://localhost:${server.port}`)
+  const conn = await createWsConnection(`ws://localhost:${server.port}`)
+  const bridge = conn.bridge<TodoBridge>('todos')
   await bridge.listLists()
 
   let count = 0

@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from 'react'
-import { createBridge, type TodoList, type TodoItem, type ListDetail } from './api/bridge'
+import { useBridge, signalReady, type TodoBridge, type TodoList, type TodoItem, type ListDetail } from './api/bridge'
 
 // Bridge connects before first render — the Qt loading overlay covers the wait.
-const bridge = await createBridge()
+// Top-level await is intentional: Vite supports it, and the Qt shell displays a
+// loading overlay until signalReady() completes, so there is no visible delay.
+const todos = await useBridge<TodoBridge>('todos')
 
 export default function App() {
   const [lists, setLists] = useState<TodoList[]>([])
@@ -12,21 +14,21 @@ export default function App() {
   const [newItemText, setNewItemText] = useState('')
 
   const loadLists = useCallback(async () => {
-    const result = await bridge.listLists()
+    const result = await todos.listLists()
     setLists(result)
   }, [])
 
   const loadDetail = useCallback(async (listId: string) => {
-    const result = await bridge.getList(listId)
+    const result = await todos.getList(listId)
     setDetail(result)
   }, [])
 
   // Tell the Qt shell we're ready — triggers the loading overlay fade-out.
-  useEffect(() => { bridge.appReady() }, [])
+  useEffect(() => { signalReady() }, [])
 
   useEffect(() => {
     loadLists()
-    return bridge.dataChanged(() => {
+    return todos.dataChanged(() => {
       loadLists()
       if (selectedListId) loadDetail(selectedListId)
     })
@@ -40,20 +42,20 @@ export default function App() {
   const handleCreateList = useCallback(async () => {
     const name = newListName.trim()
     if (!name) return
-    await bridge.addList(name).catch(console.error)
+    await todos.addList(name).catch(console.error)
     setNewListName('')
   }, [newListName])
 
   const handleAddItem = useCallback(async () => {
     const text = newItemText.trim()
     if (!text || !selectedListId) return
-    await bridge.addItem(selectedListId, text).catch(console.error)
+    await todos.addItem(selectedListId, text).catch(console.error)
     setNewItemText('')
   }, [newItemText, selectedListId])
 
   const handleToggleItem = useCallback(async (itemId: string) => {
     if (!selectedListId) return
-    await bridge.toggleItem(itemId).catch(console.error)
+    await todos.toggleItem(itemId).catch(console.error)
   }, [selectedListId])
 
   return (

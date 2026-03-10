@@ -35,6 +35,7 @@
 #include <QWebEngineView>
 
 #include "bridge.hpp"
+#include "web_shell.hpp"
 
 // Must match --bg in App.css — prevents white flash before web content loads.
 static constexpr QColor kBackground{0x24, 0x24, 0x24};
@@ -156,8 +157,10 @@ int main(int argc, char* argv[]) {
     auto* devToolsAction = windowsMenu->addAction("&Developer Tools");
     devToolsAction->setShortcut(QKeySequence("F12"));
 
-    // ── Bridge + WebChannel ───────────────────────────────────
-    auto* bridge = new Bridge(&window);
+    // ── Shell + Bridge ─────────────────────────────────────────
+    auto* shell = new WebShell(&window);
+    auto* bridge = new Bridge;
+    shell->addBridge("todos", bridge);
 
     // ── Web view ──────────────────────────────────────────────
     auto* view = new QWebEngineView(&window);
@@ -176,9 +179,11 @@ int main(int argc, char* argv[]) {
         page->scripts().insert(wcScript);
     }
 
-    // Register bridge with QWebChannel
-    auto* channel = new QWebChannel(page);
-    channel->registerObject("bridge", bridge);
+    // Register shell + bridges with QWebChannel
+    auto* channel = new QWebChannel(page);
+    channel->registerObject("_shell", shell);
+    for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it)
+        channel->registerObject(it.key(), it.value());
     page->setWebChannel(channel);
 
     // ── Developer Tools ───────────────────────────────────────
@@ -254,7 +259,7 @@ int main(int argc, char* argv[]) {
     // Fade out overlay once the React app signals it's fully rendered.
     // This replaces loadFinished — we don't reveal until the bridge is
     // connected, data is loaded, and the first frame is committed.
-    QObject::connect(bridge, &Bridge::ready, overlay, [overlay]() {
+    QObject::connect(shell, &WebShell::ready, overlay, [overlay]() {
         auto* effect = new QGraphicsOpacityEffect(overlay);
         overlay->setGraphicsEffect(effect);
 
