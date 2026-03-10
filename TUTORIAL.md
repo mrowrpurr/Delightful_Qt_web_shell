@@ -1,6 +1,24 @@
 # Tutorial
 
-Your first feature in 5 minutes. We'll add a `deleteList` method — from C++ to React — and see how the pieces connect.
+Your first feature in 5 minutes. We'll add an `addItem` method — from C++ to React — and see how the pieces connect.
+
+## Table of Contents
+
+- [Adding a Feature](#adding-a-feature)
+  - [1. Write the C++ logic](#1-write-the-c-logic)
+  - [2. Expose it to JavaScript](#2-expose-it-to-javascript)
+  - [3. Define the TypeScript interface](#3-define-the-typescript-interface)
+  - [4. Call it from React](#4-call-it-from-react)
+  - [What just happened?](#what-just-happened)
+- [Events and Signals](#events-and-signals)
+  - [C++ — emit a signal](#c--emit-a-signal)
+  - [TypeScript — subscribe by signal name](#typescript--subscribe-by-signal-name)
+  - [Adding a new signal](#adding-a-new-signal)
+  - [Cleanup](#cleanup)
+- [Where Does My Code Go?](#where-does-my-code-go)
+- [How the Proxy Works (If You're Curious)](#how-the-proxy-works-if-youre-curious)
+
+---
 
 ```
 ├── lib/
@@ -11,7 +29,7 @@ Your first feature in 5 minutes. We'll add a `deleteList` method — from C++ to
 
 ## Adding a Feature
 
-We're adding `deleteList` — deletes a todo list and all its items. Three files, four steps.
+We're adding `addItem` — adds a todo item to a list. Three files, four steps.
 
 ### 1. Write the C++ logic
 
@@ -21,11 +39,12 @@ Add the method to `TodoStore` — your pure C++ domain logic. No Qt, no JSON, ju
 
 ```cpp
 class TodoStore {
-    // ... existing methods: add_list, add_item, toggle_item, etc.
+    // ... existing methods: add_list, list_lists, etc.
 
-    void delete_list(const std::string& list_id) {
-        std::erase_if(lists_, [&](const TodoList& l) { return l.id == list_id; });
-        std::erase_if(items_, [&](const TodoItem& i) { return i.list_id == list_id; });
+    TodoItem add_item(const std::string& list_id, const std::string& text) {
+        TodoItem item{gen_id(), list_id, text, false, now_iso()};
+        items_.push_back(item);
+        return item;
     }
 };
 ```
@@ -42,32 +61,25 @@ class Bridge : public QObject {
     TodoStore store_;
 
     // One to_json() per type you expose. Qt has built-in JSON types.
-    static QJsonObject to_json(const TodoList& l) {
+    static QJsonObject to_json(const TodoItem& i) {
         return {
-            {"id",         QString::fromStdString(l.id)},
-            {"name",       QString::fromStdString(l.name)},
-            {"item_count", l.item_count},
-            {"created_at", QString::fromStdString(l.created_at)},
+            {"id",         QString::fromStdString(i.id)},
+            {"list_id",    QString::fromStdString(i.list_id)},
+            {"text",       QString::fromStdString(i.text)},
+            {"done",       i.done},
+            {"created_at", QString::fromStdString(i.created_at)},
         };
     }
 
 public:
-    // Methods that return data — call the store, return JSON:
-    Q_INVOKABLE QJsonObject addList(const QString& name) {
-        auto list = store_.add_list(name.toStdString());
-        emit dataChanged();
-        return to_json(list);
-    }
-
-    // Our new method — nothing to return, empty object:
-    Q_INVOKABLE QJsonObject deleteList(const QString& listId) {
-        store_.delete_list(listId.toStdString());
-        emit dataChanged();
-        return {};
+    Q_INVOKABLE QJsonObject addItem(const QString& listId, const QString& text) {
+        auto item = store_.add_item(listId.toStdString(), text.toStdString());
+        emit itemAdded();
+        return to_json(item);
     }
 
 signals:
-    void dataChanged();
+    void itemAdded();
 };
 ```
 
@@ -82,14 +94,14 @@ Add the new method to `TodoBridge` — the interface that defines every method y
 ```typescript
 export interface TodoBridge {
   // ... existing methods ...
-  deleteList(listId: string): Promise<void>     // ← add this
+  addItem(listId: string, text: string): Promise<TodoItem>     // ← add this
 }
 ```
 
 ### 4. Call it from React
 
 ```typescript
-await bridge.deleteList(listId)
+await bridge.addItem(listId, 'Buy milk')
 ```
 
 Done. No glue code, no method registration.
@@ -119,7 +131,7 @@ Any parameterless `Q_SIGNAL` on Bridge is automatically forwarded to connected c
 ```cpp
 signals:
     void dataChanged();
-    void listDeleted();
+    void itemAdded();
 ```
 
 The transport layer discovers signals automatically via `QMetaObject` introspection — no naming conventions, no registration.
@@ -128,7 +140,7 @@ The transport layer discovers signals automatically via `QMetaObject` introspect
 
 ```typescript
 bridge.dataChanged(() => refresh())
-bridge.listDeleted(() => recount())
+bridge.itemAdded(() => recount())
 ```
 
 ### Adding a new signal
@@ -140,16 +152,16 @@ bridge.listDeleted(() => recount())
    ```cpp
    signals:
        void dataChanged();
-       void listDeleted();  // ← new
+       void itemAdded();  // ← new
    ```
 
 2. Emit it where appropriate:
 
    ```cpp
-   Q_INVOKABLE QJsonObject deleteList(const QString& listId) {
-       store_.delete_list(listId.toStdString());
-       emit listDeleted();
-       return {};
+   Q_INVOKABLE QJsonObject addItem(const QString& listId, const QString& text) {
+       auto item = store_.add_item(listId.toStdString(), text.toStdString());
+       emit itemAdded();
+       return to_json(item);
    }
    ```
 
@@ -160,15 +172,15 @@ bridge.listDeleted(() => recount())
    ```typescript
    export interface TodoBridge {
      // ...
-     listDeleted(callback: () => void): () => void  // ← new
+     itemAdded(callback: () => void): () => void  // ← new
    }
    ```
 
 4. Use it in React:
 
    ```typescript
-   const cleanup = bridge.listDeleted(() => {
-     console.log('a list was deleted')
+   const cleanup = bridge.itemAdded(() => {
+     console.log('an item was added')
    })
    // later: cleanup() to unsubscribe
    ```
@@ -179,7 +191,7 @@ Every signal subscription returns an unsubscribe function. Call it when your com
 
 ```typescript
 useEffect(() => {
-  const cleanup = bridge.dataChanged(() => setStale(true))
+  const cleanup = bridge.itemAdded(() => setStale(true))
   return cleanup
 }, [])
 ```

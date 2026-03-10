@@ -5,6 +5,7 @@
 #include <ctime>
 #include <ranges>
 #include <string>
+#include <string_view>
 #include <vector>
 
 struct TodoList {
@@ -48,7 +49,7 @@ class TodoStore {
         return out;
     }
 
-    int count_items(const std::string& list_id) const {
+    int count_items(std::string_view list_id) const {
         return static_cast<int>(std::ranges::count_if(
             items_, [&](const TodoItem& i) { return i.list_id == list_id; }
         ));
@@ -62,7 +63,7 @@ public:
         return result;
     }
 
-    ListDetail get_list(const std::string& list_id) const {
+    ListDetail get_list(std::string_view list_id) const {
         auto it = std::ranges::find_if(lists_,
             [&](const TodoList& l) { return l.id == list_id; });
         if (it == lists_.end()) return {};
@@ -88,7 +89,7 @@ public:
         return item;
     }
 
-    TodoItem toggle_item(const std::string& item_id) {
+    TodoItem toggle_item(std::string_view item_id) {
         auto it = std::ranges::find_if(items_,
             [&](const TodoItem& i) { return i.id == item_id; });
         if (it == items_.end()) return {};
@@ -96,9 +97,9 @@ public:
         return *it;
     }
 
-    std::vector<TodoItem> search(const std::string& query) const {
+    std::vector<TodoItem> search(std::string_view query) const {
         std::vector<TodoItem> results;
-        std::string lower_query = query;
+        std::string lower_query{query};
         std::ranges::transform(lower_query, lower_query.begin(), ::tolower);
 
         for (const auto& item : items_) {
