@@ -37,14 +37,14 @@ class Bridge : public QObject {
 public:
     using QObject::QObject;
 
-    Q_INVOKABLE QJsonArray listLists() {
+    Q_INVOKABLE QJsonArray listLists() const {
         QJsonArray arr;
         for (const auto& l : store_.list_lists())
             arr.append(to_json(l));
         return arr;
     }
 
-    Q_INVOKABLE QJsonObject getList(const QString& listId) {
+    Q_INVOKABLE QJsonObject getList(const QString& listId) const {
         auto detail = store_.get_list(listId.toStdString());
         QJsonArray items;
         for (const auto& i : detail.items)
@@ -70,13 +70,22 @@ public:
         return to_json(item);
     }
 
-    Q_INVOKABLE QJsonArray search(const QString& query) {
+    Q_INVOKABLE QJsonArray search(const QString& query) const {
         QJsonArray arr;
         for (const auto& i : store_.search(query.toStdString()))
             arr.append(to_json(i));
         return arr;
     }
 
+    // Called by the React app after the bridge connects and the first
+    // frame renders. The Qt shell listens for appReady() to fade out
+    // the loading overlay — so the user never sees unhydrated content.
+    Q_INVOKABLE QJsonObject appReady() {
+        emit ready();
+        return {};
+    }
+
 signals:
     void dataChanged();
+    void ready();
 };

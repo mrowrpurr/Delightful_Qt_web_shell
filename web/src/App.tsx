@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createBridge, type TodoList, type TodoItem, type ListDetail } from './api/bridge'
 
+// Bridge connects before first render — the Qt loading overlay covers the wait.
 const bridge = await createBridge()
 
 export default function App() {
@@ -19,6 +20,9 @@ export default function App() {
     const result = await bridge.getList(listId)
     setDetail(result)
   }, [])
+
+  // Tell the Qt shell we're ready — triggers the loading overlay fade-out.
+  useEffect(() => { bridge.appReady() }, [])
 
   useEffect(() => {
     loadLists()

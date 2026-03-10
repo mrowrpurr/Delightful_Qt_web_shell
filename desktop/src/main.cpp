@@ -182,7 +182,8 @@ int main(int argc, char* argv[]) {
     page->setWebChannel(channel);
 
     // ── Developer Tools ───────────────────────────────────────
-    auto* devToolsView = new QWebEngineView();
+    auto* devToolsView = new QWebEngineView(&window);
+    devToolsView->setWindowFlags(Qt::Window);
     devToolsView->setWindowTitle("Developer Tools");
     devToolsView->resize(1024, 600);
     devToolsView->page()->setBackgroundColor(kBackground);
@@ -250,8 +251,10 @@ int main(int argc, char* argv[]) {
     window.show();
     QTimer::singleShot(0, [&window]() { window.setWindowOpacity(1.0); });
 
-    // Fade out overlay once web content is ready
-    QObject::connect(view, &QWebEngineView::loadFinished, overlay, [overlay](bool) {
+    // Fade out overlay once the React app signals it's fully rendered.
+    // This replaces loadFinished — we don't reveal until the bridge is
+    // connected, data is loaded, and the first frame is committed.
+    QObject::connect(bridge, &Bridge::ready, overlay, [overlay]() {
         auto* effect = new QGraphicsOpacityEffect(overlay);
         overlay->setGraphicsEffect(effect);
 
