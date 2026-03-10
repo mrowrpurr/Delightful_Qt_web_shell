@@ -1,14 +1,19 @@
 # Architecture
 
 ```
-┌──────────────────────────────────────────────────────┐
-│  Qt Desktop Shell                                    │
-│  ┌────────────┐    QWebChannel    ┌───────────────┐  │
-│  │   React    │◄──────────────────►│   Bridge     │  │
-│  │   (Vite)   │                   │  (QObject)    │  │
-│  └────────────┘                   └───────┬───────┘  │
-│   WebEngine                               │          │
-└───────────────────────────────────────────┼──────────┘
+┌──────────────────────────────────────────────────────────┐
+│  Qt Desktop Shell                                        │
+│  ┌────────────┐                  ┌───────────────────┐   │
+│  │   React    │◄─────────────────►│    WebShell       │  │
+│  │   (Vite)   │  QWebChannel /   │  (infrastructure) │  │
+│  └────────────┘  WebSocket       └────────┬──────────┘   │
+│   WebEngine                         addBridge("todos")   │
+│                                           │              │
+│                                    ┌──────┴───────┐      │
+│                                    │    Bridge    │      │
+│                                    │  (QObject)   │      │
+│                                    └──────┬───────┘      │
+└───────────────────────────────────────────┼──────────────┘
                                             │
   Production:  QWebChannel (in-process)     │
   Dev/Test:    WebSocket JSON-RPC           │
@@ -19,11 +24,13 @@
                                      └──────────────┘
 ```
 
-In **production**, the React app talks to C++ through QWebChannel — same process, zero serialization overhead. In **dev and test**, the same Bridge is exposed over WebSocket, so Playwright, Bun, or a browser can call it identically.
+`WebShell` owns the infrastructure — bridge registration, the `appReady` lifecycle signal, and metadata. Domain bridges like `Bridge` are registered by name and contain only `Q_INVOKABLE` methods and signals.
+
+In **production**, the React app talks to C++ through QWebChannel — same process, zero serialization overhead. In **dev and test**, the same bridges are exposed over WebSocket, so Playwright, Bun, or a browser can call them identically.
 
 ## The Proxy Pattern
 
-Both sides use zero-boilerplate Proxies. On C++, the bridge infrastructure introspects `Q_INVOKABLE` methods and signals via `QMetaObject` and dispatches calls automatically. On TypeScript, `await createBridge()` connects, discovers available signals, and returns a `Proxy` — the interface *is* the implementation. Add a method to both sides and the plumbing connects them with no glue code.
+Both sides use zero-boilerplate Proxies. On C++, the bridge infrastructure introspects `Q_INVOKABLE` methods and signals via `QMetaObject` and dispatches calls automatically. On TypeScript, `await useBridge<TodoBridge>('todos')` connects, discovers available signals, and returns a `Proxy` scoped to that bridge — the interface *is* the implementation. Add a method to both sides and the plumbing connects them with no glue code.
 
 See [TUTORIAL.md](TUTORIAL.md) to add your first feature in 5 minutes.
 

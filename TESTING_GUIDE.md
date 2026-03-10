@@ -7,7 +7,7 @@ Four test layers catch bugs at different levels — from pure C++ logic to full 
 | What changed | What to do |
 |---|---|
 | Domain logic in `todo_store.hpp` | Add a Catch2 test |
-| New bridge method in `bridge.hpp` | Nothing — the test server uses the real Bridge |
+| New bridge method in `bridge.hpp` | Nothing — the test server uses the real bridge |
 | UI behavior changed | Add a Playwright e2e test |
 | Nothing visible changed | You probably don't need a new test |
 

@@ -15,6 +15,7 @@ Your first feature in 5 minutes. We'll add an `addItem` method — from C++ to R
   - [TypeScript — subscribe by signal name](#typescript--subscribe-by-signal-name)
   - [Adding a new signal](#adding-a-new-signal)
   - [Cleanup](#cleanup)
+- [Adding a New Bridge](#adding-a-new-bridge)
 - [Where Does My Code Go?](#where-does-my-code-go)
 - [How the Proxy Works (If You're Curious)](#how-the-proxy-works-if-youre-curious)
 
@@ -23,7 +24,7 @@ Your first feature in 5 minutes. We'll add an `addItem` method — from C++ to R
 ```
 ├── lib/
 │   ├── todos/include/todo_store.hpp        ← C++ domain logic
-│   └── web-bridge/include/bridge.hpp       ← Q_INVOKABLE wrapper
+│   └── web-bridge/include/bridge.hpp       ← Q_INVOKABLE wrapper (registered as "todos")
 └── web/src/api/bridge.ts                   ← TypeScript interface
 ```
 
@@ -101,7 +102,9 @@ export interface TodoBridge {
 ### 4. Call it from React
 
 ```typescript
-await bridge.addItem(listId, 'Buy milk')
+const todos = await useBridge<TodoBridge>('todos')
+// ...
+await todos.addItem(listId, 'Buy milk')
 ```
 
 Done. No glue code, no method registration.
@@ -124,7 +127,7 @@ Push real-time updates from C++ to React. Emit a signal on the C++ side, subscri
 
 ### C++ — emit a signal
 
-Any parameterless `Q_SIGNAL` on Bridge is automatically forwarded to connected clients.
+Any parameterless `Q_SIGNAL` on a bridge is automatically forwarded to connected clients.
 
 #### `lib/web-bridge/include/bridge.hpp`
 
@@ -139,13 +142,15 @@ The transport layer discovers signals automatically via `QMetaObject` introspect
 ### TypeScript — subscribe by signal name
 
 ```typescript
-bridge.dataChanged(() => refresh())
-bridge.itemAdded(() => recount())
+const todos = await useBridge<TodoBridge>('todos')
+
+todos.dataChanged(() => refresh())
+todos.itemAdded(() => recount())
 ```
 
 ### Adding a new signal
 
-1. Add the signal to Bridge:
+1. Add the signal to your bridge:
 
    #### `lib/web-bridge/include/bridge.hpp`
 
@@ -179,7 +184,7 @@ bridge.itemAdded(() => recount())
 4. Use it in React:
 
    ```typescript
-   const cleanup = bridge.itemAdded(() => {
+   const cleanup = todos.itemAdded(() => {
      console.log('an item was added')
    })
    // later: cleanup() to unsubscribe
@@ -191,9 +196,57 @@ Every signal subscription returns an unsubscribe function. Call it when your com
 
 ```typescript
 useEffect(() => {
-  const cleanup = bridge.itemAdded(() => setStale(true))
+  const cleanup = todos.itemAdded(() => setStale(true))
   return cleanup
 }, [])
+```
+
+## Adding a New Bridge
+
+Bridges let you organize your app into domains. The template ships with a `todos` bridge — here's how to add another.
+
+### 1. Create a QObject bridge
+
+```cpp
+// lib/notes/include/notes_bridge.hpp
+class NotesBridge : public QObject {
+    Q_OBJECT
+public:
+    using QObject::QObject;
+
+    Q_INVOKABLE QJsonArray listNotes() { /* ... */ }
+    Q_INVOKABLE QJsonObject addNote(const QString& title) { /* ... */ }
+
+signals:
+    void notesChanged();
+};
+```
+
+### 2. Register it
+
+#### `desktop/src/main.cpp`
+
+```cpp
+shell->addBridge("notes", new NotesBridge);
+```
+
+That's it on the C++ side. The WebSocket and QWebChannel transports pick it up automatically.
+
+### 3. Add a TypeScript interface and use it
+
+#### `web/src/api/bridge.ts`
+
+```typescript
+export interface NotesBridge {
+  listNotes(): Promise<Note[]>
+  addNote(title: string): Promise<Note>
+  notesChanged(callback: () => void): () => void
+}
+```
+
+```typescript
+const notes = await useBridge<NotesBridge>('notes')
+await notes.addNote('Meeting notes')
 ```
 
 ## Where Does My Code Go?
@@ -201,14 +254,15 @@ useEffect(() => {
 | I want to... | File |
 |---|---|
 | Add/change business logic | `todo_store.hpp` |
-| Expose a method to the UI | `bridge.hpp` |
+| Expose a method to the UI | `bridge.hpp` (mark it `Q_INVOKABLE`) |
 | Define the TypeScript API | `bridge.ts` |
-| Use it in React | `bridge.methodName()` |
+| Use it in React | `todos.methodName()` |
 | Push an event from C++ to JS | Signal in `bridge.hpp` + subscription in `bridge.ts` |
+| Add a new domain area | `shell->addBridge("name", new MyBridge)` + TypeScript interface |
 
 ## How the Proxy Works (If You're Curious)
 
-`await createBridge()` connects to the C++ backend, queries its signals via `QMetaObject`, and returns a JavaScript `Proxy`. When you access a property on it:
+`await useBridge<T>('name')` connects to the C++ backend, queries all registered bridges and their signals via `QMetaObject`, and returns a JavaScript `Proxy` scoped to the named bridge. When you access a property on it:
 
 1. If it's a verified signal → returns a subscribe function
 2. If it's a method → sends a JSON-RPC message to C++ and returns a Promise
