@@ -111,7 +111,8 @@ lib/
   web-bridge/             Bridge — exposes C++ to JavaScript
     include/bridge.hpp
   web-shell/              Bridge infrastructure (you won't need to touch this)
-    include/expose_as_ws.hpp
+    include/web_shell.hpp     Registration, appReady lifecycle
+    include/expose_as_ws.hpp  WebSocket transport
 
 desktop/                  Qt desktop shell
   src/main.cpp
