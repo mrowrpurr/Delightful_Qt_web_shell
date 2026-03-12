@@ -35,9 +35,52 @@ public slots:
     }
 };
 
+// ── coerce_arg ───────────────────────────────────────────────────────
+// Converts a QJsonValue into a QGenericArgument matching the method's
+// expected parameter type. Supports QString, int, double, bool, and
+// QJsonObject/QJsonArray for complex types.
+//
+// The QVariant is used as stable storage — its lifetime must outlast the
+// invoke call. We fill one QVariant per parameter and point the
+// QGenericArgument at the QVariant's internal data.
+// Uses QGenericArgument directly (not Q_ARG) for compatibility across Qt 6.x.
+// Q_ARG returns QMetaMethodArgument in Qt 6.5+ which is a different type.
+inline QGenericArgument coerce_arg(const QJsonValue& json_val, const QByteArray& param_type, QVariant& storage) {
+    if (param_type == "QString") {
+        storage = QVariant(json_val.isString() ? json_val.toString() : QString::number(json_val.toDouble()));
+        return QGenericArgument("QString", storage.constData());
+    }
+    if (param_type == "int") {
+        storage = QVariant(json_val.isDouble() ? json_val.toInt() : json_val.toString().toInt());
+        return QGenericArgument("int", storage.constData());
+    }
+    if (param_type == "double") {
+        storage = QVariant(json_val.toDouble());
+        return QGenericArgument("double", storage.constData());
+    }
+    if (param_type == "bool") {
+        storage = QVariant(json_val.isBool() ? json_val.toBool() : json_val.toString() == "true");
+        return QGenericArgument("bool", storage.constData());
+    }
+    if (param_type == "QJsonObject") {
+        storage = QVariant::fromValue(json_val.toObject());
+        return QGenericArgument("QJsonObject", storage.constData());
+    }
+    if (param_type == "QJsonArray") {
+        storage = QVariant::fromValue(json_val.toArray());
+        return QGenericArgument("QJsonArray", storage.constData());
+    }
+    // Fallback: treat as QString
+    storage = QVariant(json_val.toString());
+    return QGenericArgument("QString", storage.constData());
+}
+
 // ── invoke_bridge_method ──────────────────────────────────────────────
-// Calls a Q_INVOKABLE method by name with QString args from a JSON array.
-// Bridge methods return QJsonObject or QJsonArray.
+// Calls a Q_INVOKABLE method by name with typed args from a JSON array.
+//
+// Supported parameter types: QString, int, double, bool, QJsonObject, QJsonArray
+// Supported return types:    QJsonObject, QJsonArray, QString, int, double, bool, void
+// Up to 10 parameters.
 inline QJsonValue invoke_bridge_method(QObject* bridge, const QString& method_name, const QJsonArray& args) {
     const QMetaObject* meta = bridge->metaObject();
 
@@ -52,70 +95,101 @@ inline QJsonValue invoke_bridge_method(QObject* bridge, const QString& method_na
         }
     }
     if (method_index < 0)
-        return QJsonObject{{"error", "Unknown method"}};
+        return QJsonObject{{"error", "Unknown method: " + method_name}};
 
     QMetaMethod method = meta->method(method_index);
+    int param_count = method.parameterCount();
 
-    // Extract QString args from the JSON array
-    QStringList string_args;
-    for (const auto& a : args)
-        string_args.append(a.isString() ? a.toString() : QString::number(a.toInt()));
+    if (param_count > 10)
+        return QJsonObject{{"error", method_name + ": too many parameters (max 10)"}};
 
-    // Invoke based on return type and parameter count.
-    // All parameters are QString by convention.
-    bool ok = false;
+    // Build typed QGenericArguments from the JSON array
+    QVariant storage[10];
+    QGenericArgument ga[10];
+    for (int i = 0; i < param_count; ++i) {
+        QJsonValue val = i < args.size() ? args[i] : QJsonValue();
+        ga[i] = coerce_arg(val, method.parameterTypeName(i), storage[i]);
+    }
+
+    // Invoke with the right return type
+    // Uses QGenericReturnArgument directly (not Q_RETURN_ARG) for Qt 6.5+ compat.
     QByteArray returnType = method.typeName();
+    bool ok = false;
 
-    #define INVOKE(RetType, result) \
-        switch (method.parameterCount()) { \
-            case 0: ok = method.invoke(bridge, Qt::DirectConnection, \
-                Q_RETURN_ARG(RetType, result)); break; \
-            case 1: ok = method.invoke(bridge, Qt::DirectConnection, \
-                Q_RETURN_ARG(RetType, result), \
-                Q_ARG(QString, string_args.value(0))); break; \
-            case 2: ok = method.invoke(bridge, Qt::DirectConnection, \
-                Q_RETURN_ARG(RetType, result), \
-                Q_ARG(QString, string_args.value(0)), \
-                Q_ARG(QString, string_args.value(1))); break; \
-            case 3: ok = method.invoke(bridge, Qt::DirectConnection, \
-                Q_RETURN_ARG(RetType, result), \
-                Q_ARG(QString, string_args.value(0)), \
-                Q_ARG(QString, string_args.value(1)), \
-                Q_ARG(QString, string_args.value(2))); break; \
-            default: return QJsonObject{{"error", "Too many parameters"}}; \
-        }
+    #define BRIDGE_INVOKE(result) \
+        method.invoke(bridge, Qt::DirectConnection, \
+            QGenericReturnArgument(returnType.constData(), &result), \
+            ga[0], ga[1], ga[2], ga[3], ga[4], ga[5], ga[6], ga[7], ga[8], ga[9])
 
     if (returnType == "QJsonObject") {
         QJsonObject result;
-        INVOKE(QJsonObject, result)
-        if (!ok) return QJsonObject{{"error", "Method invocation failed"}};
+        ok = BRIDGE_INVOKE(result);
+        if (!ok) return QJsonObject{{"error", method_name + ": invocation failed"}};
         return result;
     }
-
     if (returnType == "QJsonArray") {
         QJsonArray result;
-        INVOKE(QJsonArray, result)
-        if (!ok) return QJsonObject{{"error", "Method invocation failed"}};
+        ok = BRIDGE_INVOKE(result);
+        if (!ok) return QJsonObject{{"error", method_name + ": invocation failed"}};
         return result;
     }
+    if (returnType == "QString") {
+        QString result;
+        ok = BRIDGE_INVOKE(result);
+        if (!ok) return QJsonObject{{"error", method_name + ": invocation failed"}};
+        return QJsonObject{{"value", result}};
+    }
+    if (returnType == "int") {
+        int result = 0;
+        ok = BRIDGE_INVOKE(result);
+        if (!ok) return QJsonObject{{"error", method_name + ": invocation failed"}};
+        return QJsonObject{{"value", result}};
+    }
+    if (returnType == "double") {
+        double result = 0;
+        ok = BRIDGE_INVOKE(result);
+        if (!ok) return QJsonObject{{"error", method_name + ": invocation failed"}};
+        return QJsonObject{{"value", result}};
+    }
+    if (returnType == "bool") {
+        bool result = false;
+        ok = BRIDGE_INVOKE(result);
+        if (!ok) return QJsonObject{{"error", method_name + ": invocation failed"}};
+        return QJsonObject{{"value", result}};
+    }
+    #undef BRIDGE_INVOKE
 
-    #undef INVOKE
-    return QJsonObject{{"error", "Unsupported return type"}};
+    // void return — invoke without return arg
+    if (returnType == nullptr || QByteArray(returnType).isEmpty()) {
+        ok = method.invoke(bridge, Qt::DirectConnection,
+            ga[0], ga[1], ga[2], ga[3], ga[4], ga[5], ga[6], ga[7], ga[8], ga[9]);
+        if (!ok) return QJsonObject{{"error", method_name + ": invocation failed"}};
+        return QJsonObject{{"ok", true}};
+    }
+
+    return QJsonObject{{"error", method_name + ": unsupported return type '" + returnType + "'"}};
 }
 
 // ── collect_signal_names ─────────────────────────────────────────────
+// Collects ALL signals — including those with parameters.
 inline QJsonArray collect_signal_names(const QObject* obj) {
     const QMetaObject* meta = obj->metaObject();
     QJsonArray names;
     for (int i = meta->methodOffset(); i < meta->methodCount(); ++i) {
         QMetaMethod m = meta->method(i);
-        if (m.methodType() == QMetaMethod::Signal && m.parameterCount() == 0)
+        if (m.methodType() == QMetaMethod::Signal)
             names.append(QString::fromLatin1(m.name()));
     }
     return names;
 }
 
 // ── forward_signals ──────────────────────────────────────────────────
+// Forwards parameterless signals from a bridge to a WebSocket client.
+// Signals with parameters are still listed in __meta__ so clients know
+// they exist, but only parameterless signals are auto-forwarded.
+// (Qt's QMetaObject::connect requires matching slot signatures, so
+// forwarding arbitrary parameter types would need dynamic slot generation.
+// For now, emit parameterless notification signals alongside data-carrying ones.)
 inline void forward_signals(QObject* source, const QString& bridgeName, QWebSocket* socket) {
     const QMetaObject* meta = source->metaObject();
     const int forwardSlot = SignalForwarder::staticMetaObject.indexOfSlot("forward()");
@@ -163,11 +237,27 @@ inline QWebSocketServer* expose_as_ws(WebShell* shell, int port, QObject* parent
         // ── Method dispatch ──────────────────────────────────────
         QObject::connect(socket, &QWebSocket::textMessageReceived, server,
             [shell, socket](const QString& message) {
-                QJsonObject request = QJsonDocument::fromJson(message.toUtf8()).object();
+                QJsonParseError parseErr;
+                QJsonDocument doc = QJsonDocument::fromJson(message.toUtf8(), &parseErr);
+                if (parseErr.error != QJsonParseError::NoError) {
+                    QJsonObject errResp{{"error", "Invalid JSON: " + parseErr.errorString()}};
+                    socket->sendTextMessage(
+                        QString::fromUtf8(QJsonDocument(errResp).toJson(QJsonDocument::Compact)));
+                    return;
+                }
+                QJsonObject request = doc.object();
                 QString bridgeName = request["bridge"].toString();
                 QString method = request["method"].toString();
                 QJsonArray args = request["args"].toArray();
                 qint64 id = request["id"].toInteger(-1);
+
+                if (method.isEmpty()) {
+                    QJsonObject errResp{{"error", "Missing 'method' field"}};
+                    if (id >= 0) errResp["id"] = id;
+                    socket->sendTextMessage(
+                        QString::fromUtf8(QJsonDocument(errResp).toJson(QJsonDocument::Compact)));
+                    return;
+                }
 
                 QJsonValue result_value;
 

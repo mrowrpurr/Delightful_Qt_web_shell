@@ -34,6 +34,9 @@ export interface TodoBridge {
   addList(name: string): Promise<TodoList>
   addItem(listId: string, text: string): Promise<TodoItem>
   toggleItem(itemId: string): Promise<TodoItem>
+  deleteList(listId: string): Promise<{ ok: boolean }>
+  deleteItem(itemId: string): Promise<{ ok: boolean }>
+  renameList(listId: string, newName: string): Promise<TodoList>
   search(query: string): Promise<TodoItem[]>
   dataChanged(callback: () => void): () => void
 }
@@ -49,7 +52,11 @@ function getConnection(): Promise<BridgeConnection> {
       _connection = createQtConnection()
     else {
       const wsUrl = import.meta.env.VITE_BRIDGE_WS_URL || 'ws://localhost:9876'
-      _connection = createWsConnection(wsUrl)
+      _connection = createWsConnection(wsUrl).catch(err => {
+        // Reset so the next call retries the connection
+        _connection = null
+        throw err
+      })
     }
   }
   return _connection
@@ -57,10 +64,16 @@ function getConnection(): Promise<BridgeConnection> {
 
 // ── Public API ──────────────────────────────────────────────────────
 
-export async function useBridge<T extends object>(name: string): Promise<T> {
+// getBridge — NOT a React hook. It's a plain async function that returns a
+// typed proxy to a named C++ bridge. Safe to call at module scope.
+// (Aliased as useBridge for backward compat.)
+export async function getBridge<T extends object>(name: string): Promise<T> {
   const conn = await getConnection()
   return conn.bridge<T>(name)
 }
+
+/** @deprecated Use getBridge instead — this is not a React hook. */
+export const useBridge = getBridge
 
 export async function signalReady(): Promise<void> {
   const conn = await getConnection()

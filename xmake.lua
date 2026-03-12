@@ -67,7 +67,7 @@ target("dev-desktop")
         local desktop = target:dep("desktop")
         local envs = os.getenvs()
         envs["QTWEBENGINE_REMOTE_DEBUGGING"] = "9222"
-        os.execv(desktop:targetfile(), {}, {envs = envs})
+        os.execv(desktop:targetfile(), {"--dev"}, {envs = envs})
     end)
 
 -- ── Background desktop launch (for agents) ────────────────────────────

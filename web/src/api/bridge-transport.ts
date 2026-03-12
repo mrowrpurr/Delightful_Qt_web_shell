@@ -50,6 +50,15 @@ export async function createWsConnection(url: string): Promise<BridgeConnection>
     }
   }
 
+  ws.onclose = () => {
+    // Reject all pending calls so callers don't hang forever
+    for (const [id, p] of pending) {
+      p.reject(new Error('WebSocket disconnected'))
+      pending.delete(id)
+    }
+    console.warn('[bridge] WebSocket disconnected — will attempt to reconnect')
+  }
+
   // Query the shell for all bridges and their signals
   const meta = await new Promise<any>((resolve, reject) => {
     const id = nextId++

@@ -84,7 +84,11 @@ signals:
 };
 ```
 
-That's it on the C++ side. Return `QJsonObject` or `QJsonArray` from your methods — the infrastructure handles serialization. No routing code, no string wrangling.
+That's it on the C++ side. The infrastructure handles serialization automatically.
+
+**Supported parameter types:** `QString`, `int`, `double`, `bool`, `QJsonObject`, `QJsonArray`
+**Supported return types:** `QJsonObject`, `QJsonArray`, `QString`, `int`, `double`, `bool`, `void`
+**Max parameters:** 10
 
 ### 3. Define the TypeScript interface
 
@@ -127,7 +131,7 @@ Push real-time updates from C++ to React. Emit a signal on the C++ side, subscri
 
 ### C++ — emit a signal
 
-Any parameterless `Q_SIGNAL` on a bridge is automatically forwarded to connected clients.
+Parameterless `Q_SIGNAL`s on a bridge are automatically forwarded to connected clients. All signals (including those with parameters) are listed in `__meta__`, but only parameterless ones are auto-forwarded. Use parameterless notification signals for real-time updates:
 
 #### `lib/web-bridge/include/bridge.hpp`
 
@@ -222,15 +226,37 @@ signals:
 };
 ```
 
-### 2. Register it
+### 2. Register it in both entry points
+
+You must register the bridge in **two** places — the desktop app and the dev server. If you only register in `main.cpp`, browser-mode dev and Playwright tests won't see your bridge.
 
 #### `desktop/src/main.cpp`
 
 ```cpp
+#include "notes_bridge.hpp"
+// ...
 shell->addBridge("notes", new NotesBridge);
 ```
 
-That's it on the C++ side. The WebSocket and QWebChannel transports pick it up automatically.
+#### `tests/helpers/dev-server/src/test_server.cpp`
+
+```cpp
+#include "notes_bridge.hpp"
+// ...
+shell.addBridge("notes", new NotesBridge);
+```
+
+Also add your new header to `add_files` in both `desktop/xmake.lua` and `tests/helpers/dev-server/xmake.lua` so Qt MOC can process it:
+
+```lua
+-- desktop/xmake.lua
+add_files(
+    -- ...existing files...
+    path.join(os.projectdir(), "lib/notes/include/notes_bridge.hpp"),
+)
+```
+
+The WebSocket and QWebChannel transports pick up the bridge automatically — no routing code needed.
 
 ### 3. Add a TypeScript interface and use it
 
@@ -258,7 +284,9 @@ await notes.addNote('Meeting notes')
 | Define the TypeScript API | `bridge.ts` |
 | Use it in React | `todos.methodName()` |
 | Push an event from C++ to JS | Signal in `bridge.hpp` + subscription in `bridge.ts` |
-| Add a new domain area | `shell->addBridge("name", new MyBridge)` + TypeScript interface |
+| Add a new domain area | Register in `main.cpp` **and** `test_server.cpp` + TypeScript interface |
+
+**Don't forget:** new bridge classes need their `.hpp` in `add_files` for both `desktop/xmake.lua` and `tests/helpers/dev-server/xmake.lua` (Qt MOC requirement).
 
 ## How the Proxy Works (If You're Curious)
 

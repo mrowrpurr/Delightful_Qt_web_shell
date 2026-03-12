@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useBridge, signalReady, type TodoBridge, type TodoList, type TodoItem, type ListDetail } from './api/bridge'
+import { getBridge, signalReady, type TodoBridge, type TodoList, type TodoItem, type ListDetail } from './api/bridge'
 
 // Bridge connects before first render — the Qt loading overlay covers the wait.
 // Top-level await is intentional: Vite supports it, and the Qt shell displays a
 // loading overlay until signalReady() completes, so there is no visible delay.
-const todos = await useBridge<TodoBridge>('todos')
+const todos = await getBridge<TodoBridge>('todos')
 
 export default function App() {
   const [lists, setLists] = useState<TodoList[]>([])
@@ -68,6 +68,18 @@ export default function App() {
     await todos.toggleItem(itemId).catch(console.error)
   }, [selectedListId])
 
+  const handleDeleteList = useCallback(async (listId: string) => {
+    await todos.deleteList(listId).catch(console.error)
+    if (selectedListId === listId) {
+      setSelectedListId(null)
+      setDetail(null)
+    }
+  }, [selectedListId])
+
+  const handleDeleteItem = useCallback(async (itemId: string) => {
+    await todos.deleteItem(itemId).catch(console.error)
+  }, [])
+
   return (
     <div className="app">
       <h1 data-testid="heading">{import.meta.env.VITE_APP_NAME}</h1>
@@ -100,6 +112,12 @@ export default function App() {
           >
             <span className="list-name">{list.name}</span>
             <span className="list-count">{list.item_count}</span>
+            <button
+              data-testid="delete-list-button"
+              className="delete-btn"
+              onClick={e => { e.stopPropagation(); handleDeleteList(list.id) }}
+              title="Delete list"
+            >×</button>
           </div>
         ))}
       </div>
@@ -135,6 +153,12 @@ export default function App() {
             >
               <span className="checkbox">{item.done ? '✓' : '○'}</span>
               <span className="todo-text">{item.text}</span>
+              <button
+                data-testid="delete-item-button"
+                className="delete-btn"
+                onClick={e => { e.stopPropagation(); handleDeleteItem(item.id) }}
+                title="Delete item"
+              >×</button>
             </div>
           ))}
         </div>

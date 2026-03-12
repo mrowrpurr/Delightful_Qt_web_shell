@@ -170,3 +170,27 @@ button:hover {
 .todo-item.done .checkbox {
   color: var(--text-hint);
 }
+
+.delete-btn {
+  background: transparent;
+  color: var(--text-faded);
+  border: none;
+  padding: 2px 8px;
+  font-size: 1.1rem;
+  line-height: 1;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  margin-left: auto;
+}
+
+.list-card:hover .delete-btn,
+.todo-item:hover .delete-btn {
+  opacity: 1;
+}
+
+.delete-btn:hover {
+  color: #ff6b6b;
+  background: #ff6b6b22;
+}

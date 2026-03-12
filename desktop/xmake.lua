@@ -39,9 +39,27 @@ target("desktop")
         -- Pass APP_NAME to Vite so index.html and React can use it
         os.setenv("VITE_APP_NAME", _APP_NAME)
 
-        -- 1. Build the web app
-        os.execv("bun", {"install"}, {curdir = web_dir})
-        os.execv("bun", {"run", "build"}, {curdir = web_dir})
+        -- 1. Build the web app (skip if sources haven't changed)
+        local stamp_file = path.join(base, ".web-build-stamp")
+        local src_dir = path.join(web_dir, "src")
+        local needs_build = not os.isdir(dist_dir) or not os.isfile(stamp_file)
+        if not needs_build then
+            local stamp_mtime = os.mtime(stamp_file)
+            for _, f in ipairs(os.files(path.join(src_dir, "**"))) do
+                if os.mtime(f) > stamp_mtime then needs_build = true; break end
+            end
+            -- Also check index.html and package.json
+            for _, f in ipairs({path.join(web_dir, "index.html"), path.join(web_dir, "package.json")}) do
+                if os.isfile(f) and os.mtime(f) > stamp_mtime then needs_build = true; break end
+            end
+        end
+        if needs_build then
+            os.execv("bun", {"install"}, {curdir = web_dir})
+            os.execv("bun", {"run", "build"}, {curdir = web_dir})
+            io.writefile(stamp_file, os.date())
+        else
+            print("Web build is up to date — skipping.")
+        end
 
         -- 2. Generate a .qrc listing every file in dist/
         local qrc_lines = {'<RCC>', '    <qresource prefix="/web">'}

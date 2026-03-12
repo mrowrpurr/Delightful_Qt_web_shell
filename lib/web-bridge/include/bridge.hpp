@@ -70,6 +70,27 @@ public:
         return to_json(item);
     }
 
+    Q_INVOKABLE QJsonObject deleteList(const QString& listId) {
+        bool ok = store_.delete_list(listId.toStdString());
+        if (!ok) return {{"error", "List not found: " + listId}};
+        emit dataChanged();
+        return {{"ok", true}};
+    }
+
+    Q_INVOKABLE QJsonObject deleteItem(const QString& itemId) {
+        bool ok = store_.delete_item(itemId.toStdString());
+        if (!ok) return {{"error", "Item not found: " + itemId}};
+        emit dataChanged();
+        return {{"ok", true}};
+    }
+
+    Q_INVOKABLE QJsonObject renameList(const QString& listId, const QString& newName) {
+        auto list = store_.rename_list(listId.toStdString(), newName.toStdString());
+        if (list.id.empty()) return {{"error", "List not found: " + listId}};
+        emit dataChanged();
+        return to_json(list);
+    }
+
     Q_INVOKABLE QJsonArray search(const QString& query) const {
         QJsonArray arr;
         for (const auto& i : store_.search(query.toStdString()))

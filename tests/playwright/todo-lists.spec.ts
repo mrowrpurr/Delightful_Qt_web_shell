@@ -59,6 +59,21 @@ test('toggle a todo done', async ({ page, goHome }) => {
   await expect(item).toHaveAttribute('data-done', 'true')
 })
 
+test('delete a list', async ({ page, goHome }) => {
+  await goHome()
+
+  // Create a list
+  await page.getByTestId('new-list-input').fill('Temporary')
+  await page.getByTestId('create-list-button').click()
+  await expect(page.getByTestId('todo-list').filter({ hasText: 'Temporary' })).toBeVisible()
+
+  // Delete it — scope the button click to this specific list card
+  const tempList = page.getByTestId('todo-list').filter({ hasText: 'Temporary' })
+  await tempList.hover()
+  await tempList.getByTestId('delete-list-button').click()
+  await expect(tempList).not.toBeVisible()
+})
+
 test('multiple lists stay independent', async ({ page, goHome }) => {
   await goHome()
 

@@ -97,6 +97,32 @@ public:
         return *it;
     }
 
+    bool delete_list(std::string_view list_id) {
+        auto it = std::ranges::find_if(lists_,
+            [&](const TodoList& l) { return l.id == list_id; });
+        if (it == lists_.end()) return false;
+        lists_.erase(it);
+        std::erase_if(items_, [&](const TodoItem& i) { return i.list_id == list_id; });
+        return true;
+    }
+
+    bool delete_item(std::string_view item_id) {
+        auto it = std::ranges::find_if(items_,
+            [&](const TodoItem& i) { return i.id == item_id; });
+        if (it == items_.end()) return false;
+        items_.erase(it);
+        return true;
+    }
+
+    TodoList rename_list(std::string_view list_id, const std::string& new_name) {
+        auto it = std::ranges::find_if(lists_,
+            [&](const TodoList& l) { return l.id == list_id; });
+        if (it == lists_.end()) return {};
+        it->name = new_name;
+        it->item_count = count_items(list_id);
+        return *it;
+    }
+
     std::vector<TodoItem> search(std::string_view query) const {
         auto to_lower = [](unsigned char c) -> char { return static_cast<char>(std::tolower(c)); };
 

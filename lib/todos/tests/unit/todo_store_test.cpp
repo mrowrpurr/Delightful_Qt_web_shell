@@ -109,6 +109,57 @@ TEST_CASE("search with no matches returns empty") {
     REQUIRE(store.search("zzz").empty());
 }
 
+TEST_CASE("delete_list removes the list and its items") {
+    TodoStore store;
+    auto list = store.add_list("Groceries");
+    store.add_item(list.id, "Milk");
+    store.add_item(list.id, "Eggs");
+
+    REQUIRE(store.delete_list(list.id));
+    REQUIRE(store.list_lists().empty());
+    REQUIRE(store.search("Milk").empty());
+}
+
+TEST_CASE("delete_list returns false for unknown id") {
+    TodoStore store;
+    REQUIRE_FALSE(store.delete_list("nonexistent"));
+}
+
+TEST_CASE("delete_item removes just the item") {
+    TodoStore store;
+    auto list = store.add_list("List");
+    auto item1 = store.add_item(list.id, "Keep");
+    auto item2 = store.add_item(list.id, "Remove");
+
+    REQUIRE(store.delete_item(item2.id));
+    auto detail = store.get_list(list.id);
+    REQUIRE(detail.items.size() == 1);
+    REQUIRE(detail.items[0].text == "Keep");
+}
+
+TEST_CASE("delete_item returns false for unknown id") {
+    TodoStore store;
+    REQUIRE_FALSE(store.delete_item("nonexistent"));
+}
+
+TEST_CASE("rename_list changes the name") {
+    TodoStore store;
+    auto list = store.add_list("Old Name");
+    auto renamed = store.rename_list(list.id, "New Name");
+    REQUIRE(renamed.name == "New Name");
+    REQUIRE(renamed.id == list.id);
+
+    auto lists = store.list_lists();
+    REQUIRE(lists.size() == 1);
+    REQUIRE(lists[0].name == "New Name");
+}
+
+TEST_CASE("rename_list returns empty for unknown id") {
+    TodoStore store;
+    auto result = store.rename_list("nonexistent", "Whatever");
+    REQUIRE(result.id.empty());
+}
+
 TEST_CASE("items from different lists stay independent") {
     TodoStore store;
     auto work = store.add_list("Work");
