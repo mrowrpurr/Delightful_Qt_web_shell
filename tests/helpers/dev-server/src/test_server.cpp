@@ -1,10 +1,7 @@
-// Headless WebSocket server for Playwright e2e tests.
-// No GUI, no WebEngine — just a Bridge over WebSocket.
+// Headless WebSocket server — exposes bridges without a GUI.
+// Used for dev mode (browser + C++ backend) and Playwright e2e tests.
 //
-// Usage: test-server [--port 9876]
-//
-// This is the C++ equivalent of test-server/server.ts.
-// Same protocol, same behavior, real C++ code.
+// Usage: dev-server [--port 9876]
 
 #include <QCoreApplication>
 #include <QCommandLineParser>
@@ -15,7 +12,7 @@
 
 int main(int argc, char* argv[]) {
     QCoreApplication app(argc, argv);
-    app.setApplicationName("test-server");
+    app.setApplicationName("dev-server");
 
     QCommandLineParser parser;
     parser.addOption({{"p", "port"}, "WebSocket port", "port", "9876"});

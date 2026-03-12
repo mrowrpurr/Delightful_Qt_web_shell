@@ -1,4 +1,4 @@
-target("test-server")
+target("dev-server")
     set_kind("binary")
     set_default(false)
     add_rules("qt.console")

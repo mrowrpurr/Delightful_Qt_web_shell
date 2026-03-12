@@ -24,7 +24,7 @@ export default defineConfig({
       env: { VITE_APP_NAME: process.env.VITE_APP_NAME || 'Test App' },
     },
     {
-      command: 'xmake run test-server',
+      command: 'xmake run dev-server',
       port: 9876,
       stdout: 'pipe' as const,
       reuseExistingServer: !process.env.CI,

@@ -60,7 +60,7 @@ For development with hot module replacement:
 
 ```bash
 # Terminal 1: Vite dev server
-cd web && bun run dev
+xmake run dev-web
 
 # Terminal 2: Qt desktop pointing at Vite
 xmake run desktop --dev
@@ -72,10 +72,10 @@ For browser-only development (no Qt at all):
 
 ```bash
 # Terminal 1: C++ backend
-xmake run test-server
+xmake run dev-server
 
 # Terminal 2: Vite dev server
-cd web && bun run dev
+xmake run dev-web
 
 # Open http://localhost:5173 in any browser
 ```
@@ -125,7 +125,7 @@ tests/
   e2e/                    Playwright end-to-end tests
     todo-lists.spec.ts
   helpers/
-    test-server/          Headless C++ test server
+    dev-server/           Headless C++ WebSocket server (dev + tests)
 ```
 
 ## License

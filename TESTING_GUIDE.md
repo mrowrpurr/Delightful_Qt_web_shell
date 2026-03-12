@@ -69,7 +69,7 @@ All tests passed (33 assertions in 11 test cases)
 |---|---|
 | Catch2 won't compile | Syntax errors in `todo_store.hpp` or `bridge.hpp` |
 | Bun tests timeout | Something else using port 9876? |
-| E2e tests fail to start | Run `xmake build test-server` |
+| E2e tests fail to start | Run `xmake build dev-server` |
 | E2e "locator not found" | A `data-testid` changed in your React components |
 | Desktop tests fail | Run `xmake build desktop` first |
 | Desktop tests flaky | GPU/window manager issues — inherently less stable |

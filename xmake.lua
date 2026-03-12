@@ -6,6 +6,9 @@ APP_SLUG    = "delightful-qt-web-shell"
 APP_VERSION = "0.1.0"
 -- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+-- Capture at parse time — globals aren't available inside on_run/before_build closures
+local _APP_NAME = APP_NAME
+
 set_project(APP_SLUG)
 set_version(APP_VERSION)
 
@@ -31,7 +34,7 @@ includes("desktop/xmake.lua")
 
 -- ── Test infrastructure ─────────────────────────────────────────────
 
-includes("tests/helpers/test-server/xmake.lua")
+includes("tests/helpers/dev-server/xmake.lua")
 
 -- ── C++ unit tests (Catch2, no Qt) ──────────────────────────────────
 
@@ -42,6 +45,18 @@ target("test-todo-store")
     add_files("lib/todos/tests/unit/todo_store_test.cpp")
     add_packages("catch2")
 
+-- ── Vite dev server ───────────────────────────────────────────────
+
+target("dev-web")
+    set_kind("phony")
+    set_default(false)
+    on_run(function()
+        local web_dir = path.join(os.scriptdir(), "web")
+        local envs = os.getenvs()
+        envs["VITE_APP_NAME"] = _APP_NAME
+        os.execv("bun", {"run", "dev"}, {curdir = web_dir, envs = envs})
+    end)
+
 -- ── Playwright e2e tests (browser) ──────────────────────────────────
 
 target("test-browser")
@@ -50,7 +65,7 @@ target("test-browser")
     on_run(function()
         print(">>> npx playwright test (browser)")
         local base = os.scriptdir()
-        os.execv("npx", {"playwright", "test"}, {curdir = base, envs = {VITE_APP_NAME = APP_NAME}})
+        os.execv("npx", {"playwright", "test"}, {curdir = base, envs = {VITE_APP_NAME = _APP_NAME}})
     end)
 
 -- ── Playwright e2e tests (real Qt desktop app) ──────────────────────
