@@ -9,7 +9,7 @@ This is a concise index of traps. Details live in the doc where you're doing the
 | Register bridge in `test_server.cpp` | Bridge silently doesn't exist in dev/test mode | [03-adding-features.md, Step 3](03-adding-features.md) |
 | Add header to `add_files()` for MOC | Cryptic vtable linker error — doesn't mention your file | [03-adding-features.md, Step 2](03-adding-features.md) |
 | Remove `signalReady()` from `App.tsx` | App hangs with spinner forever, error after 15s | [02-architecture.md, signalReady](02-architecture.md) |
-| Use Bun instead of Node for cdp | `connectOverCDP` hangs forever — no error, no timeout | [05-tools.md, Critical: Node Not Bun](05-tools.md) |
+| Use Bun instead of Node for playwright-cdp | `connectOverCDP` hangs forever — no error, no timeout | [05-tools.md, Critical: Node Not Bun](05-tools.md) |
 
 ## Build Gotchas
 
@@ -23,7 +23,7 @@ This is a concise index of traps. Details live in the doc where you're doing the
 
 QtWebEngine doesn't support `Browser.setDownloadBehavior` — Playwright crashes during `connectOverCDP` without a one-line `.catch(() => {})` patch in `crBrowser.js`. Applied automatically by:
 - Root `package.json` → `patchedDependencies` (Bun's patch system)
-- `tools/cdp/postinstall` → applies same patch to its copy
+- `tools/playwright-cdp/postinstall` → applies same patch to its copy
 
 **When bumping playwright-core**, check if the patch still applies and if the issue is fixed upstream.
 
@@ -41,4 +41,4 @@ QtWebEngine doesn't support `Browser.setDownloadBehavior` — Playwright crashes
 
 ## Platform
 
-pywinauto is Windows-only. cdp works everywhere. The full 5-layer test suite only runs on Windows. macOS/Linux can run everything except pywinauto tests.
+pywinauto is Windows-only. playwright-cdp works everywhere. The full 5-layer test suite only runs on Windows. macOS/Linux can run everything except pywinauto tests.

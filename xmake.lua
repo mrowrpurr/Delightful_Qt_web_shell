@@ -51,8 +51,8 @@ target("setup")
         print("── bun install ──")
         os.execv("bun", {"install"}, {curdir = scriptdir})
 
-        print("── tools/cdp npm install ──")
-        os.execv("npm", {"install"}, {curdir = path.join(scriptdir, "tools", "cdp")})
+        print("── tools/playwright-cdp npm install ──")
+        os.execv("npm", {"install"}, {curdir = path.join(scriptdir, "tools", "playwright-cdp")})
 
         print("── playwright install chromium ──")
         os.execv("npx", {"playwright", "install", "chromium"}, {curdir = scriptdir})
@@ -198,20 +198,19 @@ target("stop-desktop")
 
 -- ── CDP CLI (drive Qt app via Chrome DevTools Protocol) ─────────────
 --
--- xmake run cdp snapshot             → accessibility tree
--- xmake run cdp screenshot           → screenshot.png
--- xmake run cdp click --test-id foo  → click element
--- xmake run cdp eval "document.title" → evaluate JS
--- See: npx tsx tools/cdp/cli.ts --help
+-- echo 'console.log(await snapshot())' | npx tsx tools/playwright-cdp/run.ts
+-- npx tsx tools/playwright-cdp/cli.ts snapshot
+-- See: npx tsx tools/playwright-cdp/cli.ts --help
 
-target("cdp")
+target("playwright-cdp")
     set_kind("phony")
     set_default(false)
     on_run(function()
-        print("Usage: npx tsx tools/cdp/cli.ts <command> [args...]")
+        print("Usage: echo '<code>' | npx tsx tools/playwright-cdp/run.ts")
+        print("   or: npx tsx tools/playwright-cdp/cli.ts <command> [args...]")
         print("")
-        print("Commands: snapshot, screenshot, click, fill, press, eval, text, wait, console")
-        print("Run with --help for full usage.")
+        print("Functions: snapshot, screenshot, click, fill, press, eval_js, text, wait, console_messages")
+        print("Run cli.ts with --help for full usage.")
     end)
 
 -- ── pywinauto tests (native Qt window) ─────────────────────────────

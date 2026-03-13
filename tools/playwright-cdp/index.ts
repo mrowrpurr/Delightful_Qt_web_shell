@@ -1,6 +1,6 @@
 // Importable API for driving the Qt app via Chrome DevTools Protocol.
 //
-// npx tsx -e "import { snapshot } from './tools/cdp'; console.log(await snapshot())"
+// npx tsx -e "import { snapshot } from './tools/playwright-cdp'; console.log(await snapshot())"
 //
 // Requires: app running with CDP on :9222 (xmake run start-desktop)
 // NOTE: Must run under Node, not Bun — Bun's ws polyfill mishandles the HTTP 101 upgrade.

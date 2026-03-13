@@ -7,7 +7,7 @@ You're an agent who wants to build a desktop app. This template gives you Qt + R
 - **React UI** rendered inside a Qt WebEngine window — you write React, the user sees a native desktop app
 - **C++ backend** connected to the UI via a type-safe bridge — write `Q_INVOKABLE` methods, call them from TypeScript
 - **Five test layers** that actually work — C++ unit, bridge protocol, browser e2e, desktop e2e, native Qt
-- **Dev tools** — cdp (see/click web content via CLI/library), pywinauto (drive native Qt widgets)
+- **Dev tools** — playwright-cdp (see/click web content via CLI/library), pywinauto (drive native Qt widgets)
 
 ## Project Layout
 
@@ -23,7 +23,7 @@ You're an agent who wants to build a desktop app. This template gives you Qt + R
 │   ├── playwright/           #   Browser + desktop e2e tests
 │   ├── pywinauto/            #   Native Qt widget tests (Windows)
 │   └── helpers/dev-server/   #   Headless C++ backend for dev/test
-├── tools/cdp/                # CDP CLI + library for seeing web content
+├── tools/playwright-cdp/      # Playwright + CDP library for seeing web content
 └── xmake.lua                 # Root build config (APP_NAME, APP_SLUG, targets)
 ```
 
@@ -54,7 +54,7 @@ This flows everywhere: window title, binary name, Windows exe metadata, HTML `<t
 # Point xmake at your Qt installation
 xmake f --qt=/path/to/qt   # e.g. C:/Qt/6.10.2/msvc2022_64
 
-# Install all dependencies (uv, bun, cdp tools, playwright chromium)
+# Install all dependencies (uv, bun, playwright-cdp, playwright chromium)
 xmake run setup
 ```
 

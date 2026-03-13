@@ -95,7 +95,7 @@ The dev-server is a headless C++ process that serves your bridges over WebSocket
 │   ├── playwright/           #   Browser + desktop e2e tests
 │   ├── pywinauto/            #   Native Qt widget tests (Windows)
 │   └── helpers/dev-server/   #   Headless C++ backend for dev/test
-├── tools/cdp/                # CDP CLI + library for agent tooling
+├── tools/playwright-cdp/      # Playwright + CDP library for agent tooling
 └── xmake.lua                 # Root build config (APP_NAME, targets)
 ```
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // CLI for driving the Qt app via Chrome DevTools Protocol.
 //
-// Usage: npx tsx tools/cdp/cli.ts <command> [args...]
-// For programmatic use: import { snapshot, click, fill } from './tools/cdp'
+// Usage: npx tsx tools/playwright-cdp/cli.ts <command> [args...]
+// For programmatic use: import { snapshot, click, fill } from './tools/playwright-cdp'
 
 import { snapshot, screenshot, click, fill, press, eval_js, text, wait, console_messages, disconnect } from "./index.js"
 
@@ -27,7 +27,7 @@ function parseArgs(argv: string[]) {
 function printHelp() {
   console.log(`cdp — Drive the Qt app via Chrome DevTools Protocol
 
-Usage: npx tsx tools/cdp/cli.ts <command> [args...]
+Usage: npx tsx tools/playwright-cdp/cli.ts <command> [args...]
 
 Commands:
   snapshot                          Accessibility tree of the page
@@ -44,7 +44,7 @@ Commands:
   console --duration <ms>           Listen for specified duration
 
 Programmatic:
-  npx tsx -e "import { snapshot } from './tools/cdp'; console.log(await snapshot())"
+  npx tsx -e "import { snapshot } from './tools/playwright-cdp'; console.log(await snapshot())"
 
 Options:
   --help                            Show this help`)

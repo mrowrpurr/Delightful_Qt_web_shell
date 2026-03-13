@@ -26,7 +26,7 @@ Five layers, from instant unit tests to native Qt window automation.
 ## Setup (One Time)
 
 ```bash
-xmake run setup    # all deps: uv sync, bun install, tools/cdp, playwright chromium
+xmake run setup    # all deps: uv sync, bun install, playwright-cdp, playwright chromium
 ```
 
 ## What Changed → What to Test

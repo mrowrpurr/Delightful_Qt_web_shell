@@ -5,7 +5,7 @@ You're an agent. You can't look at a screen. These tools are your eyes and hands
 ## Two Tools, Two Layers
 
 ```
- cdp (CLI)                  pywinauto (Python)
+ playwright-cdp (CLI)       pywinauto (Python)
  ┌──────────────┐           ┌──────────────┐
  │ Web content  │           │ Native Qt    │
  │ React DOM    │           │ Menus        │
@@ -20,12 +20,12 @@ You're an agent. You can't look at a screen. These tools are your eyes and hands
 
 | Tool | What it sees | What it drives | When to use |
 |------|-------------|----------------|-------------|
-| **cdp** | Web content rendered by React | Click, fill, evaluate JS | Anything inside the web view |
+| **playwright-cdp** | Web content rendered by React | Click, fill, evaluate JS | Anything inside the web view |
 | **pywinauto** | Native Qt widgets | Menus, dialogs, keyboard shortcuts | Anything outside the web view |
 
-**Rule of thumb:** If a human would right-click or use a menu → pywinauto. If they'd click a button in the UI → cdp.
+**Rule of thumb:** If a human would right-click or use a menu → pywinauto. If they'd click a button in the UI → playwright-cdp.
 
-## cdp — Your Eyes on the Web Content
+## playwright-cdp — Your Eyes on the Web Content
 
 A TypeScript library + CLI for driving the Qt app via Chrome DevTools Protocol. Import the functions directly for full programmatic power, or use the CLI for quick one-off commands.
 
@@ -44,10 +44,10 @@ All functions are globals. No imports needed. Reads code from stdin. Auto-discon
 
 ```bash
 # One-liner
-echo 'console.log(await snapshot())' | npx tsx tools/cdp/run.ts
+echo 'console.log(await snapshot())' | npx tsx tools/playwright-cdp/run.ts
 
 # Multi-step
-echo 'await fill("new-list-input", "Groceries"); await click("create-list-button")' | npx tsx tools/cdp/run.ts
+echo 'await fill("new-list-input", "Groceries"); await click("create-list-button")' | npx tsx tools/playwright-cdp/run.ts
 ```
 
 **2. Multiline scripts — full TypeScript power**
@@ -69,7 +69,7 @@ if (updated.includes("Groceries")) {
 } else {
   console.log("Something went wrong")
 }
-' | npx tsx tools/cdp/run.ts
+' | npx tsx tools/playwright-cdp/run.ts
 ```
 
 ```bash
@@ -82,17 +82,17 @@ for (const id of ["header", "subtitle", "footer"]) {
     console.log(id + ": not found")
   }
 }
-' | npx tsx tools/cdp/run.ts
+' | npx tsx tools/playwright-cdp/run.ts
 ```
 
 **3. `cli.ts` — simple named commands**
 
 ```bash
-npx tsx tools/cdp/cli.ts snapshot
-npx tsx tools/cdp/cli.ts click --test-id new-list-input
-npx tsx tools/cdp/cli.ts fill --test-id new-list-input "Groceries"
-npx tsx tools/cdp/cli.ts eval "document.title"
-npx tsx tools/cdp/cli.ts screenshot debug.png
+npx tsx tools/playwright-cdp/cli.ts snapshot
+npx tsx tools/playwright-cdp/cli.ts click --test-id new-list-input
+npx tsx tools/playwright-cdp/cli.ts fill --test-id new-list-input "Groceries"
+npx tsx tools/playwright-cdp/cli.ts eval "document.title"
+npx tsx tools/playwright-cdp/cli.ts screenshot debug.png
 ```
 
 ### Available Functions
@@ -127,7 +127,7 @@ npx tsx tools/cdp/cli.ts screenshot debug.png
 
 ### ⚠️ Critical: Node, Not Bun
 
-The cdp tools **must** run under Node.js (`npx tsx`), not Bun. Bun's WebSocket polyfill breaks the CDP connection — it can't handle the HTTP 101 Switching Protocols upgrade. Don't change `npx tsx` to `bun run`.
+The playwright-cdp tools **must** run under Node.js (`npx tsx`), not Bun. Bun's WebSocket polyfill breaks the CDP connection — it can't handle the HTTP 101 Switching Protocols upgrade. Don't change `npx tsx` to `bun run`.
 
 ## pywinauto — Your Hands on Native Qt
 
@@ -262,7 +262,7 @@ uv run pytest tests/pywinauto/ -v
 
 ## Desktop Screenshots — Your Eyes on the Full Screen
 
-Agents can't see the screen. CDP `screenshot` only captures web content inside the
+Agents can't see the screen. playwright-cdp `screenshot` only captures web content inside the
 WebEngine. For native dialogs, menus, taskbar, error popups — anything outside the
 web view — use the desktop screenshot tool.
 
@@ -308,23 +308,23 @@ Disabled in CI by default (screenshots may capture sensitive content). Set
 Sometimes you need both tools together. Example: test that a React button triggers a native dialog.
 
 ```
-1. cdp: click the "Save" button in React
+1. playwright-cdp: click the "Save" button in React
 2. pywinauto: verify the native QFileDialog appeared
 3. pywinauto: click "Cancel" to close it
-4. cdp: verify the UI shows "Save cancelled"
+4. playwright-cdp: verify the UI shows "Save cancelled"
 ```
 
 This is the superpower — React can't see native dialogs, pywinauto can't see React DOM. Together they cover everything.
 
 ## Platform Notes
 
-| Platform | cdp | pywinauto | Notes |
+| Platform | playwright-cdp | pywinauto | Notes |
 |----------|-----|-----------|-------|
 | **Windows** | ✅ | ✅ | Full support. Primary dev platform. |
 | **macOS** | ✅ | ❌ (use atomacos) | pywinauto is Windows-only. atomacos is the macOS equivalent but less mature. |
 | **Linux** | ✅ | ❌ (use dogtail) | dogtail or AT-SPI2 for native widget automation. |
 
-cdp works everywhere because it talks to the browser engine, not the OS. Native widget testing is platform-specific.
+playwright-cdp works everywhere because it talks to the browser engine, not the OS. Native widget testing is platform-specific.
 
 ## Sharing the Desktop with Your Human
 
@@ -333,4 +333,4 @@ If you're driving the app with pywinauto, **your human can't use their desktop**
 - Ask before taking over the desktop
 - Work in focused bursts — do your automation, then release
 - Consider running on a separate machine or VM for long automation sessions
-- cdp doesn't have this problem — it works through CDP, invisible to the human
+- playwright-cdp doesn't have this problem — it works through CDP, invisible to the human
