@@ -91,13 +91,22 @@ target("start-desktop")
         -- Check if already running
         if os.isfile(pidfile) then
             local pid = io.readfile(pidfile):trim()
-            -- Check if process is alive (Windows: tasklist, Unix: kill -0)
             if is_plat("windows") then
-                local ok = os.execv("tasklist", {"/FI", "PID eq " .. pid, "/NH"}, {try = true, stdout = "/dev/null", stderr = "/dev/null"})
+                -- tasklist always exits 0, so check output for the PID
+                local output = os.iorunv("tasklist", {"/FI", "PID eq " .. pid, "/FO", "CSV", "/NH"}, {try = true}) or ""
+                if output:find(pid) then
+                    print("Desktop app already running (PID " .. pid .. ")")
+                    return
+                end
+                -- Stale PID file — remove it and continue
+                os.rm(pidfile)
+            else
+                local ok = os.execv("kill", {"-0", pid}, {try = true})
                 if ok == 0 then
                     print("Desktop app already running (PID " .. pid .. ")")
                     return
                 end
+                os.rm(pidfile)
             end
         end
 
@@ -252,13 +261,14 @@ target("test-bun")
     end)
 
 -- ── Run all tests ───────────────────────────────────────────────────
--- Runs: Catch2 (C++ unit) + Bun (bridge proxy) + Playwright (browser e2e)
--- Does NOT run: test-desktop (needs built Qt app) or test-pywinauto (needs running app)
--- For those, run them individually after building/launching the desktop app.
+-- Runs everything: Catch2 + Bun + Playwright browser + pywinauto.
+-- Launches the desktop app for pywinauto and always cleans up,
+-- even if tests fail (try/finally around start/stop-desktop).
 
 target("test-all")
     set_kind("phony")
     set_default(false)
+    add_deps("desktop")
     on_run(function()
         print(">>> Catch2: TodoStore unit tests")
         os.execv("xmake", {"run", "test-todo-store"})
@@ -268,4 +278,18 @@ target("test-all")
         print("")
         print(">>> Playwright: e2e tests (browser + C++ backend)")
         os.execv("xmake", {"run", "test-browser"})
+        print("")
+        print(">>> pywinauto: native Qt tests (launching desktop app...)")
+        os.execv("xmake", {"run", "start-desktop"})
+        local ok, err = try {
+            function()
+                os.execv("xmake", {"run", "test-pywinauto"})
+                return true
+            end,
+            catch { function(e) return false, e end }
+        }
+        os.execv("xmake", {"run", "stop-desktop"})
+        if not ok then
+            raise("pywinauto tests failed: " .. tostring(err))
+        end
     end)

@@ -40,6 +40,10 @@ android/app/src/main/assets/
 android/app/.cxx/
 *.apk
 
+# Python
+__pycache__/
+*.py[cod]
+
 # Secrets
 .env
 .env.*

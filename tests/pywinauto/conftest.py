@@ -12,6 +12,8 @@ import time
 import pytest
 from pywinauto import Desktop
 
+from win32_helpers import close_windows_by_title
+
 
 APP_TITLE = "Delightful Qt Web Shell"
 APP_CLASS = "QMainWindow"
@@ -35,15 +37,14 @@ def app(desktop):
         )
 
 
-@pytest.fixture
-def close_dialogs(desktop):
-    """After each test, close any leftover dialogs so they don't leak into the next test."""
+@pytest.fixture(autouse=True)
+def close_dialogs():
+    """After each test, close any leftover dialogs so they don't leak into the next test.
+
+    Uses Win32 WM_CLOSE instead of pywinauto — pywinauto's UIA backend
+    blocks when a modal dialog is open, making cleanup impossible.
+    """
     yield
     time.sleep(0.3)
-    for title_pattern in ["About", "Export Data", "Save", "Open"]:
-        try:
-            dialog = desktop.window(title_re=f".*{title_pattern}.*", timeout=0.5)
-            if dialog.exists():
-                dialog.close()
-        except Exception:
-            pass
+    close_windows_by_title("About", "Export Data", "Save", "Open", "Developer Tools")
+    time.sleep(0.3)

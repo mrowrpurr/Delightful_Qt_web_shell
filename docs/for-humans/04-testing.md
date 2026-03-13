@@ -102,16 +102,30 @@ test('delete a list', async ({ page }) => {
 
 ### pywinauto — native Qt features
 
+**⚠️ Qt6 modal dialogs block pywinauto's UIA backend.** When a modal dialog
+(QMessageBox, QFileDialog) is open, pywinauto hangs. Use the Win32 API helpers:
+
 ```python
 # tests/pywinauto/test_menu_bar.py
-def test_about_dialog_opens_and_closes(app, desktop, close_dialogs):
-    app.menu_select("Help->About")
+from native_dialogs import QtMessageBox, FileDialog, open_modal
+
+def test_about_dialog_opens_and_closes(app):
+    open_modal(app, "Help->About")  # thread to avoid UIA block
     time.sleep(0.5)
 
-    dialog = desktop.window(title_re="About.*")
-    assert_that(dialog.exists()).is_true()
+    with QtMessageBox("About") as dlg:
+        assert_that(dlg.is_open).is_true()
+        dlg.press_ok()
+        time.sleep(0.3)
+        assert_that(dlg.is_open).is_false()
 
-    dialog.child_window(title="OK", class_name="QPushButton").click()
+def test_export_dialog(app):
+    open_modal(app, "File->Export...")
+    time.sleep(1)
+
+    with FileDialog("Export Data") as dlg:
+        dlg.set_filename("test.json")
+        dlg.cancel()
 ```
 
 ## Test Files
@@ -125,3 +139,6 @@ def test_about_dialog_opens_and_closes(app, desktop, close_dialogs):
 | `tests/pywinauto/test_window.py` | Window visibility, title, size |
 | `tests/pywinauto/test_menu_bar.py` | Menu items, About dialog, Export dialog |
 | `tests/pywinauto/test_keyboard_shortcuts.py` | Ctrl+E, F12 |
+| `tests/pywinauto/test_full_dialog_flow.py` | Full dialog driving: navigate, file types, save |
+| `tests/pywinauto/native_dialogs.py` | `FileDialog`, `QtMessageBox`, `open_modal` helpers |
+| `tests/pywinauto/win32_helpers.py` | Low-level Win32 API for modal dialog interaction |

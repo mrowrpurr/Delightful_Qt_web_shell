@@ -111,41 +111,55 @@ app = desktop.window(title="Delightful Qt Web Shell", class_name="QMainWindow")
 app.wait("visible", timeout=5)
 ```
 
+### ⚠️ Critical: Qt6 Modal Dialogs Block UIA
+
+When a Qt6 modal dialog (QMessageBox, QFileDialog) is open, **pywinauto's UIA
+backend is completely blocked**. `Desktop.windows()`, `child_window()`, `.click()`
+— all hang forever. This is because Qt's modal event loop blocks the UIA COM server.
+
+**Solution:** Use the Win32 API helpers in `tests/pywinauto/native_dialogs.py` and
+`tests/pywinauto/win32_helpers.py`. The Win32 API (`EnumWindows`, `SendMessage`,
+`PostMessage`) is unaffected by Qt's modal loop.
+
 ### Common Patterns
 
-**Open a menu:**
+**Open a menu that triggers a modal dialog:**
 ```python
-app.menu_select("File->Export Data")
-```
+from native_dialogs import open_modal, QtMessageBox, FileDialog
 
-**Find and interact with a dialog:**
-```python
-import time
-app.menu_select("Help->About")
+# open_modal runs menu_select in a thread to avoid blocking
+open_modal(app, "Help->About")
 time.sleep(0.5)
-
-dialog = desktop.window(title_re="About.*")
-assert dialog.exists()
-
-# Click OK to close
-dialog.child_window(title="OK", class_name="QPushButton").click()
 ```
 
-**Keyboard shortcuts:**
+**Drive a QMessageBox (About dialog):**
 ```python
+# QMessageBox has NO Win32 child controls — Qt draws buttons itself.
+# Use keyboard: Enter → default button (OK), Escape → cancel.
+with QtMessageBox("About") as dlg:
+    assert dlg.is_open
+    dlg.press_ok()       # PostMessage VK_RETURN
+```
+
+**Drive a native file dialog (Export/Save/Open):**
+```python
+# Native Windows file dialog (#32770) has real Win32 child controls.
+with FileDialog("Export Data") as dlg:
+    dlg.set_filename("my_data.json")    # WM_SETTEXT on Edit
+    dlg.navigate("C:/Users/Desktop")    # type path + Enter
+    print(dlg.current_folder)           # read from address bar toolbar
+    print(dlg.file_types)               # ['JSON Files (*.json)', 'All Files (*)']
+    dlg.select_file_type(1)             # switch filter
+    dlg.cancel()                        # BM_CLICK on Cancel button
+```
+
+**Non-modal interactions (menus, keyboard shortcuts, window props) still use pywinauto:**
+```python
+app.menu_select("File")     # open menu (non-modal — fine)
+app.type_keys("{ESC}")       # close menu
 app.set_focus()
-app.type_keys("^e")      # Ctrl+E
-app.type_keys("{F12}")    # F12
-```
-
-**Check window properties:**
-```python
+app.type_keys("{F12}")       # F12 (DevTools is non-modal — fine)
 assert app.is_visible()
-assert "Web Shell" in app.window_text()
-
-rect = app.rectangle()
-assert rect.width() >= 800
-assert rect.height() >= 600
 ```
 
 ### Writing pywinauto Tests
@@ -155,19 +169,19 @@ Tests live in `tests/pywinauto/`. Use the shared fixtures from `conftest.py`:
 ```python
 # tests/pywinauto/test_my_feature.py
 import time
+from native_dialogs import FileDialog, open_modal
 
-def test_my_dialog(app, desktop, close_dialogs):
-    app.menu_select("File->My New Feature")
-    time.sleep(0.5)
+def test_my_dialog(app):
+    open_modal(app, "File->My New Feature")
+    time.sleep(1)
 
-    dialog = desktop.window(title_re="My Feature.*")
-    assert dialog.exists()
-
-    # Do something with the dialog...
-    dialog.child_window(title="Save", class_name="QPushButton").click()
+    with FileDialog("My Feature") as dlg:
+        dlg.set_filename("output.json")
+        dlg.save()
 ```
 
-The `close_dialogs` fixture auto-closes known dialogs after each test, preventing cascading failures.
+The `close_dialogs` autouse fixture sends `WM_CLOSE` to known dialog titles after
+each test, preventing cascading failures.
 
 Run tests:
 ```bash
@@ -178,11 +192,12 @@ uv run pytest tests/pywinauto/ -v
 
 ### Tips
 
+- **Always use `open_modal()` for menu items that open modal dialogs** — `menu_select` blocks forever otherwise
+- **Use `threading.Thread(daemon=True)` for keyboard shortcuts that open modals** (e.g., Ctrl+E)
 - **Always `set_focus()` before keyboard shortcuts** — the app must be focused
-- **Add `time.sleep(0.5)` after menu selections** — dialogs take a moment to appear
-- **Use `class_name="QPushButton"` or `class_name="QMainWindow"`** — Qt widget class names help pywinauto find the right element
-- **Use `title_re` for regex matching** — dialog titles may include version numbers or variable text
-- **`close_dialogs` fixture prevents test pollution** — always include it
+- **Add `time.sleep(0.5-1)` after opening dialogs** — they take a moment to appear
+- **`close_dialogs` fixture prevents test pollution** — runs automatically via `autouse=True`
+- **`FileDialog` context manager auto-closes** on exit if still open (safety net)
 
 ## Cross-Layer Testing
 
