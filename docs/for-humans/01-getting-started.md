@@ -89,7 +89,7 @@ The dev-server is a headless C++ process that serves your bridges over WebSocket
 │   └── src/api/bridge.ts     #   TypeScript bridge interfaces
 ├── lib/
 │   ├── todos/                #   Domain logic (pure C++, no Qt)
-│   ├── todo-bridge/           #   TodoBridge (QObject wrapper over domain logic)
+│   ├── bridges/               #   Bridge QObjects (wrappers over domain logic)
 │   └── web-shell/            #   Framework internals (you won't touch this)
 ├── tests/
 │   ├── playwright/           #   Browser + desktop e2e tests

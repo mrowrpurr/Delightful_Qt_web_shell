@@ -18,7 +18,7 @@ TodoItem add_item(const std::string& list_id, const std::string& text) {
 
 ### 2. Bridge wrapper
 
-`lib/todo-bridge/include/todo_bridge.hpp` — mark it `Q_INVOKABLE`:
+`lib/bridges/include/todo_bridge.hpp` — mark it `Q_INVOKABLE`:
 
 ```cpp
 Q_INVOKABLE QJsonObject addItem(const QString& listId, const QString& text) {
@@ -67,112 +67,29 @@ Done. The proxy connects them automatically.
 
 ## Adding a New Bridge
 
-When you need a new domain area (not just a new method on `todos`).
+When you need a new domain area (not just a new method on `todos`):
 
-### Step 1: Create the C++ bridge
-
-```cpp
-// lib/notes/include/notes_bridge.hpp
-#pragma once
-#include <QJsonArray>
-#include <QJsonObject>
-#include <QObject>
-#include <QString>
-
-class NotesBridge : public QObject {
-    Q_OBJECT
-public:
-    using QObject::QObject;
-
-    Q_INVOKABLE QJsonArray listNotes() const { /* ... */ }
-    Q_INVOKABLE QJsonObject addNote(const QString& title) { /* ... */ }
-
-signals:
-    void notesChanged();
-};
+```bash
+xmake run scaffold-bridge notes
 ```
 
-### Step 2: Add the .hpp to xmake build files
+This does everything:
+1. Creates `lib/bridges/include/notes_bridge.hpp` — C++ bridge with `Q_OBJECT` + skeleton
+2. Creates `web/src/api/notes-bridge.ts` — TypeScript interface stub
+3. Wires `#include` + `addBridge()` into both `desktop/src/main.cpp` and `tests/helpers/dev-server/src/test_server.cpp`
 
-**This is the step agents forget.** Qt's MOC (Meta-Object Compiler) needs to process your header. If you skip this, you'll get a cryptic vtable linker error that doesn't mention your file.
+No xmake.lua edits needed — the `lib/bridges/` target uses glob discovery.
 
-Two things to add in **both** `desktop/xmake.lua` and `tests/helpers/dev-server/xmake.lua`:
+### After scaffolding
 
-**1. Add your header to `add_files()` (for MOC processing):**
-```lua
-add_files(
-    -- ...existing files...
-    path.join(os.projectdir(), "lib/notes/include/notes_bridge.hpp"),
-)
-```
-
-**2. Make the header findable via `#include`:**
-
-The existing lib directories use a `headeronly` target in their own `xmake.lua` with `add_includedirs("include", {public = true})`. The simplest approach for a new bridge is the same pattern.
-
-Create `lib/notes/xmake.lua`:
-```lua
-target("notes")
-    set_kind("headeronly")
-    add_headerfiles("include/(**.hpp)")
-    add_includedirs("include", {public = true})
-```
-
-Then add `add_deps("notes")` alongside the existing `add_deps("todo-bridge", "web-shell")` in both `desktop/xmake.lua` and `tests/helpers/dev-server/xmake.lua`. This makes `#include "notes_bridge.hpp"` work in your entry points.
-
-**Alternative (simpler, no new target):** If your bridge is a single header with no domain logic library, you can skip the xmake target and just add `add_includedirs(path.join(os.projectdir(), "lib/notes/include"))` directly in both build targets.
-
-### Step 3: Register in both entry points
-
-Note the syntax difference: `main.cpp` uses `shell->` (pointer), `test_server.cpp` uses `shell.` (stack-allocated object). Copy from the right example.
-
-**`desktop/src/main.cpp`** (pointer — uses `shell->`):
-```cpp
-#include "notes_bridge.hpp"
-// ...
-auto* notes = new NotesBridge;
-shell->addBridge("notes", notes);
-```
-
-**`tests/helpers/dev-server/src/test_server.cpp`** (stack object — uses `shell.`):
-```cpp
-#include "notes_bridge.hpp"
-// ...
-auto* notes = new NotesBridge;
-shell.addBridge("notes", notes);
-```
-
-If you only register in `main.cpp`, browser-mode dev and Playwright tests won't see your bridge. No error — it just silently won't exist, and you'll waste time debugging React when the problem is the C++ side.
-
-### Step 4: TypeScript interface
-
-`web/src/api/bridge.ts`:
-
-```typescript
-export interface NotesBridge {
-  listNotes(): Promise<Note[]>
-  addNote(title: string): Promise<Note>
-  notesChanged(callback: () => void): () => void
-}
-```
-
-### Step 5: Use it
-
-```typescript
-const notes = await getBridge<NotesBridge>('notes')
-await notes.addNote('Meeting notes')
-```
+1. Add `Q_INVOKABLE` methods to `lib/bridges/include/notes_bridge.hpp`
+2. Mirror them in `web/src/api/notes-bridge.ts`
+3. Use it: `const notes = await getBridge<NotesBridge>('notes')`
 
 ### Checklist
 
-- [ ] C++ header with `Q_OBJECT` + `Q_INVOKABLE` methods + `to_json()` helpers for your structs
-- [ ] `xmake.lua` for your new lib (headeronly target with `add_includedirs`)
-- [ ] Header in `add_files()` in `desktop/xmake.lua`
-- [ ] Header in `add_files()` in `tests/helpers/dev-server/xmake.lua`
-- [ ] `add_deps("your-lib")` in both xmake targets
-- [ ] `#include` + `addBridge()` in `desktop/src/main.cpp` (uses `shell->`)
-- [ ] `#include` + `addBridge()` in `tests/helpers/dev-server/src/test_server.cpp` (uses `shell.`)
-- [ ] TypeScript interface in `web/src/api/bridge.ts`
+- [ ] `Q_INVOKABLE` methods + `to_json()` helpers for your structs in the `.hpp`
+- [ ] Matching TypeScript interface in the `.ts`
 - [ ] Run `xmake run validate-bridges` to verify C++ and TS match
 
 ---

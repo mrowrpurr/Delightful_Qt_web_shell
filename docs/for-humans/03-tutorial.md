@@ -6,7 +6,7 @@ We'll add an `addItem` method — from C++ domain logic to React UI — and see 
 
 ```
 ├── lib/todos/include/todo_store.hpp        ← C++ domain logic
-├── lib/todo-bridge/include/todo_bridge.hpp  ← Q_INVOKABLE wrapper
+├── lib/bridges/include/todo_bridge.hpp  ← Q_INVOKABLE wrapper
 └── web/src/api/bridge.ts                   ← TypeScript interface
 ```
 
@@ -28,7 +28,7 @@ TodoItem add_item(const std::string& list_id, const std::string& text) {
 
 Add a `Q_INVOKABLE` method to `TodoBridge` — the QObject wrapper.
 
-**`lib/todo-bridge/include/todo_bridge.hpp`:**
+**`lib/bridges/include/todo_bridge.hpp`:**
 
 ```cpp
 Q_INVOKABLE QJsonObject addItem(const QString& listId, const QString& text) {
@@ -84,15 +84,15 @@ The bridge infrastructure didn't change at all. It discovered your new method vi
 
 When you need a new domain area (not just a method on `todos`):
 
-1. **Create a C++ bridge** — `QObject` subclass with `Q_OBJECT` + `Q_INVOKABLE` methods
-2. **Add it to xmake** — header in `add_files()` in both `desktop/xmake.lua` and `tests/helpers/dev-server/xmake.lua` (for Qt MOC)
-3. **Register in both entry points:**
-   - `desktop/src/main.cpp`: `shell->addBridge("name", new YourBridge)`
-   - `tests/helpers/dev-server/src/test_server.cpp`: `shell.addBridge("name", new YourBridge)`
-4. **TypeScript interface** in `web/src/api/bridge.ts`
-5. **Validate:** `xmake run validate-bridges`
+```bash
+xmake run scaffold-bridge settings
+```
 
-The critical gotcha: if you forget `test_server.cpp`, the bridge silently won't exist in browser-mode dev and Playwright tests. No error — it just doesn't work.
+This creates the C++ header, TypeScript interface stub, and wires registration into both entry points (`main.cpp` and `test_server.cpp`). No xmake.lua edits needed — the glob picks up new headers automatically.
+
+Then add your `Q_INVOKABLE` methods to the `.hpp` and mirror them in the `.ts`.
+
+Validate with `xmake run validate-bridges`.
 
 ## Signals — Push Events from C++ to React
 

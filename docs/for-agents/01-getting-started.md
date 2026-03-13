@@ -17,7 +17,7 @@ You're an agent who wants to build a desktop app. This template gives you Qt + R
 │   └── src/api/bridge.ts     #   TypeScript bridge interfaces
 ├── lib/
 │   ├── todos/                #   Domain logic (pure C++, no Qt)
-│   ├── todo-bridge/           #   TodoBridge (QObject wrapper over domain logic)
+│   ├── bridges/               #   Bridge QObjects (wrappers over domain logic)
 │   └── web-shell/            #   Framework internals (don't touch)
 ├── tests/
 │   ├── playwright/           #   Browser + desktop e2e tests
