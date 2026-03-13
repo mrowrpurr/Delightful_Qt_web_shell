@@ -6,10 +6,12 @@ This is a concise index of traps. Details live in the doc where you're doing the
 
 | What you forgot | What happens | Where it's explained |
 |---|---|---|
-| Register bridge in `test_server.cpp` | Bridge silently doesn't exist in dev/test mode | [03-adding-features.md, Step 3](03-adding-features.md) |
-| Add header to `add_files()` for MOC | Cryptic vtable linker error — doesn't mention your file | [03-adding-features.md, Step 2](03-adding-features.md) |
+| Register bridge in `test_server.cpp` | Bridge silently doesn't exist in dev/test mode | [03-adding-features.md](03-adding-features.md) |
+| Return `QJsonObject` but got `{value: ...}` | You returned a scalar (`QString`, `int`) — scalars get wrapped | [03-adding-features.md](03-adding-features.md) |
 | Remove `signalReady()` from `App.tsx` | App hangs with spinner forever, error after 15s | [02-architecture.md, signalReady](02-architecture.md) |
 | Use Bun instead of Node for playwright-cdp | `connectOverCDP` hangs forever — no error, no timeout | [05-tools.md, Critical: Node Not Bun](05-tools.md) |
+
+> **Use `xmake run scaffold-bridge <name>`** to create new bridges. It handles registration in both entry points and MOC setup automatically — you won't hit the first gotcha above.
 
 ## Build Gotchas
 

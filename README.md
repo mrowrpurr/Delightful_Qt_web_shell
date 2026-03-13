@@ -75,7 +75,7 @@ Start with **01**, then jump to **03** to get your hands dirty.
 
 ```bash
 xmake run setup                                   # one-time setup
-xmake run test-all                                # Catch2 + Bun + Playwright (~10s)
+xmake run test-all                                # all layers: Catch2 + Bun + Playwright + pywinauto
 ```
 
 Five layers: C++ unit (Catch2), bridge protocol (Bun), browser e2e (Playwright), desktop e2e (Playwright + CDP), native Qt (pywinauto). See [testing docs](docs/for-humans/04-testing.md) for details.

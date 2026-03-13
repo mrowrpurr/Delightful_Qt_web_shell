@@ -45,6 +45,17 @@ static QJsonObject to_json(const TodoItem& i) {
 
 There's no auto-generation or macro. Qt doesn't know your struct layout, so you map fields manually. This is the pattern used throughout the template — see `todo_bridge.hpp` for the full example.
 
+**Return type matters on the JS side:**
+
+| C++ returns | JS receives | Why |
+|------------|-------------|-----|
+| `QJsonObject` | The object directly | `{id: "1", name: "Groceries"}` |
+| `QJsonArray` | The array directly | `[{id: "1"}, {id: "2"}]` |
+| `QString`, `int`, `double`, `bool` | Wrapped: `{value: ...}` | Scalars need a JSON wrapper |
+| `void` | `{ok: true}` | Acknowledgement |
+
+**Always return `QJsonObject` or `QJsonArray` for structured data.** If you return a `QString`, the JS side sees `{value: "hello"}` not `"hello"` — this is by design, not a bug. Access it via `result.value`.
+
 ### 3. TypeScript interface
 
 `web/src/api/bridge.ts`:

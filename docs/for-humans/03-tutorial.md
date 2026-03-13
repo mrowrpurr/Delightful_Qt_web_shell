@@ -52,6 +52,8 @@ static QJsonObject to_json(const TodoItem& i) {
 }
 ```
 
+**Why `QJsonObject`?** Return `QJsonObject` or `QJsonArray` and JS gets the data directly. If you return a scalar (`QString`, `int`, `bool`), JS receives it wrapped: `{value: "hello"}` instead of `"hello"`. This is by design — always return structured types for a clean JS API.
+
 ## Step 3: Define the TypeScript Interface
 
 **`web/src/api/bridge.ts`:**
