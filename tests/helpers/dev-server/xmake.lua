@@ -7,8 +7,10 @@ target("dev-server")
         "src/test_server.cpp",
         path.join(os.projectdir(), "lib/web-bridge/include/bridge.hpp"),
         path.join(os.projectdir(), "lib/web-shell/include/expose_as_ws.hpp"),
-        path.join(os.projectdir(), "lib/web-shell/include/web_shell.hpp")
+        path.join(os.projectdir(), "lib/web-shell/include/web_shell.hpp"),
+        "include/type_test_bridge.hpp"
     )
+    add_includedirs("include")
     add_frameworks("QtCore", "QtNetwork", "QtWebSockets")
 
     -- Write the binary path so Playwright can run it directly.

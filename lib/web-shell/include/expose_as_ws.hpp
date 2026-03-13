@@ -80,12 +80,15 @@ inline QJsonValue invoke_bridge_method(QObject* bridge, const QString& method_na
     if (param_count > 10)
         return QJsonObject{{"error", method_name + ": too many parameters (max 10)"}};
 
+    if (args.size() < param_count)
+        return QJsonObject{{"error", method_name + ": expected " +
+            QString::number(param_count) + " args, got " + QString::number(args.size())}};
+
     // Build typed QGenericArguments from the JSON array
     QVariant storage[10];
     QGenericArgument ga[10];
     for (int i = 0; i < param_count; ++i) {
-        QJsonValue val = i < args.size() ? args[i] : QJsonValue();
-        ga[i] = coerce_arg(val, method.parameterTypeName(i), storage[i]);
+        ga[i] = coerce_arg(args[i], method.parameterTypeName(i), storage[i]);
     }
 
     // Invoke and convert the return value to JSON via QVariant.
@@ -94,7 +97,7 @@ inline QJsonValue invoke_bridge_method(QObject* bridge, const QString& method_na
     bool ok = false;
 
     // void return — invoke without return arg
-    if (returnType == nullptr || QByteArray(returnType).isEmpty()) {
+    if (method.returnType() == QMetaType::Void) {
         ok = method.invoke(bridge, Qt::DirectConnection,
             ga[0], ga[1], ga[2], ga[3], ga[4], ga[5], ga[6], ga[7], ga[8], ga[9]);
         if (!ok) return QJsonObject{{"error", method_name + ": invocation failed"}};
@@ -261,7 +264,7 @@ inline QWebSocketServer* expose_as_ws(WebShell* shell, int port, QObject* parent
                     QJsonObject bridges;
                     for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it) {
                         auto meta = collect_bridge_meta(it.value());
-                        // Keep backward-compat: "signals" as flat array of names
+                        // Clients expect signals as a flat array of names for event subscription
                         meta["signals"] = collect_signal_names(it.value());
                         bridges[it.key()] = meta;
                     }

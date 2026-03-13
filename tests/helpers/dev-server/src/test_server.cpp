@@ -8,6 +8,7 @@
 
 #include "bridge.hpp"
 #include "expose_as_ws.hpp"
+#include "type_test_bridge.hpp"
 #include "web_shell.hpp"
 
 int main(int argc, char* argv[]) {
@@ -26,6 +27,8 @@ int main(int argc, char* argv[]) {
     WebShell shell;
     auto* bridge = new Bridge;
     shell.addBridge("todos", bridge);
+    auto* typeTest = new TypeTestBridge;
+    shell.addBridge("typeTest", typeTest);
     auto* server = expose_as_ws(&shell, port);
     if (!server) return 1;
 

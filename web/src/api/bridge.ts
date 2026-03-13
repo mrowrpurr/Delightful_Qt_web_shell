@@ -70,14 +70,10 @@ function getConnection(): Promise<BridgeConnection> {
 
 // getBridge — NOT a React hook. It's a plain async function that returns a
 // typed proxy to a named C++ bridge. Safe to call at module scope.
-// (Aliased as useBridge for backward compat.)
 export async function getBridge<T extends object>(name: string): Promise<T> {
   const conn = await getConnection()
   return conn.bridge<T>(name)
 }
-
-/** @deprecated Use getBridge instead — this is not a React hook. */
-export const useBridge = getBridge
 
 export async function signalReady(): Promise<void> {
   const conn = await getConnection()
