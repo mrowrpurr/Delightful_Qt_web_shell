@@ -25,7 +25,7 @@ function parseArgs(argv: string[]) {
 }
 
 function printHelp() {
-  console.log(`cdp — Drive the Qt app via Chrome DevTools Protocol
+  console.log(`playwright-cdp — Drive the Qt app's web content via Playwright + CDP
 
 Usage: npx tsx tools/playwright-cdp/cli.ts <command> [args...]
 
@@ -40,11 +40,13 @@ Commands:
   eval <expression>                 Evaluate JavaScript in page context
   text --test-id <id>               Get text content of element
   wait --test-id <id>               Wait for element to appear
-  console                           Listen for console messages (3s)
-  console --duration <ms>           Listen for specified duration
+  console                           Read buffered console messages
+  console --level <level>           Filter by level (log, warn, error, etc.)
+  console --count <n>               Last N messages
+  console --clear true              Read and clear buffer
 
-Programmatic:
-  npx tsx -e "import { snapshot } from './tools/playwright-cdp'; console.log(await snapshot())"
+Programmatic (recommended):
+  echo 'console.log(await snapshot())' | npx tsx tools/playwright-cdp/run.ts
 
 Options:
   --help                            Show this help`)
@@ -99,7 +101,7 @@ async function main() {
         process.exit(1)
     }
   } catch (err: any) {
-    console.error(`cdp error: ${err.message}`)
+    console.error(`playwright-cdp error: ${err.message}`)
     process.exit(1)
   } finally {
     await disconnect()
