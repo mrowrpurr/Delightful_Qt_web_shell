@@ -117,11 +117,11 @@ def test_about_dialog_opens_and_closes(app):
         time.sleep(0.3)
         assert_that(dlg.is_open).is_false()
 
-def test_export_dialog(app):
-    open_modal(app, "File->Export...")
+def test_save_dialog(app):
+    open_modal(app, "File->Save...")
     time.sleep(1)
 
-    with FileDialog("Export Data") as dlg:
+    with FileDialog("Save File") as dlg:
         dlg.set_filename("test.json")
         dlg.cancel()
 ```
