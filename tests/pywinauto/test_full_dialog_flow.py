@@ -1,7 +1,7 @@
-"""End-to-end test: fully drive the Export file dialog.
+"""End-to-end test: fully drive the Save and Open Folder dialogs.
 
 Proves we can navigate folders, type a filename, select file type,
-click Save (to actually create a file), and clean up.
+click Save, drive a folder picker, and clean up.
 
 Run: uv run python tests/pywinauto/test_full_dialog_flow.py
 Requires: xmake run start-desktop
@@ -43,15 +43,15 @@ def test_about_dialog():
         print("  ✅ Closed with Enter (OK)")
 
 
-def test_export_dialog_cancel():
-    """Open Export, verify controls, click Cancel."""
-    print("\n=== TEST: Export Dialog — Cancel ===")
+def test_save_dialog_cancel():
+    """Open Save, verify controls, click Cancel."""
+    print("\n=== TEST: Save Dialog — Cancel ===")
     app = get_app()
-    open_modal(app, "File->Export...")
+    open_modal(app, "File->Save...")
     time.sleep(1)
 
-    with FileDialog("Export Data") as dlg:
-        assert dlg.is_open, "Export dialog should be open"
+    with FileDialog("Save File") as dlg:
+        assert dlg.is_open, "Save dialog should be open"
         print(f"  ✅ Dialog open, folder: {dlg.current_folder!r}")
 
         # Check file type filter
@@ -67,34 +67,35 @@ def test_export_dialog_cancel():
         # Cancel
         dlg.cancel()
         time.sleep(0.3)
-        assert not dlg.is_open, "Export dialog should be closed after Cancel"
+        assert not dlg.is_open, "Save dialog should be closed after Cancel"
         print("  ✅ Cancelled successfully")
 
 
-def test_export_dialog_navigate():
-    """Open Export, navigate folders, verify address bar updates."""
-    print("\n=== TEST: Export Dialog — Navigate ===")
+def test_save_dialog_navigate():
+    """Open Save, navigate folders, verify address bar updates."""
+    print("\n=== TEST: Save Dialog — Navigate ===")
     app = get_app()
 
     # Use the project root as a known absolute path with known subdirectories
     project_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-    open_modal(app, "File->Export...")
+    open_modal(app, "File->Save...")
     time.sleep(1)
 
-    with FileDialog("Export Data") as dlg:
+    with FileDialog("Save File") as dlg:
         start_folder = dlg.current_folder
         print(f"  Starting folder: {start_folder!r}")
 
-        # Navigate to project root first (absolute path — always works)
+        # Navigate to project root (absolute path — always works)
         dlg.navigate(project_dir)
-        time.sleep(0.5)
+        time.sleep(1)
         assert dlg.is_open, "Dialog should still be open after navigating to project root"
         print(f"  ✅ Navigated to project root: {dlg.current_folder!r}")
 
-        # Navigate into web/ (relative — known to exist)
-        dlg.navigate("web")
-        time.sleep(0.5)
+        # Navigate into web/ using absolute path (avoids stale-folder issues)
+        web_dir = os.path.join(project_dir, "web")
+        dlg.navigate(web_dir)
+        time.sleep(1)
         assert dlg.is_open, "Dialog should still be open after navigating to web/"
         new_folder = dlg.current_folder
         assert "web" in (new_folder or ""), f"Expected 'web' in path, got {new_folder!r}"
@@ -102,7 +103,7 @@ def test_export_dialog_navigate():
 
         # Navigate back up
         dlg.navigate("..")
-        time.sleep(0.5)
+        time.sleep(1)
         assert dlg.is_open, "Dialog should still be open after navigating to .."
         back_folder = dlg.current_folder
         print(f"  ✅ Back to: {back_folder!r}")
@@ -111,14 +112,14 @@ def test_export_dialog_navigate():
         print("  ✅ Cancelled")
 
 
-def test_export_dialog_file_type():
-    """Open Export, change file type filter."""
-    print("\n=== TEST: Export Dialog — File Type ===")
+def test_save_dialog_file_type():
+    """Open Save, change file type filter."""
+    print("\n=== TEST: Save Dialog — File Type ===")
     app = get_app()
-    open_modal(app, "File->Export...")
+    open_modal(app, "File->Save...")
     time.sleep(1)
 
-    with FileDialog("Export Data") as dlg:
+    with FileDialog("Save File") as dlg:
         types = dlg.file_types
         initial = dlg.selected_file_type_index
         print(f"  File types: {types}")
@@ -135,65 +136,114 @@ def test_export_dialog_file_type():
         print("  ✅ Cancelled")
 
 
-def test_export_dialog_save_file():
-    """Open Export, type a filename, click Save, verify file was created, clean up."""
-    print("\n=== TEST: Export Dialog — Save File ===")
+def test_save_dialog_save_file():
+    """Open Save, type a filename, click Save, verify flow completes."""
+    print("\n=== TEST: Save Dialog — Save File ===")
     app = get_app()
 
-    # Use a temp file path we can clean up
-    test_filename = "_pywinauto_test_export.json"
+    test_filename = "_pywinauto_test_save.json"
     project_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     expected_path = os.path.join(project_dir, test_filename)
 
-    # Make sure it doesn't already exist
     if os.path.exists(expected_path):
         os.remove(expected_path)
 
-    open_modal(app, "File->Export...")
+    open_modal(app, "File->Save...")
     time.sleep(1)
 
-    with FileDialog("Export Data") as dlg:
-        # Navigate to project root (where the dialog opens by default)
+    with FileDialog("Save File") as dlg:
         current = dlg.current_folder
         print(f"  Current folder: {current!r}")
 
-        # Type our test filename
         dlg.set_filename(test_filename)
         print(f"  Set filename: {test_filename!r}")
 
-        # Click Save
         dlg.save()
         time.sleep(1)
 
-        # Dialog should be closed (save completed)
-        # Note: QFileDialog::getSaveFileName returns the path to the app,
-        # but the app doesn't actually write anything — it just gets the path.
-        # So no file will be created. But the dialog WILL close.
         print(f"  Dialog still open? {dlg.is_open}")
 
-    # The export dialog was just a file picker — it doesn't create the file.
-    # The test proves we can fully drive the Save flow.
+    # The save dialog was just a file picker — it doesn't create the file.
     print("  ✅ Save flow completed (dialog closed)")
 
-    # Clean up in case the app did create something
     if os.path.exists(expected_path):
         os.remove(expected_path)
         print(f"  Cleaned up: {expected_path}")
 
 
-def test_ctrl_e_shortcut():
-    """Ctrl+E should open the Export dialog."""
-    print("\n=== TEST: Ctrl+E Shortcut ===")
+def test_ctrl_s_shortcut():
+    """Ctrl+S should open the Save dialog."""
+    print("\n=== TEST: Ctrl+S Shortcut ===")
     app = get_app()
 
-    # type_keys may also block on modal, so use threading
     import threading
-    threading.Thread(target=lambda: app.type_keys("^e"), daemon=True).start()
+    threading.Thread(target=lambda: app.type_keys("^s"), daemon=True).start()
     time.sleep(1)
 
-    with FileDialog("Export Data") as dlg:
-        assert dlg.is_open, "Export dialog should be open via Ctrl+E"
-        print(f"  ✅ Export opened via Ctrl+E, folder: {dlg.current_folder!r}")
+    with FileDialog("Save File") as dlg:
+        assert dlg.is_open, "Save dialog should be open via Ctrl+S"
+        print(f"  ✅ Save opened via Ctrl+S, folder: {dlg.current_folder!r}")
+        dlg.cancel()
+        print("  ✅ Cancelled")
+
+
+def test_open_folder_dialog():
+    """Open Folder dialog — verify controls, cancel."""
+    print("\n=== TEST: Open Folder Dialog ===")
+    app = get_app()
+
+    open_modal(app, "File->Open Folder...")
+    time.sleep(1)
+
+    with FileDialog("Open Folder") as dlg:
+        assert dlg.is_open, "Open Folder dialog should be open"
+        print(f"  ✅ Dialog open, folder: {dlg.current_folder!r}")
+
+        # Folder picker has no file type filter
+        assert dlg.file_types == [], f"Expected no file types, got {dlg.file_types}"
+        print("  ✅ No file type filter (correct for folder picker)")
+
+        # Cancel
+        dlg.cancel()
+        time.sleep(0.3)
+        assert not dlg.is_open, "Folder dialog should be closed after Cancel"
+        print("  ✅ Cancelled")
+
+
+def test_open_folder_dialog_select():
+    """Open Folder dialog — select a folder via navigate (typing path + Enter)."""
+    print("\n=== TEST: Open Folder Dialog — Select ===")
+    app = get_app()
+
+    project_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+    open_modal(app, "File->Open Folder...")
+    time.sleep(1)
+
+    with FileDialog("Open Folder") as dlg:
+        assert dlg.is_open, "Open Folder dialog should be open"
+
+        # In a folder picker, typing a path + Enter SELECTS that folder
+        # (closes the dialog). This is the correct way to pick a folder.
+        web_dir = os.path.join(project_dir, "web")
+        dlg.navigate(web_dir)
+        time.sleep(1)
+        assert not dlg.is_open, "Folder dialog should close after selecting a folder"
+        print(f"  ✅ Selected folder: {web_dir!r}")
+
+
+def test_ctrl_o_shortcut():
+    """Ctrl+O should open the Open Folder dialog."""
+    print("\n=== TEST: Ctrl+O Shortcut ===")
+    app = get_app()
+
+    import threading
+    threading.Thread(target=lambda: app.type_keys("^o"), daemon=True).start()
+    time.sleep(1)
+
+    with FileDialog("Open Folder") as dlg:
+        assert dlg.is_open, "Open Folder dialog should be open via Ctrl+O"
+        print(f"  ✅ Open Folder opened via Ctrl+O, folder: {dlg.current_folder!r}")
         dlg.cancel()
         print("  ✅ Cancelled")
 
@@ -204,16 +254,19 @@ if __name__ == "__main__":
     sys.stdout.reconfigure(line_buffering=True)
 
     # Safety net: close any lingering dialogs before starting
-    close_windows_by_title("About", "Export Data")
+    close_windows_by_title("About", "Save File", "Open Folder")
     time.sleep(0.3)
 
     try:
         test_about_dialog()
-        test_export_dialog_cancel()
-        test_export_dialog_navigate()
-        test_export_dialog_file_type()
-        test_export_dialog_save_file()
-        test_ctrl_e_shortcut()
+        test_save_dialog_cancel()
+        test_save_dialog_navigate()
+        test_save_dialog_file_type()
+        test_save_dialog_save_file()
+        test_ctrl_s_shortcut()
+        test_open_folder_dialog()
+        test_open_folder_dialog_select()
+        test_ctrl_o_shortcut()
         print("\n" + "=" * 50)
         print("🔥 ALL TESTS PASSED! 🔥")
         print("=" * 50)
@@ -222,5 +275,4 @@ if __name__ == "__main__":
         import traceback
         traceback.print_exc()
     finally:
-        # Final safety net
-        close_windows_by_title("About", "Export Data")
+        close_windows_by_title("About", "Save File", "Open Folder")

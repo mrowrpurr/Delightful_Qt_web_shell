@@ -13,14 +13,27 @@ from native_dialogs import FileDialog
 from win32_helpers import close_windows_by_title
 
 
-def test_ctrl_e_opens_export_dialog(app):
-    """Ctrl+E should open the Export file dialog."""
+def test_ctrl_s_opens_save_dialog(app):
+    """Ctrl+S should open the Save file dialog."""
     app.set_focus()
     # type_keys may block when the modal opens — run in a thread
-    threading.Thread(target=lambda: app.type_keys("^e"), daemon=True).start()
+    threading.Thread(target=lambda: app.type_keys("^s"), daemon=True).start()
     time.sleep(1)
 
-    with FileDialog("Export Data") as dlg:
+    with FileDialog("Save File") as dlg:
+        assert_that(dlg.is_open).is_true()
+        dlg.cancel()
+        time.sleep(0.3)
+        assert_that(dlg.is_open).is_false()
+
+
+def test_ctrl_o_opens_folder_dialog(app):
+    """Ctrl+O should open the Open Folder dialog."""
+    app.set_focus()
+    threading.Thread(target=lambda: app.type_keys("^o"), daemon=True).start()
+    time.sleep(1)
+
+    with FileDialog("Open Folder") as dlg:
         assert_that(dlg.is_open).is_true()
         dlg.cancel()
         time.sleep(0.3)

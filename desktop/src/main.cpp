@@ -163,12 +163,21 @@ int main(int argc, char* argv[]) {
 
     auto* fileMenu = menuBar->addMenu("&File");
 
-    // Example: File > Export... opens a native QFileDialog.
+    // Example: File > Save opens a native QFileDialog (save).
     // Demonstrates the pattern for native file pickers — testable with pywinauto.
-    auto* exportAction = fileMenu->addAction("&Export...");
-    exportAction->setShortcut(QKeySequence("Ctrl+E"));
-    QObject::connect(exportAction, &QAction::triggered, &window, [&window]() {
-        QFileDialog::getSaveFileName(&window, "Export Data", "", "JSON Files (*.json);;All Files (*)");
+    auto* saveAction = fileMenu->addAction("&Save...");
+    saveAction->setShortcut(QKeySequence("Ctrl+S"));
+    QObject::connect(saveAction, &QAction::triggered, &window, [&window]() {
+        QFileDialog::getSaveFileName(&window, "Save File", "", "JSON Files (*.json);;All Files (*)");
+    });
+
+    // Example: File > Open Folder opens a native folder picker.
+    // Demonstrates the folder-picker pattern — testable with pywinauto.
+    auto* openFolderAction = fileMenu->addAction("&Open Folder...");
+    openFolderAction->setShortcut(QKeySequence("Ctrl+O"));
+    QObject::connect(openFolderAction, &QAction::triggered, &window, [&window]() {
+        QFileDialog::getExistingDirectory(&window, "Open Folder", "",
+            QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
     });
 
     fileMenu->addSeparator();

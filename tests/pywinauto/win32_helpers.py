@@ -24,9 +24,11 @@ WM_CLOSE = 0x0010
 WM_SETTEXT = 0x000C
 WM_GETTEXT = 0x000D
 WM_GETTEXTLENGTH = 0x000E
+WM_CHAR = 0x0102
 WM_KEYDOWN = 0x0100
 WM_KEYUP = 0x0101
 BM_CLICK = 0x00F5
+EM_SETSEL = 0x00B1
 
 VK_RETURN = 0x0D
 VK_ESCAPE = 0x1B
@@ -42,6 +44,10 @@ SendMessageW = ctypes.windll.user32.SendMessageW
 PostMessageW = ctypes.windll.user32.PostMessageW
 SetForegroundWindow = ctypes.windll.user32.SetForegroundWindow
 IsWindowVisible = ctypes.windll.user32.IsWindowVisible
+GetWindowThreadProcessId = ctypes.windll.user32.GetWindowThreadProcessId
+GetCurrentThreadId = ctypes.windll.kernel32.GetCurrentThreadId
+AttachThreadInput = ctypes.windll.user32.AttachThreadInput
+SetFocus = ctypes.windll.user32.SetFocus
 WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
 
 
@@ -244,9 +250,40 @@ def navigate_to_folder(dialog_hwnd, path):
 
     Works for both relative paths ("subfolder"), parent (".."),
     and absolute paths ("C:\\Users").
+
+    Uses WM_CHAR to type each character individually — WM_SETTEXT bypasses
+    the dialog's internal autocomplete state and won't trigger navigation
+    when Enter is pressed. Keystroke-by-keystroke input is required.
     """
-    set_edit_text(dialog_hwnd, path)
-    press_key(dialog_hwnd, VK_RETURN)
+    edit = find_child(dialog_hwnd, class_name="Edit")
+    if not edit:
+        raise RuntimeError(f"No Edit control found in hwnd={dialog_hwnd}")
+
+    # Attach to the dialog's thread so SetFocus works cross-process
+    tid = GetWindowThreadProcessId(dialog_hwnd, None)
+    our_tid = GetCurrentThreadId()
+    AttachThreadInput(our_tid, tid, True)
+
+    try:
+        SetForegroundWindow(dialog_hwnd)
+        SetFocus(edit)
+        time.sleep(0.05)
+
+        # Clear existing text: select all + delete via backspace
+        SendMessageW(edit, EM_SETSEL, 0, -1)
+        PostMessageW(edit, WM_CHAR, 0x08, 0)  # backspace
+        time.sleep(0.05)
+
+        # Type path char by char
+        for ch in path:
+            PostMessageW(edit, WM_CHAR, ord(ch), 0)
+        time.sleep(0.1)
+
+        # Press Enter to navigate
+        PostMessageW(edit, WM_KEYDOWN, VK_RETURN, 0)
+        PostMessageW(edit, WM_KEYUP, VK_RETURN, 0)
+    finally:
+        AttachThreadInput(our_tid, tid, False)
 
 
 def close_window(hwnd):

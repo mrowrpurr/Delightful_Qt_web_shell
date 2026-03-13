@@ -9,14 +9,19 @@ Usage:
     from native_dialogs import FileDialog, QtMessageBox, open_modal
 
     # Open a modal dialog (menu_select in a thread to avoid blocking)
-    open_modal(app, "File->Export...")
+    open_modal(app, "File->Save...")
 
-    # Drive a native Windows file dialog
-    with FileDialog("Export Data") as dlg:
+    # Drive a native Windows save file dialog
+    with FileDialog("Save File") as dlg:
         dlg.set_filename("my_data.json")
         dlg.navigate("C:/Users/Desktop")
         assert "JSON Files" in dlg.file_types[0]
-        dlg.cancel()
+        dlg.save()
+
+    # Drive a native Windows folder picker
+    with FileDialog("Open Folder") as dlg:
+        dlg.navigate("C:/Users")
+        dlg.select_folder()  # clicks "Select Folder" button
 
     # Drive a Qt QMessageBox
     with QtMessageBox("About") as dlg:
@@ -80,8 +85,12 @@ class FileDialog:
     # ── Buttons ───────────────────────────────────────────────────────
 
     def save(self):
-        """Click the Save button."""
+        """Click the Save button (save file dialogs)."""
         click_button(self.hwnd, "Save")
+
+    def select_folder(self):
+        """Click the Select Folder button (folder picker dialogs)."""
+        click_button(self.hwnd, "Select Folder")
 
     def cancel(self):
         """Click the Cancel button."""
