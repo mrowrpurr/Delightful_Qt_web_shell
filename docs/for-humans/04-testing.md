@@ -142,3 +142,4 @@ def test_export_dialog(app):
 | `tests/pywinauto/test_full_dialog_flow.py` | Full dialog driving: navigate, file types, save |
 | `tests/pywinauto/native_dialogs.py` | `FileDialog`, `QtMessageBox`, `open_modal` helpers |
 | `tests/pywinauto/win32_helpers.py` | Low-level Win32 API for modal dialog interaction |
+| `tools/screenshot.py` | Desktop screenshot CLI + Python API (multi-monitor) |

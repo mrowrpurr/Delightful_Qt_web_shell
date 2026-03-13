@@ -199,6 +199,49 @@ uv run pytest tests/pywinauto/ -v
 - **`close_dialogs` fixture prevents test pollution** — runs automatically via `autouse=True`
 - **`FileDialog` context manager auto-closes** on exit if still open (safety net)
 
+## Desktop Screenshots — Your Eyes on the Full Screen
+
+Agents can't see the screen. CDP `screenshot` only captures web content inside the
+WebEngine. For native dialogs, menus, taskbar, error popups — anything outside the
+web view — use the desktop screenshot tool.
+
+### CLI (from any agent)
+
+```bash
+uv run python tools/screenshot.py                    # primary monitor → screenshot.png
+uv run python tools/screenshot.py --monitor 2        # specific monitor
+uv run python tools/screenshot.py --all              # all monitors as one image
+uv run python tools/screenshot.py -o debug.png       # custom output path
+uv run python tools/screenshot.py --list             # list available monitors
+```
+
+The output path is printed to stdout. Read the file to see the image.
+
+### From Python tests (pywinauto)
+
+```python
+from screenshot import capture
+
+path = capture()                                     # primary monitor → screenshot.png
+path = capture(output="debug.png")                   # custom path
+path = capture(monitor_index=2, output="mon2.png")   # specific monitor
+path = capture(capture_all=True)                     # all monitors
+```
+
+No subprocess needed — `tools/` is on the Python path.
+
+### From Playwright / Bun tests
+
+```typescript
+import { execSync } from 'child_process'
+execSync('uv run python tools/screenshot.py -o test-results/desktop.png')
+```
+
+### Privacy
+
+Disabled in CI by default (screenshots may capture sensitive content). Set
+`SCREENSHOTS_ENABLED=1` to enable in CI environments.
+
 ## Cross-Layer Testing
 
 Sometimes you need both tools together. Example: test that a React button triggers a native dialog.

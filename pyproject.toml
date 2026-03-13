@@ -6,9 +6,10 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "assertpy>=1.1",
+    "mss>=10.1.0",
     "pytest>=9.0.2",
     "pywinauto>=0.6.9",
 ]
 
 [tool.pytest.ini_options]
-pythonpath = ["tests/pywinauto"]
+pythonpath = ["tests/pywinauto", "tools"]
