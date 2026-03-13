@@ -107,15 +107,18 @@ target("start-desktop")
         print(">>> Starting desktop app with CDP on :9222 ...")
 
         if is_plat("windows") then
-            -- Windows: use 'start /B' via cmd to background
-            os.runv("cmd", {"/c", "start", "/B", exe}, {envs = envs, detach = true})
+            -- Windows: write a temp .bat that launches the exe in background.
+            -- Avoids quoting hell with cmd's 'start' and paths containing spaces.
+            local bat = path.join(os.projectdir(), "build", ".start-desktop.bat")
+            io.writefile(bat, 'start "" "' .. exe .. '"\n')
+            os.runv("cmd", {"/c", bat}, {envs = envs, detach = true})
         else
             os.runv("sh", {"-c", exe .. " &"}, {envs = envs, detach = true})
         end
 
-        -- Wait for CDP to come online
+        -- Wait for CDP to come online (QtWebEngine can take 20s+ on first launch)
         local start_time = os.time()
-        while os.time() - start_time < 15 do
+        while os.time() - start_time < 30 do
             local ok = try { function() os.runv("curl", {"-s", "-o", "/dev/null", "-w", "", "http://localhost:9222/json/version"}) return true end }
             if ok then
                 -- Get PID from CDP (ask the process list)
@@ -129,7 +132,7 @@ target("start-desktop")
             end
             os.sleep(500)
         end
-        print("WARNING: app launched but CDP not responding after 15s")
+        print("WARNING: app launched but CDP not responding after 30s")
     end)
 
 target("stop-desktop")

@@ -179,6 +179,7 @@ int main(int argc, char* argv[]) {
     auto* windowsMenu = menuBar->addMenu("&Windows");
     auto* devToolsAction = windowsMenu->addAction("&Developer Tools");
     devToolsAction->setShortcut(QKeySequence("F12"));
+    devToolsAction->setShortcutContext(Qt::ApplicationShortcut);
 
     // Example: Help > About opens a native QMessageBox.
     // Demonstrates the pattern for native dialogs — testable with pywinauto.
