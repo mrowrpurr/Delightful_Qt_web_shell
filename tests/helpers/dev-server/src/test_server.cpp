@@ -6,6 +6,7 @@
 #include <QCoreApplication>
 #include <QCommandLineParser>
 
+// @scaffold:include
 #include "todo_bridge.hpp"
 #include "expose_as_ws.hpp"
 #include "type_test_bridge.hpp"
@@ -25,8 +26,9 @@ int main(int argc, char* argv[]) {
     // If you add a bridge in main.cpp but forget here, browser-mode dev
     // and Playwright tests will silently be missing that bridge.
     WebShell shell;
-    auto* bridge = new TodoBridge;
-    shell.addBridge("todos", bridge);
+    // @scaffold:bridge
+    auto* todoBridge = new TodoBridge;
+    shell.addBridge("todos", todoBridge);
     auto* typeTest = new TypeTestBridge;
     shell.addBridge("typeTest", typeTest);
     auto* server = expose_as_ws(&shell, port);

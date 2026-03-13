@@ -37,6 +37,7 @@
 #include <QWebEngineUrlRequestJob>
 #include <QWebEngineView>
 
+// @scaffold:include
 #include "todo_bridge.hpp"
 #include "web_shell.hpp"
 
@@ -200,15 +201,12 @@ int main(int argc, char* argv[]) {
                 .arg(APP_NAME).arg(APP_VERSION));
     });
 
-    // ── Shell + Bridge ─────────────────────────────────────────
-    // Register your bridges here. Each bridge is a QObject with Q_INVOKABLE methods.
-    //   auto* myBridge = new MyBridge;
-    //   shell->addBridge("myName", myBridge);
-    // Also register in tests/helpers/dev-server/src/test_server.cpp, and add the
-    // .hpp to add_files() in both desktop/xmake.lua and dev-server/xmake.lua.
+    // ── Shell + Bridges ────────────────────────────────────────
+    // xmake run scaffold-bridge <name>  — creates a new bridge and wires it in.
     auto* shell = new WebShell(&window);
-    auto* bridge = new TodoBridge;
-    shell->addBridge("todos", bridge);
+    // @scaffold:bridge
+    auto* todoBridge = new TodoBridge;
+    shell->addBridge("todos", todoBridge);
 
     // ── Web view ──────────────────────────────────────────────
     auto* view = new QWebEngineView(&window);

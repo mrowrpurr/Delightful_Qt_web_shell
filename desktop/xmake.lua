@@ -1,4 +1,4 @@
--- Capture globals at parse time so before_build closures can access them
+-- Capture at parse time — globals aren't available inside before_build closures
 local _APP_NAME    = APP_NAME
 local _APP_SLUG    = APP_SLUG
 local _APP_VERSION = APP_VERSION
@@ -6,7 +6,7 @@ local _APP_VERSION = APP_VERSION
 target("desktop")
     set_kind("binary")
     add_rules("qt.widgetapp")
-    add_deps("todo-bridge", "web-shell")
+    add_deps("bridges", "web-shell")
     add_files(
         "src/main.cpp",
         "resources/resources.qrc",

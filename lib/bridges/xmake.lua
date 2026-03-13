@@ -1,4 +1,4 @@
-target("todo-bridge")
+target("bridges")
     set_kind("static")
     add_rules("qt.static")
     add_files("src/*.cpp", "include/**.hpp")
