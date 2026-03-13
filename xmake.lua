@@ -75,6 +75,8 @@ target("dev-desktop")
 -- xmake run start-desktop   → launches the app in background with CDP on :9222
 -- xmake run stop-desktop    → kills the background app
 --
+-- NOTE: runs in PRODUCTION mode (embedded resources, no Vite HMR).
+-- For dev mode with HMR, use: xmake run dev-desktop
 -- Agents: use these to launch/quit the app without a human.
 
 target("start-desktop")
@@ -186,6 +188,50 @@ target("test-desktop")
         os.execv("npx", {"playwright", "test"}, {curdir = base, envs = {DESKTOP = "1"}})
     end)
 
+-- ── Bridge validation ───────────────────────────────────────────────
+-- Checks that TypeScript bridge interfaces match C++ Q_INVOKABLE methods.
+-- Catches drift between C++ and TS at dev time instead of runtime.
+
+target("validate-bridges")
+    set_kind("phony")
+    set_default(false)
+    add_deps("dev-server")
+    on_run(function(target)
+        local base = os.scriptdir()
+        local port = 19876  -- use a different port to avoid conflicts
+
+        -- Start dev-server in background
+        print(">>> Starting dev-server on port " .. port .. "...")
+        local dev_server = target:dep("dev-server")
+        local proc = os.runv(dev_server:targetfile(), {"--port", tostring(port)}, {detach = true})
+
+        -- Wait for it to come online
+        local start_time = os.time()
+        while os.time() - start_time < 10 do
+            local ok = try { function() os.runv("curl", {"-s", "-o", "/dev/null", "http://localhost:" .. port}) return true end }
+            if ok then break end
+            os.sleep(500)
+        end
+
+        -- Run the validator
+        local ok = try {
+            function()
+                os.execv("bun", {"run", "tools/validate-bridges.ts"},
+                    {curdir = base, envs = {BRIDGE_WS_URL = "ws://localhost:" .. port}})
+                return true
+            end
+        }
+
+        -- Kill the dev-server
+        if is_plat("windows") then
+            os.execv("taskkill", {"/IM", "dev-server.exe", "/F"}, {try = true, stdout = "/dev/null", stderr = "/dev/null"})
+        else
+            os.execv("pkill", {"-f", "dev-server.*" .. port}, {try = true})
+        end
+
+        if not ok then raise("Bridge validation failed") end
+    end)
+
 -- ── Bun unit tests ──────────────────────────────────────────────────
 
 target("test-bun")
@@ -198,6 +244,9 @@ target("test-bun")
     end)
 
 -- ── Run all tests ───────────────────────────────────────────────────
+-- Runs: Catch2 (C++ unit) + Bun (bridge proxy) + Playwright (browser e2e)
+-- Does NOT run: test-desktop (needs built Qt app) or test-pywinauto (needs running app)
+-- For those, run them individually after building/launching the desktop app.
 
 target("test-all")
     set_kind("phony")

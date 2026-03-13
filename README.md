@@ -1,6 +1,6 @@
 # Delightful Qt Web Shell
 
-A template for building desktop apps with **Qt WebEngine + React** — with four layers of automated testing that actually work.
+A template for building desktop apps with **Qt WebEngine + React** — with five layers of automated testing that actually work.
 
 ![Delightful Qt Web Shell](screenshot.png)
 
@@ -25,8 +25,9 @@ That's it. Build and run.
 
 | | |
 |---|---|
+| **[CLAUDE.md](CLAUDE.md)** | Agent onboarding — build commands, key files, gotchas |
 | **[Tutorial](TUTORIAL.md)** | Add your first feature in 5 minutes |
-| **[Testing Guide](TESTING_GUIDE.md)** | Four test layers — what to write, what broke, how to fix it |
+| **[Testing Guide](TESTING_GUIDE.md)** | Five test layers — what to write, what broke, how to fix it |
 | **[Architecture](ARCHITECTURE.md)** | How the pieces fit together |
 
 ## Prerequisites
@@ -62,11 +63,11 @@ For development with hot module replacement:
 # Terminal 1: Vite dev server
 xmake run dev-web
 
-# Terminal 2: Qt desktop pointing at Vite
-xmake run desktop --dev
+# Terminal 2: Qt desktop with HMR + CDP debugging
+xmake run dev-desktop
 ```
 
-The `--dev` flag loads from `http://localhost:5173` instead of embedded resources. Edit a React component, save, see it update instantly inside the native Qt window.
+`dev-desktop` loads from `http://localhost:5173` with CDP on port 9222. Edit a React component, save, see it update instantly inside the native Qt window.
 
 For browser-only development (no Qt at all):
 
@@ -84,7 +85,7 @@ The React app connects to the C++ backend automatically — same code whether yo
 
 ## Testing
 
-Four layers, from fast unit tests to full Qt smoke tests:
+Five layers, from fast unit tests to native Qt smoke tests:
 
 | Layer | Command | What it proves |
 |-------|---------|----------------|
@@ -92,6 +93,7 @@ Four layers, from fast unit tests to full Qt smoke tests:
 | TS unit (Bun) | `xmake run test-bun` | Bridge protocol works |
 | E2E browser (Playwright) | `xmake run test-browser` | UI + backend integration works |
 | E2E desktop (Playwright + CDP) | `xmake run test-desktop` | Same tests against real Qt app |
+| Native Qt (pywinauto) | `xmake run test-pywinauto` | Menus, dialogs, keyboard shortcuts |
 | All together | `xmake run test-all` | Everything (Catch2 + Bun + browser e2e) |
 
 Install test dependencies first:
@@ -122,8 +124,9 @@ web/
   src/api/bridge.ts       Your app's bridge interface
 
 tests/
-  e2e/                    Playwright end-to-end tests
+  playwright/             Playwright end-to-end tests
     todo-lists.spec.ts
+  pywinauto/              Native Qt tests (menus, dialogs, shortcuts)
   helpers/
     dev-server/           Headless C++ WebSocket server (dev + tests)
 ```

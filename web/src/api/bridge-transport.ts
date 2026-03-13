@@ -17,6 +17,7 @@ declare global {
 export interface BridgeConnection {
   bridge<T extends object>(name: string): T
   signalReady(): Promise<void>
+  onDisconnect?: () => void
 }
 
 // ── WebSocket transport ──────────────────────────────────────────────
@@ -31,8 +32,12 @@ export async function createWsConnection(url: string): Promise<BridgeConnection>
 
   const ws = await new Promise<WebSocket>((resolve, reject) => {
     const socket = new WebSocket(url)
-    socket.onerror = () => reject(new Error(`WebSocket connection failed: ${url}`))
-    socket.onopen = () => resolve(socket)
+    const timeout = setTimeout(() => {
+      socket.close()
+      reject(new Error(`WebSocket connection timeout (5s): ${url}`))
+    }, 5000)
+    socket.onerror = () => { clearTimeout(timeout); reject(new Error(`WebSocket connection failed: ${url}`)) }
+    socket.onopen = () => { clearTimeout(timeout); resolve(socket) }
   })
 
   ws.onmessage = (e) => {
@@ -50,13 +55,17 @@ export async function createWsConnection(url: string): Promise<BridgeConnection>
     }
   }
 
+  // Build the connection object early so onclose can call onDisconnect
+  let onDisconnect: (() => void) | undefined
+
   ws.onclose = () => {
     // Reject all pending calls so callers don't hang forever
     for (const [id, p] of pending) {
       p.reject(new Error('WebSocket disconnected'))
       pending.delete(id)
     }
-    console.warn('[bridge] WebSocket disconnected — will attempt to reconnect')
+    console.warn('[bridge] WebSocket disconnected')
+    onDisconnect?.()
   }
 
   // Query the shell for all bridges and their signals
@@ -97,7 +106,7 @@ export async function createWsConnection(url: string): Promise<BridgeConnection>
     })
   }
 
-  return {
+  const conn: BridgeConnection = {
     bridge<T extends object>(name: string): T {
       return makeBridgeProxy<T>(name)
     },
@@ -108,7 +117,10 @@ export async function createWsConnection(url: string): Promise<BridgeConnection>
         ws.send(JSON.stringify({ method: 'appReady', args: [], id }))
       })
     },
+    set onDisconnect(cb: (() => void) | undefined) { onDisconnect = cb },
+    get onDisconnect() { return onDisconnect },
   }
+  return conn
 }
 
 // ── QWebChannel transport ────────────────────────────────────────────

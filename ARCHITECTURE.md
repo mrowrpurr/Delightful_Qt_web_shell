@@ -30,13 +30,17 @@ In **production**, the React app talks to C++ through QWebChannel — same proce
 
 ## The Proxy Pattern
 
-Both sides use zero-boilerplate Proxies. On C++, the bridge infrastructure introspects `Q_INVOKABLE` methods and signals via `QMetaObject` and dispatches calls automatically. On TypeScript, `await useBridge<TodoBridge>('todos')` connects, discovers available signals, and returns a `Proxy` scoped to that bridge — the interface *is* the implementation. Add a method to both sides and the plumbing connects them with no glue code.
+Both sides use zero-boilerplate Proxies. On C++, the bridge infrastructure introspects `Q_INVOKABLE` methods and signals via `QMetaObject` and dispatches calls automatically. On TypeScript, `await getBridge<TodoBridge>('todos')` connects, discovers available signals, and returns a `Proxy` scoped to that bridge — the interface *is* the implementation. Add a method to both sides and the plumbing connects them with no glue code.
 
 See [TUTORIAL.md](TUTORIAL.md) to add your first feature in 5 minutes.
 
+### The signalReady() Contract
+
+React calls `signalReady()` after mounting. This fires `WebShell::ready()` on the C++ side, which fades out the loading overlay. If `signalReady()` never fires (bridge broken, JS error), a 15-second timeout shows an error message instead of spinning forever.
+
 ## Testing
 
-Four layers from fast unit tests to full Qt desktop e2e. Browser and desktop e2e share the same test suite — `DESKTOP=1` switches Playwright to connect via CDP. See [TESTING_GUIDE.md](TESTING_GUIDE.md) for practical guidance on what to test, how to debug failures, and how to add new tests.
+Five layers from fast unit tests to native Qt window tests. Browser and desktop e2e share the same test suite — `DESKTOP=1` switches Playwright to connect via CDP. pywinauto tests menus, dialogs, and keyboard shortcuts from the OS level. See [TESTING_GUIDE.md](TESTING_GUIDE.md) for practical guidance on what to test, how to debug failures, and how to add new tests.
 
 ## Cross-Platform
 

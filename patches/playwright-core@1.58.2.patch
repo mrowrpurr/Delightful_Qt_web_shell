@@ -1,3 +1,10 @@
+# QtWebEngine doesn't support Browser.setDownloadBehavior (CDP command).
+# Playwright calls it during context init, which crashes connectOverCDP.
+# This .catch(() => {}) suppresses the unsupported-command error so
+# Playwright works with Qt's embedded Chromium.
+#
+# Check if still needed when bumping playwright-core.
+# See also: tools/cdp-mcp/postinstall.ts (applies the same patch).
 diff --git a/lib/server/chromium/crBrowser.js b/lib/server/chromium/crBrowser.js
 index 9cf6f63d155b7c8e230871d9f11fa7bf748e0fb8..74bd5ce6d811523d2821a8bc907c7857b3c08307 100644
 --- a/lib/server/chromium/crBrowser.js

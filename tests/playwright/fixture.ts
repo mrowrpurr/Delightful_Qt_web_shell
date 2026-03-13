@@ -67,7 +67,10 @@ const desktopTest = base.extend<Fixtures>({
             if (page) break
             await new Promise(r => setTimeout(r, 500))
           }
-          if (!page) throw new Error('No app page found in Qt')
+          if (!page) {
+            const allPages = browser!.contexts().flatMap(c => c.pages()).map(p => p.url())
+            throw new Error(`No app page found in Qt after 10s. Is the app running? Pages seen: ${JSON.stringify(allPages)}`)
+          }
 
           await use(page)
         } finally {

@@ -148,6 +148,11 @@ int main(int argc, char* argv[]) {
                 (geo.height() - 640) / 2 + geo.y());
 
     // ── Menu bar ──────────────────────────────────────────────
+    // Add your menus below. Each menu follows the pattern:
+    //   auto* myMenu = menuBar->addMenu("&MyMenu");
+    //   auto* myAction = myMenu->addAction("&Do Thing");
+    //   myAction->setShortcut(QKeySequence("Ctrl+D"));
+    //   QObject::connect(myAction, &QAction::triggered, &window, [&]() { ... });
     auto* menuBar = window.menuBar();
 
     auto* fileMenu = menuBar->addMenu("&File");
@@ -179,10 +184,15 @@ int main(int argc, char* argv[]) {
                 .arg(APP_NAME).arg(APP_VERSION));
     });
 
-    // ── Shell + Bridge ─────────────────────────────────────────
-    auto* shell = new WebShell(&window);
-    auto* bridge = new Bridge;
-    shell->addBridge("todos", bridge);
+    // ── Shell + Bridge ─────────────────────────────────────────
+    // Register your bridges here. Each bridge is a QObject with Q_INVOKABLE methods.
+    //   auto* myBridge = new MyBridge;
+    //   shell->addBridge("myName", myBridge);
+    // Also register in tests/helpers/dev-server/src/test_server.cpp, and add the
+    // .hpp to add_files() in both desktop/xmake.lua and dev-server/xmake.lua.
+    auto* shell = new WebShell(&window);
+    auto* bridge = new Bridge;
+    shell->addBridge("todos", bridge);
 
     // ── Web view ──────────────────────────────────────────────
     auto* view = new QWebEngineView(&window);
@@ -201,11 +211,11 @@ int main(int argc, char* argv[]) {
         page->scripts().insert(wcScript);
     }
 
-    // Register shell + bridges with QWebChannel
-    auto* channel = new QWebChannel(page);
-    channel->registerObject("_shell", shell);
-    for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it)
-        channel->registerObject(it.key(), it.value());
+    // Register shell + bridges with QWebChannel
+    auto* channel = new QWebChannel(page);
+    channel->registerObject("_shell", shell);
+    for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it)
+        channel->registerObject(it.key(), it.value());
     page->setWebChannel(channel);
 
     // ── Developer Tools ───────────────────────────────────────
@@ -281,7 +291,11 @@ int main(int argc, char* argv[]) {
     // Fade out overlay once the React app signals it's fully rendered.
     // This replaces loadFinished — we don't reveal until the bridge is
     // connected, data is loaded, and the first frame is committed.
-    QObject::connect(shell, &WebShell::ready, overlay, [overlay]() {
+    // Uses a single-shot connection so a double-emit won't crash.
+    QObject::connect(shell, &WebShell::ready, overlay, [overlay, shell]() {
+        // Disconnect immediately — a second ready() must not touch a deleted overlay
+        QObject::disconnect(shell, &WebShell::ready, overlay, nullptr);
+
         auto* effect = new QGraphicsOpacityEffect(overlay);
         overlay->setGraphicsEffect(effect);
 
@@ -292,6 +306,20 @@ int main(int argc, char* argv[]) {
         fadeOut->setEasingCurve(QEasingCurve::OutCubic);
         QObject::connect(fadeOut, &QPropertyAnimation::finished, overlay, &QWidget::deleteLater);
         fadeOut->start(QAbstractAnimation::DeleteWhenStopped);
+    });
+
+    // Safety timeout: if signalReady() never fires, show an error after 15 seconds
+    // instead of leaving the user staring at a spinner forever.
+    QTimer::singleShot(15000, overlay, [overlay, progressBar, logo]() {
+        if (!overlay) return;  // Already removed by successful ready signal
+        progressBar->hide();
+        logo->hide();
+        auto* errorLabel = new QLabel(overlay);
+        errorLabel->setText("Bridge connection failed.\n\nCheck the console (F12) or restart the app.");
+        errorLabel->setAlignment(Qt::AlignCenter);
+        errorLabel->setStyleSheet("color: #ff6b6b; font-size: 14px;");
+        overlay->layout()->addWidget(errorLabel);
+        qWarning() << "signalReady() was not called within 15 seconds — bridge may be broken.";
     });
 
     return app.exec();

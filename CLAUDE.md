@@ -20,6 +20,7 @@ xmake run test-browser            # Playwright e2e (browser) — ~5s
 xmake run test-desktop            # Playwright e2e (real Qt app) — ~15s
 xmake run test-pywinauto          # Native Qt tests (pywinauto) — requires running app
 xmake run test-all                # Catch2 + Bun + browser e2e
+xmake run validate-bridges        # Check TS↔C++ bridge interfaces match
 ```
 
 Always run tests before AND after changes. That's your baseline.
@@ -48,6 +49,7 @@ Five files:
 **Return types:** QJsonObject, QJsonArray, QString, int, double, bool, void
 **Max parameters:** 10
 **Signals:** parameterless signals are auto-forwarded to JS clients
+**Validation:** `xmake run validate-bridges` checks that TS interfaces match C++ methods (catches drift at dev time)
 
 ## 🚫 Gotchas
 
@@ -68,6 +70,7 @@ Five files:
 | React app | `web/src/App.tsx` |
 | Bridge TS interface | `web/src/api/bridge.ts` |
 | Bridge transport | `web/src/api/bridge-transport.ts` |
+| Bridge validator | `tools/validate-bridges.ts` |
 | MCP server (cdp-mcp) | `tools/cdp-mcp/server.ts` |
 | Playwright tests | `tests/playwright/` |
 | pywinauto tests | `tests/pywinauto/` |

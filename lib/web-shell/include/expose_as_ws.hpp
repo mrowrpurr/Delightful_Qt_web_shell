@@ -183,6 +183,48 @@ inline QJsonArray collect_signal_names(const QObject* obj) {
     return names;
 }
 
+// ── collect_bridge_meta ─────────────────────────────────────────────
+// Returns full metadata for a bridge: methods (with param types and
+// return type) and signals. Used by __meta__ for manifest validation.
+inline QJsonObject collect_bridge_meta(const QObject* obj) {
+    const QMetaObject* meta = obj->metaObject();
+    QJsonArray method_list;
+    QJsonArray signal_list;  // "signals" is a Qt keyword — can't use it as a var name
+
+    for (int i = meta->methodOffset(); i < meta->methodCount(); ++i) {
+        QMetaMethod m = meta->method(i);
+
+        if (m.methodType() == QMetaMethod::Signal) {
+            QJsonObject sig;
+            sig["name"] = QString::fromLatin1(m.name());
+            sig["paramCount"] = m.parameterCount();
+            signal_list.append(sig);
+            continue;
+        }
+
+        // Only expose Q_INVOKABLE methods (Slot or Method access)
+        if (m.methodType() != QMetaMethod::Slot && m.methodType() != QMetaMethod::Method)
+            continue;
+
+        QJsonObject method;
+        method["name"] = QString::fromLatin1(m.name());
+        method["returnType"] = QString::fromLatin1(m.typeName());
+        method["paramCount"] = m.parameterCount();
+
+        QJsonArray params;
+        for (int p = 0; p < m.parameterCount(); ++p) {
+            QJsonObject param;
+            param["name"] = QString::fromLatin1(m.parameterNames().value(p));
+            param["type"] = QString::fromLatin1(m.parameterTypeName(p));
+            params.append(param);
+        }
+        method["params"] = params;
+        method_list.append(method);
+    }
+
+    return {{"methods", method_list}, {"signals", signal_list}};
+}
+
 // ── forward_signals ──────────────────────────────────────────────────
 // Forwards parameterless signals from a bridge to a WebSocket client.
 // Signals with parameters are still listed in __meta__ so clients know
@@ -216,10 +258,14 @@ inline void forward_signals(QObject* source, const QString& bridgeName, QWebSock
 //   ← {"bridge": "todos", "event": "dataChanged"}         (pushed on signal)
 //
 //   → {"method": "__meta__", "args": [], "id": 0}
-//   ← {"id": 0, "result": {"bridges": {"todos": {"signals": ["dataChanged"]}}}}
+//   ← {"id": 0, "result": {"bridges": {"todos": {
+//        "methods": [{"name":"listLists","returnType":"QJsonArray","paramCount":0,"params":[]},...],
+//        "signals": ["dataChanged"]
+//      }}}}
 //
-// Convention: Q_INVOKABLE methods take QStrings, return QJsonObject or QJsonArray.
-//             Parameterless signals are forwarded as events.
+// Supported param types: QString, int, double, bool, QJsonObject, QJsonArray
+// Supported return types: QJsonObject, QJsonArray, QString, int, double, bool, void
+// Parameterless signals are forwarded as events.
 inline QWebSocketServer* expose_as_ws(WebShell* shell, int port, QObject* parent = nullptr) {
     auto* server = new QWebSocketServer(
         QStringLiteral("BridgeServer"), QWebSocketServer::NonSecureMode, parent);
@@ -262,10 +308,14 @@ inline QWebSocketServer* expose_as_ws(WebShell* shell, int port, QObject* parent
                 QJsonValue result_value;
 
                 if (method == "__meta__") {
-                    // Return all bridges and their signals
+                    // Return full bridge metadata: methods (with types) + signals
                     QJsonObject bridges;
-                    for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it)
-                        bridges[it.key()] = QJsonObject{{"signals", collect_signal_names(it.value())}};
+                    for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it) {
+                        auto meta = collect_bridge_meta(it.value());
+                        // Keep backward-compat: "signals" as flat array of names
+                        meta["signals"] = collect_signal_names(it.value());
+                        bridges[it.key()] = meta;
+                    }
                     result_value = QJsonObject{{"bridges", bridges}};
                 } else {
                     // Route: no bridge name → shell, otherwise → named bridge

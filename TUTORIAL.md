@@ -106,7 +106,7 @@ export interface TodoBridge {
 ### 4. Call it from React
 
 ```typescript
-const todos = await useBridge<TodoBridge>('todos')
+const todos = await getBridge<TodoBridge>('todos')
 // ...
 await todos.addItem(listId, 'Buy milk')
 ```
@@ -146,7 +146,7 @@ The transport layer discovers signals automatically via `QMetaObject` introspect
 ### TypeScript — subscribe by signal name
 
 ```typescript
-const todos = await useBridge<TodoBridge>('todos')
+const todos = await getBridge<TodoBridge>('todos')
 
 todos.dataChanged(() => refresh())
 todos.itemAdded(() => recount())
@@ -271,7 +271,7 @@ export interface NotesBridge {
 ```
 
 ```typescript
-const notes = await useBridge<NotesBridge>('notes')
+const notes = await getBridge<NotesBridge>('notes')
 await notes.addNote('Meeting notes')
 ```
 
@@ -290,7 +290,7 @@ await notes.addNote('Meeting notes')
 
 ## How the Proxy Works (If You're Curious)
 
-`await useBridge<T>('name')` connects to the C++ backend, queries all registered bridges and their signals via `QMetaObject`, and returns a JavaScript `Proxy` scoped to the named bridge. When you access a property on it:
+`await getBridge<T>('name')` connects to the C++ backend, queries all registered bridges and their signals via `QMetaObject`, and returns a JavaScript `Proxy` scoped to the named bridge. When you access a property on it:
 
 1. If it's a verified signal → returns a subscribe function
 2. If it's a method → sends a JSON-RPC message to C++ and returns a Promise

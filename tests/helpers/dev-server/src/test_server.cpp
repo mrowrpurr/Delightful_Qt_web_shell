@@ -20,6 +20,9 @@ int main(int argc, char* argv[]) {
 
     int port = parser.value("port").toInt();
 
+    // Register your bridges here — must match desktop/src/main.cpp.
+    // If you add a bridge in main.cpp but forget here, browser-mode dev
+    // and Playwright tests will silently be missing that bridge.
     WebShell shell;
     auto* bridge = new Bridge;
     shell.addBridge("todos", bridge);

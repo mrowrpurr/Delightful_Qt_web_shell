@@ -322,6 +322,7 @@ npx playwright install chromium
 | E2E browser (Playwright) | `xmake run test-browser` | ~5s |
 | E2E desktop (Playwright) | `xmake build desktop && xmake run test-desktop` | ~15s |
 | Native Qt (pywinauto) | `xmake run test-pywinauto` | ~5s |
+| Bridge validation | `xmake run validate-bridges` | ~3s |
 | All (Catch2 + Bun + browser e2e) | `xmake run test-all` | ~10s |
 | Launch app for manual testing | `xmake run start-desktop` | ~5s |
 | Stop background app | `xmake run stop-desktop` | instant |
@@ -330,7 +331,7 @@ npx playwright install chromium
 
 **Catch2** prints assertion counts:
 ```
-All tests passed (33 assertions in 11 test cases)
+All tests passed (46 assertions in 17 test cases)
 ```
 
 **Bun** prints pass/fail per test:
@@ -338,12 +339,12 @@ All tests passed (33 assertions in 11 test cases)
 ✓ sends correct JSON-RPC message for a no-arg method
 ✓ sends args for methods with parameters
 ...
-8 pass
+9 pass
 ```
 
 **Playwright** starts a backend, launches a browser, runs through UI flows:
 ```
-4 passed
+6 passed
 ```
 
 **Desktop e2e** runs the same test suite against the real Qt app. It's slower and can be less stable (GPU, window manager). Good for CI, don't gate on it locally.

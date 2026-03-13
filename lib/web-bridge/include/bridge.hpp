@@ -46,6 +46,8 @@ public:
 
     Q_INVOKABLE QJsonObject getList(const QString& listId) const {
         auto detail = store_.get_list(listId.toStdString());
+        if (detail.list.id.empty())
+            return {{"error", "List not found: " + listId}};
         QJsonArray items;
         for (const auto& i : detail.items)
             items.append(to_json(i));
@@ -66,6 +68,8 @@ public:
 
     Q_INVOKABLE QJsonObject toggleItem(const QString& itemId) {
         auto item = store_.toggle_item(itemId.toStdString());
+        if (item.id.empty())
+            return {{"error", "Item not found: " + itemId}};
         emit dataChanged();
         return to_json(item);
     }

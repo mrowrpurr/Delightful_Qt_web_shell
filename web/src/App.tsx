@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from 'react'
 import { getBridge, signalReady, type TodoBridge, type TodoList, type TodoItem, type ListDetail } from './api/bridge'
 
-// Bridge connects before first render — the Qt loading overlay covers the wait.
-// Top-level await is intentional: Vite supports it, and the Qt shell displays a
-// loading overlay until signalReady() completes, so there is no visible delay.
+// Top-level await — Vite supports this natively.
+// Runs before React mounts. The Qt shell shows a loading overlay during this time,
+// so there's no visible delay. Safe to move but must stay at module scope (not
+// inside a component), because getBridge returns a long-lived proxy, not per-render state.
 const todos = await getBridge<TodoBridge>('todos')
 
 export default function App() {
@@ -23,17 +24,10 @@ export default function App() {
     setDetail(result)
   }, [])
 
-  // ╔══════════════════════════════════════════════════════════════════════╗
-  // ║  DO NOT REMOVE THIS CALL — IT WILL BREAK THE APP COMPLETELY        ║
-  // ║                                                                     ║
-  // ║  signalReady() tells the Qt shell that React has mounted.           ║
-  // ║  Without it, the loading overlay stays forever and the app          ║
-  // ║  appears frozen. There is no error, no crash, just a white          ║
-  // ║  screen with a spinner that never goes away.                        ║
-  // ║                                                                     ║
-  // ║  If you're refactoring this component, move this call but           ║
-  // ║  DO NOT DELETE IT. It must run once after the first render.         ║
-  // ╚══════════════════════════════════════════════════════════════════════╝
+  // signalReady() tells Qt that React has mounted, which fades out the
+  // loading overlay. Must run once after first render. Safe to move during
+  // refactoring — just don't delete it. Without this call, the overlay
+  // stays up for 15 seconds before showing an error message.
   useEffect(() => { signalReady() }, [])
 
   useEffect(() => {
@@ -116,6 +110,7 @@ export default function App() {
               data-testid="delete-list-button"
               className="delete-btn"
               onClick={e => { e.stopPropagation(); handleDeleteList(list.id) }}
+              aria-label={`Delete ${list.name}`}
               title="Delete list"
             >×</button>
           </div>
@@ -149,14 +144,17 @@ export default function App() {
               data-testid="todo-item"
               data-done={item.done}
               className={`todo-item ${item.done ? 'done' : ''}`}
+              role="checkbox"
+              aria-checked={item.done}
               onClick={() => handleToggleItem(item.id)}
             >
-              <span className="checkbox">{item.done ? '✓' : '○'}</span>
+              <span className="checkbox" aria-hidden="true">{item.done ? '✓' : '○'}</span>
               <span className="todo-text">{item.text}</span>
               <button
                 data-testid="delete-item-button"
                 className="delete-btn"
                 onClick={e => { e.stopPropagation(); handleDeleteItem(item.id) }}
+                aria-label={`Delete ${item.text}`}
                 title="Delete item"
               >×</button>
             </div>

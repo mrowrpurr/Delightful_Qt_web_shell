@@ -52,7 +52,11 @@ function getConnection(): Promise<BridgeConnection> {
       _connection = createQtConnection()
     else {
       const wsUrl = import.meta.env.VITE_BRIDGE_WS_URL || 'ws://localhost:9876'
-      _connection = createWsConnection(wsUrl).catch(err => {
+      _connection = createWsConnection(wsUrl).then(conn => {
+        // Reset singleton when the connection drops so the next call reconnects
+        conn.onDisconnect = () => { _connection = null }
+        return conn
+      }).catch(err => {
         // Reset so the next call retries the connection
         _connection = null
         throw err

@@ -5,7 +5,7 @@
       "command": "npx",
       "args": [
         "tsx",
-        ".\\tools\\cdp-mcp\\server.ts"
+        "./tools/cdp-mcp/server.ts"
       ],
       "env": {}
     }
