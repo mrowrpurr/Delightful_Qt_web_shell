@@ -23,7 +23,7 @@ You don't need to learn QML or Qt Widgets for UI. You don't need Electron's memo
   - **Qt WebSockets** — for the dev server and test infrastructure
   - **Qt Positioning** — required by WebEngine at runtime (transitive dependency)
 - [Bun](https://bun.sh) — JS runtime and package manager
-- [Node.js](https://nodejs.org) — for Playwright tests and the CDP-based MCP server
+- [Node.js](https://nodejs.org) — for Playwright tests and the cdp CLI
 - **Linux only:** `libnss3-dev` and `libasound2-dev` (Chromium dependencies)
 
 ## Make It Yours
@@ -95,15 +95,14 @@ The dev-server is a headless C++ process that serves your bridges over WebSocket
 │   ├── playwright/           #   Browser + desktop e2e tests
 │   ├── pywinauto/            #   Native Qt widget tests (Windows)
 │   └── helpers/dev-server/   #   Headless C++ backend for dev/test
-├── tools/cdp-mcp/            # MCP server for agent tooling (CDP)
+├── tools/cdp/                # CDP CLI + library for agent tooling
 └── xmake.lua                 # Root build config (APP_NAME, targets)
 ```
 
 ## Quick Test
 
 ```bash
-bun install                   # install dependencies
-npx playwright install chromium
+xmake run setup               # install all dependencies
 xmake run test-all            # Catch2 + Bun + Playwright browser (~10s)
 ```
 

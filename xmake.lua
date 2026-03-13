@@ -36,6 +36,30 @@ includes("desktop/xmake.lua")
 
 includes("tests/helpers/dev-server/xmake.lua")
 
+-- ── Setup (install all dependencies) ──────────────────────────────────
+
+target("setup")
+    set_kind("phony")
+    set_default(false)
+    on_run(function()
+        import("lib.detect.find_tool")
+        local scriptdir = os.scriptdir()
+
+        print("── uv sync ──")
+        os.execv("uv", {"sync"}, {curdir = scriptdir})
+
+        print("── bun install ──")
+        os.execv("bun", {"install"}, {curdir = scriptdir})
+
+        print("── tools/cdp npm install ──")
+        os.execv("npm", {"install"}, {curdir = path.join(scriptdir, "tools", "cdp")})
+
+        print("── playwright install chromium ──")
+        os.execv("npx", {"playwright", "install", "chromium"}, {curdir = scriptdir})
+
+        print("✅ All dependencies installed")
+    end)
+
 -- ── C++ unit tests (Catch2, no Qt) ──────────────────────────────────
 
 target("test-todo-store")
@@ -170,6 +194,24 @@ target("stop-desktop")
         end
         os.rm(pidfile)
         print("Desktop app stopped (PID " .. pid .. ")")
+    end)
+
+-- ── CDP CLI (drive Qt app via Chrome DevTools Protocol) ─────────────
+--
+-- xmake run cdp snapshot             → accessibility tree
+-- xmake run cdp screenshot           → screenshot.png
+-- xmake run cdp click --test-id foo  → click element
+-- xmake run cdp eval "document.title" → evaluate JS
+-- See: npx tsx tools/cdp/cli.ts --help
+
+target("cdp")
+    set_kind("phony")
+    set_default(false)
+    on_run(function()
+        print("Usage: npx tsx tools/cdp/cli.ts <command> [args...]")
+        print("")
+        print("Commands: snapshot, screenshot, click, fill, press, eval, text, wait, console")
+        print("Run with --help for full usage.")
     end)
 
 -- ── pywinauto tests (native Qt window) ─────────────────────────────

@@ -7,7 +7,7 @@ You're an agent who wants to build a desktop app. This template gives you Qt + R
 - **React UI** rendered inside a Qt WebEngine window — you write React, the user sees a native desktop app
 - **C++ backend** connected to the UI via a type-safe bridge — write `Q_INVOKABLE` methods, call them from TypeScript
 - **Five test layers** that actually work — C++ unit, bridge protocol, browser e2e, desktop e2e, native Qt
-- **Dev tools** — cdp-mcp (see/click web content via MCP), pywinauto (drive native Qt widgets)
+- **Dev tools** — cdp (see/click web content via CLI/library), pywinauto (drive native Qt widgets)
 
 ## Project Layout
 
@@ -23,7 +23,7 @@ You're an agent who wants to build a desktop app. This template gives you Qt + R
 │   ├── playwright/           #   Browser + desktop e2e tests
 │   ├── pywinauto/            #   Native Qt widget tests (Windows)
 │   └── helpers/dev-server/   #   Headless C++ backend for dev/test
-├── tools/cdp-mcp/            # MCP server for seeing web content via CDP
+├── tools/cdp/                # CDP CLI + library for seeing web content
 └── xmake.lua                 # Root build config (APP_NAME, APP_SLUG, targets)
 ```
 
@@ -34,7 +34,7 @@ You're an agent who wants to build a desktop app. This template gives you Qt + R
 - [xmake](https://xmake.io) — build system
 - [Qt 6.x](https://www.qt.io) with modules: WebEngine, WebChannel, WebSockets, Positioning (Positioning is a transitive dependency of QtWebEngine — you won't use it directly)
 - [Bun](https://bun.sh) — JS runtime and package manager
-- [Node.js](https://nodejs.org) — for Playwright and cdp-mcp (Bun's ws polyfill breaks CDP)
+- [Node.js](https://nodejs.org) — for Playwright and cdp (Bun's ws polyfill breaks CDP)
 
 ## Make It Yours
 
@@ -48,12 +48,19 @@ APP_VERSION = "0.1.0"
 
 This flows everywhere: window title, binary name, Windows exe metadata, HTML `<title>`, loading screen. Replace `desktop/resources/icon.ico` and `icon.png` with your own.
 
+## First-Time Setup
+
+```bash
+# Point xmake at your Qt installation
+xmake f --qt=/path/to/qt   # e.g. C:/Qt/6.10.2/msvc2022_64
+
+# Install all dependencies (uv, bun, cdp tools, playwright chromium)
+xmake run setup
+```
+
 ## Build & Run
 
 ```bash
-# Point xmake at your Qt installation (one time)
-xmake f --qt=/path/to/qt   # e.g. C:/Qt/6.10.2/msvc2022_64
-
 # Build the desktop app (builds React via Vite, then C++)
 xmake build desktop
 

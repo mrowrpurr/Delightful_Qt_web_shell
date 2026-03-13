@@ -26,9 +26,7 @@ Five layers, from instant unit tests to native Qt window automation.
 ## Setup (One Time)
 
 ```bash
-bun install                              # root deps + patched playwright-core
-cd tools/cdp-mcp && npm install && cd -  # MCP server deps
-npx playwright install chromium
+xmake run setup    # all deps: uv sync, bun install, tools/cdp, playwright chromium
 ```
 
 ## What Changed → What to Test

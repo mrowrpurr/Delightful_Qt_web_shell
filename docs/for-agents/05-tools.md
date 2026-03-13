@@ -5,7 +5,7 @@ You're an agent. You can't look at a screen. These tools are your eyes and hands
 ## Two Tools, Two Layers
 
 ```
- cdp-mcp (MCP)              pywinauto (Python)
+ cdp (CLI)                  pywinauto (Python)
  ┌──────────────┐           ┌──────────────┐
  │ Web content  │           │ Native Qt    │
  │ React DOM    │           │ Menus        │
@@ -20,69 +20,114 @@ You're an agent. You can't look at a screen. These tools are your eyes and hands
 
 | Tool | What it sees | What it drives | When to use |
 |------|-------------|----------------|-------------|
-| **cdp-mcp** | Web content rendered by React | Click, fill, evaluate JS | Anything inside the web view |
+| **cdp** | Web content rendered by React | Click, fill, evaluate JS | Anything inside the web view |
 | **pywinauto** | Native Qt widgets | Menus, dialogs, keyboard shortcuts | Anything outside the web view |
 
-**Rule of thumb:** If a human would right-click or use a menu → pywinauto. If they'd click a button in the UI → cdp-mcp.
+**Rule of thumb:** If a human would right-click or use a menu → pywinauto. If they'd click a button in the UI → cdp.
 
-## cdp-mcp — Your Eyes on the Web Content
+## cdp — Your Eyes on the Web Content
 
-An MCP server that connects to the Qt app's Chrome DevTools Protocol endpoint.
+A TypeScript library + CLI for driving the Qt app via Chrome DevTools Protocol. Import the functions directly for full programmatic power, or use the CLI for quick one-off commands.
 
 ### Setup
 
-The app must be running with CDP enabled:
-
 ```bash
+xmake run setup            # all deps (one time)
 xmake run start-desktop    # launches app, CDP on :9222
 ```
 
-Verify CDP is up:
+### Three Ways to Use It
+
+**1. `run.ts` — zero-import scripts (recommended for agents)**
+
+All functions are globals. No imports needed. Reads code from stdin. Auto-disconnects when done.
+
 ```bash
-curl -s http://localhost:9222/json/version
+# One-liner
+echo 'console.log(await snapshot())' | npx tsx tools/cdp/run.ts
+
+# Multi-step
+echo 'await fill("new-list-input", "Groceries"); await click("create-list-button")' | npx tsx tools/cdp/run.ts
 ```
 
-### Available MCP Tools
+**2. Multiline scripts — full TypeScript power**
 
-| Tool | What it does |
-|------|-------------|
-| `snapshot` | Returns the accessibility tree (DOM structure with roles, names, values) |
-| `screenshot` | Takes a PNG screenshot of the page |
-| `click` | Clicks an element by accessibility snapshot ref |
-| `fill` | Types text into an input field |
-| `press` | Sends a key press (Enter, Tab, etc.) |
-| `evaluate` | Runs arbitrary JavaScript in the page context |
-| `text_content` | Gets the text content of the page |
-| `wait_for` | Waits for text to appear on the page |
-| `console_messages` | Returns recent console.log output |
+Loops, variables, conditionals, error handling — a whole program in one command.
+
+```bash
+echo '
+const tree = await snapshot()
+console.log(tree)
+
+await fill("new-list-input", "Groceries")
+await click("create-list-button")
+
+// Verify it worked
+const updated = await snapshot()
+if (updated.includes("Groceries")) {
+  console.log("List created!")
+} else {
+  console.log("Something went wrong")
+}
+' | npx tsx tools/cdp/run.ts
+```
+
+```bash
+echo '
+// Loop through and read every visible element
+for (const id of ["header", "subtitle", "footer"]) {
+  try {
+    console.log(id + ": " + await text(id))
+  } catch {
+    console.log(id + ": not found")
+  }
+}
+' | npx tsx tools/cdp/run.ts
+```
+
+**3. `cli.ts` — simple named commands**
+
+```bash
+npx tsx tools/cdp/cli.ts snapshot
+npx tsx tools/cdp/cli.ts click --test-id new-list-input
+npx tsx tools/cdp/cli.ts fill --test-id new-list-input "Groceries"
+npx tsx tools/cdp/cli.ts eval "document.title"
+npx tsx tools/cdp/cli.ts screenshot debug.png
+```
+
+### Available Functions
+
+| Function | What it does |
+|----------|-------------|
+| `snapshot()` | Returns the accessibility tree (DOM structure with roles, names, values) |
+| `screenshot(path?)` | Takes a PNG screenshot, returns the path |
+| `click(testId?, { selector? })` | Clicks an element by test ID or CSS selector |
+| `fill(testId, value)` | Types text into an input field |
+| `press(key, testId?, { selector? })` | Sends a key press (Enter, Tab, etc.) |
+| `eval_js(expression)` | Runs JavaScript in the page context, returns the result |
+| `text(testId?, { selector? })` | Gets the text content of an element |
+| `wait(testId?, timeout?, { selector? })` | Waits for an element to appear |
+| `console_messages({ level?, count?, clear? })` | Reads buffered console messages (filtered, counted, or cleared) |
+| `disconnect()` | Closes the CDP connection (auto-called by run.ts) |
 
 ### Workflow Pattern
 
-1. **Orient** — take a `snapshot` to see the current DOM state
-2. **Act** — `click`, `fill`, or `press` to interact
-3. **Verify** — `snapshot` again or `text_content` to confirm the result
-4. **Debug** — `console_messages` if something went wrong, `evaluate` for deeper inspection
-
-### Example: Add a Todo Item
-
-```
-→ snapshot()                          # see the current UI state
-→ click(ref: 5)                       # click the input field (ref from snapshot)
-→ fill(ref: 5, value: "Buy milk")     # type into it
-→ click(ref: 7)                       # click the "Add" button
-→ snapshot()                          # verify the item appeared
-```
+1. **Orient** — `snapshot()` to see the current DOM state
+2. **Act** — `click()`, `fill()`, or `press()` to interact
+3. **Verify** — `snapshot()` again or `text()` to confirm the result
+4. **Debug** — `console_messages()` if something went wrong, `eval_js()` for deeper inspection
 
 ### Tips
 
-- **snapshot is your primary tool** — it's fast, gives you the accessibility tree with refs you can click
+- **snapshot is your primary tool** — it's fast, gives you the accessibility tree with test IDs you can target
 - **screenshot when snapshot isn't enough** — layout issues, visual bugs, "is this actually rendering?"
-- **evaluate for power moves** — read React state, check localStorage, trigger functions
-- **console_messages for debugging** — bridge errors, WebSocket issues, JS exceptions all show up here
+- **eval_js for power moves** — read React state, check localStorage, trigger functions
+- **console_messages for debugging** — reads the in-page buffer instantly, filter by `level`, limit with `count`, drain with `clear: true`
+- **run.ts for quick exploration** — pipe code via stdin, all functions available as globals, no imports, auto-disconnect
 
 ### ⚠️ Critical: Node, Not Bun
 
-cdp-mcp **must** run under Node.js (`npx tsx`), not Bun. Bun's WebSocket polyfill breaks the CDP connection — it can't handle the HTTP 101 Switching Protocols upgrade. The `.mcp.json` config already uses `npx tsx`. Don't change it to `bun run`.
+The cdp tools **must** run under Node.js (`npx tsx`), not Bun. Bun's WebSocket polyfill breaks the CDP connection — it can't handle the HTTP 101 Switching Protocols upgrade. Don't change `npx tsx` to `bun run`.
 
 ## pywinauto — Your Hands on Native Qt
 
@@ -103,12 +148,28 @@ xmake run start-desktop
 
 ### Quick Start
 
-```python
+```bash
+uv run python -c "
 from pywinauto import Desktop
+from native_dialogs import open_modal, FileDialog, QtMessageBox
+import time
 
-desktop = Desktop(backend="uia")
-app = desktop.window(title="Delightful Qt Web Shell", class_name="QMainWindow")
-app.wait("visible", timeout=5)
+d = Desktop(backend='uia')
+app = d.window(title='Delightful Qt Web Shell')
+app.wait('visible', timeout=5)
+
+# Open the Save dialog and explore it
+open_modal(app, 'File->Save...')
+time.sleep(1)
+
+with FileDialog('Save File') as dlg:
+    print('Folder:', dlg.current_folder)
+    print('Types:', dlg.file_types)
+    dlg.navigate('C:/Users')
+    time.sleep(1)
+    print('Now in:', dlg.current_folder)
+    dlg.cancel()
+"
 ```
 
 ### ⚠️ Critical: Qt6 Modal Dialogs Block UIA
@@ -141,10 +202,10 @@ with QtMessageBox("About") as dlg:
     dlg.press_ok()       # PostMessage VK_RETURN
 ```
 
-**Drive a native file dialog (Export/Save/Open):**
+**Drive a native file dialog (Save/Open):**
 ```python
 # Native Windows file dialog (#32770) has real Win32 child controls.
-with FileDialog("Export Data") as dlg:
+with FileDialog("Save File") as dlg:
     dlg.set_filename("my_data.json")    # WM_SETTEXT on Edit
     dlg.navigate("C:/Users/Desktop")    # type path + Enter
     print(dlg.current_folder)           # read from address bar toolbar
@@ -193,7 +254,7 @@ uv run pytest tests/pywinauto/ -v
 ### Tips
 
 - **Always use `open_modal()` for menu items that open modal dialogs** — `menu_select` blocks forever otherwise
-- **Use `threading.Thread(daemon=True)` for keyboard shortcuts that open modals** (e.g., Ctrl+E)
+- **Use `threading.Thread(daemon=True)` for keyboard shortcuts that open modals** (e.g., Ctrl+S)
 - **Always `set_focus()` before keyboard shortcuts** — the app must be focused
 - **Add `time.sleep(0.5-1)` after opening dialogs** — they take a moment to appear
 - **`close_dialogs` fixture prevents test pollution** — runs automatically via `autouse=True`
@@ -247,23 +308,23 @@ Disabled in CI by default (screenshots may capture sensitive content). Set
 Sometimes you need both tools together. Example: test that a React button triggers a native dialog.
 
 ```
-1. cdp-mcp: click the "Export" button in React
+1. cdp: click the "Save" button in React
 2. pywinauto: verify the native QFileDialog appeared
 3. pywinauto: click "Cancel" to close it
-4. cdp-mcp: verify the UI shows "Export cancelled"
+4. cdp: verify the UI shows "Save cancelled"
 ```
 
 This is the superpower — React can't see native dialogs, pywinauto can't see React DOM. Together they cover everything.
 
 ## Platform Notes
 
-| Platform | cdp-mcp | pywinauto | Notes |
-|----------|---------|-----------|-------|
+| Platform | cdp | pywinauto | Notes |
+|----------|-----|-----------|-------|
 | **Windows** | ✅ | ✅ | Full support. Primary dev platform. |
 | **macOS** | ✅ | ❌ (use atomacos) | pywinauto is Windows-only. atomacos is the macOS equivalent but less mature. |
 | **Linux** | ✅ | ❌ (use dogtail) | dogtail or AT-SPI2 for native widget automation. |
 
-cdp-mcp works everywhere because it talks to the browser engine, not the OS. Native widget testing is platform-specific.
+cdp works everywhere because it talks to the browser engine, not the OS. Native widget testing is platform-specific.
 
 ## Sharing the Desktop with Your Human
 
@@ -272,4 +333,4 @@ If you're driving the app with pywinauto, **your human can't use their desktop**
 - Ask before taking over the desktop
 - Work in focused bursts — do your automation, then release
 - Consider running on a separate machine or VM for long automation sessions
-- cdp-mcp doesn't have this problem — it works through CDP, invisible to the human
+- cdp doesn't have this problem — it works through CDP, invisible to the human

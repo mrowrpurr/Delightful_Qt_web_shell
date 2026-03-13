@@ -1,13 +1,3 @@
 {
-  "mcpServers": {
-    "cdp-mcp": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "tsx",
-        "./tools/cdp-mcp/server.ts"
-      ],
-      "env": {}
-    }
-  }
+  "mcpServers": {}
 }
