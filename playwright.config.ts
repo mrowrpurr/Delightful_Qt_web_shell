@@ -1,4 +1,5 @@
 import { defineConfig } from '@playwright/test'
+import fs from 'fs'
 
 // ── Mode selection ───────────────────────────────────────────────────
 //
@@ -8,6 +9,18 @@ import { defineConfig } from '@playwright/test'
 // Same tests, same assertions, different runtime.
 
 const isDesktop = process.env.DESKTOP === '1'
+
+// Run the dev-server exe directly so Playwright can kill it cleanly.
+// Going through `xmake run` creates a grandchild process that orphans
+// on Windows when Playwright terminates the parent xmake process.
+function getDevServerCommand(): string {
+  try {
+    const exe = fs.readFileSync('build/.dev-server-binary.txt', 'utf8').trim()
+    if (fs.existsSync(exe)) return exe
+  } catch {}
+  // Fallback for first run (before any build). Works but leaks on Windows.
+  return 'xmake run dev-server'
+}
 
 export default defineConfig({
   timeout: 30_000,
@@ -24,7 +37,7 @@ export default defineConfig({
       env: { VITE_APP_NAME: process.env.VITE_APP_NAME || 'Test App' },
     },
     {
-      command: 'xmake run dev-server',
+      command: getDevServerCommand(),
       port: 9876,
       stdout: 'pipe' as const,
       reuseExistingServer: !process.env.CI,

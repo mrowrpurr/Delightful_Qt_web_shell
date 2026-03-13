@@ -22,6 +22,7 @@
 #include <QPropertyAnimation>
 #include <QResizeEvent>
 #include <QScreen>
+#include <QSettings>
 #include <QStandardPaths>
 #include <QStyleHints>
 #include <QTimer>
@@ -139,13 +140,18 @@ int main(int argc, char* argv[]) {
 
     QMainWindow window;
     window.setWindowTitle(APP_NAME);
-    window.resize(900, 640);
 
-    // Center on primary screen
-    QScreen* screen = QApplication::primaryScreen();
-    QRect geo = screen->availableGeometry();
-    window.move((geo.width() - 900) / 2 + geo.x(),
-                (geo.height() - 640) / 2 + geo.y());
+    // Restore saved window geometry, or default to 900×640 centered
+    QSettings settings(APP_SLUG, APP_SLUG);
+    if (settings.contains("window/geometry")) {
+        window.restoreGeometry(settings.value("window/geometry").toByteArray());
+    } else {
+        window.resize(900, 640);
+        QScreen* screen = QApplication::primaryScreen();
+        QRect geo = screen->availableGeometry();
+        window.move((geo.width() - 900) / 2 + geo.x(),
+                    (geo.height() - 640) / 2 + geo.y());
+    }
 
     // ── Menu bar ──────────────────────────────────────────────
     // Add your menus below. Each menu follows the pattern:
@@ -219,17 +225,27 @@ int main(int argc, char* argv[]) {
     page->setWebChannel(channel);
 
     // ── Developer Tools ───────────────────────────────────────
-    auto* devToolsView = new QWebEngineView(&window);
+    // Uses the same profile as the main page. DevTools connection is set up
+    // lazily on first F12 press so the main page has time to load first.
+    auto* devToolsView = new QWebEngineView;
     devToolsView->setWindowFlags(Qt::Window);
-    devToolsView->setWindowTitle("Developer Tools");
+    devToolsView->setWindowTitle("Developer Tools — " APP_NAME);
     devToolsView->resize(1024, 600);
-    devToolsView->page()->setBackgroundColor(kBackground);
-    view->page()->setDevToolsPage(devToolsView->page());
+    auto* devToolsPage = new QWebEnginePage(profile, devToolsView);
+    devToolsPage->setBackgroundColor(kBackground);
+    devToolsView->setPage(devToolsPage);
 
-    QObject::connect(devToolsAction, &QAction::triggered, devToolsView, [devToolsView]() {
-        devToolsView->show();
-        devToolsView->raise();
-        devToolsView->activateWindow();
+    QObject::connect(devToolsAction, &QAction::triggered, devToolsView, [view, devToolsView]() {
+        if (devToolsView->isVisible()) {
+            devToolsView->hide();
+        } else {
+            // Connect inspector on first open (lazy — main page is loaded by now)
+            if (!view->page()->devToolsPage())
+                view->page()->setDevToolsPage(devToolsView->page());
+            devToolsView->show();
+            devToolsView->raise();
+            devToolsView->activateWindow();
+        }
     });
 
     // ── Serve web UI ─────────────────────────────────────────
@@ -320,6 +336,11 @@ int main(int argc, char* argv[]) {
         errorLabel->setStyleSheet("color: #ff6b6b; font-size: 14px;");
         overlay->layout()->addWidget(errorLabel);
         qWarning() << "signalReady() was not called within 15 seconds — bridge may be broken.";
+    });
+
+    // Save window geometry on close so it restores next launch
+    QObject::connect(&app, &QApplication::aboutToQuit, [&]() {
+        settings.setValue("window/geometry", window.saveGeometry());
     });
 
     return app.exec();

@@ -103,5 +103,7 @@ public:
     }
 
 signals:
+    // Emitted after any mutation (add, delete, toggle, rename).
+    // Clients should refresh their data when this fires.
     void dataChanged();
 };

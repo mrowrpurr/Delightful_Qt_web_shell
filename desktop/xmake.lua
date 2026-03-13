@@ -129,8 +129,7 @@ target("desktop")
         end
     end)
 
+    -- Write the binary path so Playwright desktop tests can find and launch it.
     after_build(function(target)
-        local project_root = os.projectdir()
-        local binary_path = target:targetfile()
-        io.writefile(path.join(project_root, "build", ".desktop-binary.txt"), binary_path)
+        io.writefile(path.join(os.projectdir(), "build", ".desktop-binary.txt"), target:targetfile())
     end)
