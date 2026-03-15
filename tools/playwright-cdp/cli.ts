@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// CLI for driving the Qt app via Chrome DevTools Protocol.
+// CLI for driving the app via Chrome DevTools Protocol.
 //
 // Usage: npx tsx tools/playwright-cdp/cli.ts <command> [args...]
 // For programmatic use: import { snapshot, click, fill } from './tools/playwright-cdp'
 
-import { snapshot, screenshot, click, fill, press, eval_js, text, wait, console_messages, disconnect } from "./index.js"
+import { snapshot, screenshot, click, fill, press, reload, eval_js, text, wait, console_messages, open, close, disconnect } from "./index.js"
 
 function parseArgs(argv: string[]) {
   const args = argv.slice(2)
@@ -25,12 +25,15 @@ function parseArgs(argv: string[]) {
 }
 
 function printHelp() {
-  console.log(`playwright-cdp — Drive the Qt app's web content via Playwright + CDP
+  console.log(`playwright-cdp — Drive the app's web content via Playwright + CDP
 
 Usage: npx tsx tools/playwright-cdp/cli.ts <command> [args...]
 
 Commands:
+  open <url> [--headless]           Launch persistent browser (survives between commands)
+  close                             Close the persistent browser
   snapshot                          Accessibility tree of the page
+  reload                            Reload the page (picks up new WASM builds)
   screenshot [path]                 Save screenshot (default: screenshot.png)
   click --test-id <id>              Click element by test ID
   click --selector <sel>            Click element by CSS selector
@@ -44,6 +47,12 @@ Commands:
   console --level <level>           Filter by level (log, warn, error, etc.)
   console --count <n>               Last N messages
   console --clear true              Read and clear buffer
+
+Connection modes:
+  (default)                         CDP on :9222 (Qt desktop app)
+  open <url>                        Persistent browser on :9333 (stays open!)
+  PLAYWRIGHT_URL=http://...         Per-invocation headless browser (agent solo)
+  PLAYWRIGHT_HEADLESS=false         Show per-invocation browser window
 
 Programmatic (recommended):
   echo 'console.log(await snapshot())' | npx tsx tools/playwright-cdp/run.ts
@@ -62,8 +71,19 @@ async function main() {
 
   try {
     switch (command) {
+      case "open":
+        if (!positional[0]) throw new Error("Usage: open <url> [--headless]")
+        await open(positional[0], { headless: flags["headless"] === "true" })
+        break
+      case "close":
+        await close()
+        break
       case "snapshot":
         console.log(await snapshot())
+        break
+      case "reload":
+        await reload()
+        console.log("Reloaded")
         break
       case "screenshot":
         console.log(await screenshot(positional[0]))

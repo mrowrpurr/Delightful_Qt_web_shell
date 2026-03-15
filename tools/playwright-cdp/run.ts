@@ -5,7 +5,7 @@
 // echo 'console.log(await snapshot())' | npx tsx tools/playwright-cdp/run.ts
 // echo 'await fill("new-list-input", "Groceries"); await click("create-list-button")' | npx tsx tools/playwright-cdp/run.ts
 
-import { snapshot, screenshot, click, fill, press, eval_js, text, wait, console_messages, disconnect } from "./index.js"
+import { snapshot, screenshot, click, fill, press, reload, eval_js, text, wait, console_messages, open, close, disconnect } from "./index.js"
 
 // Read code from stdin
 const chunks: Buffer[] = []
@@ -20,7 +20,7 @@ if (!code) {
 }
 
 // Make all exports available as globals for the eval'd code
-const globals = { snapshot, screenshot, click, fill, press, eval_js, text, wait, console_messages, disconnect }
+const globals = { snapshot, screenshot, click, fill, press, reload, eval_js, text, wait, console_messages, open, close, disconnect }
 const fn = new Function(...Object.keys(globals), `return (async () => { ${code} })()`)
 
 try {
