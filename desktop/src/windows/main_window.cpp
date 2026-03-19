@@ -12,8 +12,10 @@
 #include "widgets/status_bar.hpp"
 #include "widgets/web_shell_widget.hpp"
 
+#include <QCloseEvent>
 #include <QScreen>
 #include <QSettings>
+#include <QSystemTrayIcon>
 #include <QWebEngineView>
 
 MainWindow::MainWindow(QWidget* parent)
@@ -36,7 +38,7 @@ MainWindow::MainWindow(QWidget* parent)
 
     // ── Menu bar + toolbar ───────────────────────────────────
     auto actions = buildMenuBar(this);
-    buildToolBar(this);
+    buildToolBar(this, actions);
 
     // ── Status bar ───────────────────────────────────────────
     statusBar_ = new StatusBar(this);
@@ -84,4 +86,19 @@ MainWindow::MainWindow(QWidget* parent)
         s.setValue("window/geometry", saveGeometry());
         s.setValue("window/zoomFactor", view->zoomFactor());
     });
+}
+
+void MainWindow::closeEvent(QCloseEvent* event) {
+    // Minimize to system tray instead of quitting.
+    // The app stays running — quit via File > Quit, Ctrl+Q, or tray > Quit.
+    //
+    // To disable close-to-tray: remove this override. The default behavior
+    // will close the window and quit the app (since it's the last window).
+    if (QSystemTrayIcon::isSystemTrayAvailable()) {
+        hide();
+        event->ignore();  // don't close — just hide
+    } else {
+        // No system tray — fall back to default (quit)
+        QMainWindow::closeEvent(event);
+    }
 }

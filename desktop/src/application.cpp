@@ -143,8 +143,14 @@ void Application::setupSystemTray() {
 
     // Context menu — right-click the tray icon
     auto* trayMenu = new QMenu;
+
     auto* showAction = trayMenu->addAction("&Show Window");
     connect(showAction, &QAction::triggered, this, &Application::activationRequested);
+
+    // Version label — read-only, not clickable
+    auto* versionAction = trayMenu->addAction(
+        QString("%1 %2").arg(APP_NAME).arg(APP_VERSION));
+    versionAction->setEnabled(false);
 
     trayMenu->addSeparator();
 

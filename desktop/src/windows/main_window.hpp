@@ -22,6 +22,12 @@ class MainWindow : public QMainWindow {
 public:
     explicit MainWindow(QWidget* parent = nullptr);
 
+protected:
+    // Override close to minimize to system tray instead of quitting.
+    // Quit via File > Quit, Ctrl+Q, or the tray icon's Quit action.
+    // To disable close-to-tray: remove this override.
+    void closeEvent(QCloseEvent* event) override;
+
 private:
     WebShellWidget* webShell_ = nullptr;
     StatusBar* statusBar_ = nullptr;
