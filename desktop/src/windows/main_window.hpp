@@ -13,6 +13,7 @@
 
 #include <QMainWindow>
 
+class StatusBar;
 class WebShellWidget;
 
 class MainWindow : public QMainWindow {
@@ -23,4 +24,5 @@ public:
 
 private:
     WebShellWidget* webShell_ = nullptr;
+    StatusBar* statusBar_ = nullptr;
 };

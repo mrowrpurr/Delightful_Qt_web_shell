@@ -53,18 +53,18 @@ target("scaffold-bridge")
             .. '    void dataChanged();\n'
             .. '};\n')
 
-        -- ── 2. Add #include + registration to main.cpp ─────────
-        local main_cpp = path.join(root, "desktop", "src", "main.cpp")
-        local main_content = io.readfile(main_cpp)
-        if not main_content:find(file_name, 1, true) then
-            main_content = main_content:gsub(
+        -- ── 2. Add #include + registration to application.cpp ──
+        local app_cpp = path.join(root, "desktop", "src", "application.cpp")
+        local app_content = io.readfile(app_cpp)
+        if not app_content:find(file_name, 1, true) then
+            app_content = app_content:gsub(
                 '// @scaffold:include',
                 '// @scaffold:include\n#include "' .. file_name .. '.hpp"')
-            main_content = main_content:gsub(
+            app_content = app_content:gsub(
                 '// @scaffold:bridge',
                 '// @scaffold:bridge\n    auto* ' .. snake .. 'Bridge = new ' .. class_name .. ';\n'
-                .. '    shell->addBridge("' .. slug .. '", ' .. snake .. 'Bridge);')
-            io.writefile(main_cpp, main_content)
+                .. '    shell_->addBridge("' .. slug .. '", ' .. snake .. 'Bridge);')
+            io.writefile(app_cpp, app_content)
         end
 
         -- ── 3. Add #include + registration to test_server.cpp ──
@@ -101,7 +101,7 @@ target("scaffold-bridge")
         print("   lib/bridges/qt/include/" .. file_name .. ".hpp   ← C++ bridge (add Q_INVOKABLE methods)")
         print("   web/src/api/" .. slug .. "-bridge.ts          ← TS interface (match C++ methods)")
         print("")
-        print("   Also wired into: desktop main.cpp, dev-server test_server.cpp")
+        print("   Also wired into: desktop application.cpp, dev-server test_server.cpp")
         print("")
         print("Next: add methods to the .hpp, mirror them in the .ts, then `xmake build desktop`")
     end)

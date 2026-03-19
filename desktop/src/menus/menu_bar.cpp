@@ -13,6 +13,8 @@
 //   toolBar->addAction(myAction);
 
 #include "menu_bar.hpp"
+#include "dialogs/about_dialog.hpp"
+#include "dialogs/web_dialog.hpp"
 
 #include <QAction>
 #include <QApplication>
@@ -20,11 +22,10 @@
 #include <QKeySequence>
 #include <QMainWindow>
 #include <QMenuBar>
-#include <QMessageBox>
 #include <QStyle>
 #include <QToolBar>
 
-void buildMenuBar(QMainWindow* window) {
+MenuActions buildMenuBar(QMainWindow* window) {
     auto* menuBar = window->menuBar();
 
     // ── File ─────────────────────────────────────────────────
@@ -79,17 +80,26 @@ void buildMenuBar(QMainWindow* window) {
     devToolsAction->setShortcut(QKeySequence("F12"));
     devToolsAction->setShortcutContext(Qt::ApplicationShortcut);
 
+    windowsMenu->addSeparator();
+
+    // React-in-a-dialog — demonstrates WebShellWidget inside a QDialog.
+    // Same bridges, same React app, different container.
+    auto* webDialogAction = windowsMenu->addAction("&React Dialog...");
+    QObject::connect(webDialogAction, &QAction::triggered, window, [window]() {
+        WebDialog dlg(window);
+        dlg.exec();
+    });
+
     // ── Help ─────────────────────────────────────────────────
     auto* helpMenu = menuBar->addMenu("&Help");
 
     auto* aboutAction = helpMenu->addAction("&About");
     QObject::connect(aboutAction, &QAction::triggered, window, [window]() {
-        QMessageBox::about(
-            window, "About " APP_NAME,
-            QString("%1 v%2\n\nA template for Qt + React apps with real testing.")
-                .arg(APP_NAME)
-                .arg(APP_VERSION));
+        AboutDialog dlg(window);
+        dlg.exec();
     });
+
+    return {zoomInAction, zoomOutAction, zoomResetAction, devToolsAction};
 }
 
 void buildToolBar(QMainWindow* window) {

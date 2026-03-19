@@ -1,6 +1,8 @@
 // Application — custom QApplication subclass.
 //
-// Owns app-level concerns: identity, appearance, web profile, bridges.
+// Owns app-level concerns: identity, appearance, web profile, bridges,
+// single-instance guard, and system tray.
+//
 // Widgets and windows come later — the app can run without any visible window
 // (e.g. system tray only).
 
@@ -8,6 +10,8 @@
 
 #include <QApplication>
 
+class QLocalServer;
+class QSystemTrayIcon;
 class QWebEngineProfile;
 class WebShell;
 
@@ -26,8 +30,24 @@ public:
     // The shell that owns all bridges — shared across all WebShellWidgets
     WebShell* shell() const { return shell_; }
 
+    // Returns true if this is the primary instance.
+    // If false, a message was sent to the running instance and this process
+    // should exit immediately (return 0 from main).
+    bool isPrimaryInstance() const { return isPrimary_; }
+
+signals:
+    // Emitted when another instance tries to launch, or the system tray
+    // icon is activated. MainWindow connects to this to raise itself.
+    void activationRequested();
+
 private:
+    void setupSingleInstance();
+    void setupSystemTray();
+
     bool devMode_ = false;
+    bool isPrimary_ = true;
     QWebEngineProfile* profile_ = nullptr;
     WebShell* shell_ = nullptr;
+    QLocalServer* instanceServer_ = nullptr;
+    QSystemTrayIcon* trayIcon_ = nullptr;
 };

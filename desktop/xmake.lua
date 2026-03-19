@@ -24,7 +24,8 @@ target("desktop")
     end
     add_frameworks(
         "QtWidgets", "QtGui",
-        "QtWebEngineCore", "QtWebEngineWidgets", "QtWebChannel"
+        "QtWebEngineCore", "QtWebEngineWidgets", "QtWebChannel",
+        "QtNetwork"  -- QLocalServer/QLocalSocket for single-instance guard
     )
     add_defines('APP_NAME="' .. APP_NAME:gsub('"', '\\"') .. '"')
     add_defines('APP_SLUG="' .. APP_SLUG:gsub('"', '\\"') .. '"')

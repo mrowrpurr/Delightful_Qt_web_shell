@@ -33,12 +33,16 @@ class WebShellWidget : public QWidget {
     Q_OBJECT
 
 public:
-    // profile     — shared QWebEngineProfile (owned by Application)
-    // shell       — the WebShell that owns all bridges (shared across widgets)
-    // devMode     — true = load from Vite dev server, false = embedded resources
-    // parent      — parent widget (MainWindow, QDialog, etc.)
+    enum OverlayStyle { FullOverlay, SpinnerOverlay };
+
+    // profile      — shared QWebEngineProfile (owned by Application)
+    // shell        — the WebShell that owns all bridges (shared across widgets)
+    // devMode      — true = load from Vite dev server, false = embedded resources
+    // overlayStyle — Full (logo+progress) for main window, Spinner for dialogs
+    // parent       — parent widget (MainWindow, QDialog, etc.)
     WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
-                   bool devMode, QWidget* parent = nullptr);
+                   bool devMode, OverlayStyle overlayStyle = FullOverlay,
+                   QWidget* parent = nullptr);
 
     // Access the underlying view (e.g. for zoom control)
     QWebEngineView* view() const { return view_; }

@@ -127,7 +127,7 @@ xmake run scaffold-bridge notes
 This does everything:
 1. Creates `lib/bridges/qt/include/notes_bridge.hpp` — C++ bridge with `Q_OBJECT` + skeleton
 2. Creates `web/src/api/notes-bridge.ts` — TypeScript interface stub
-3. Wires `#include` + `addBridge()` into both `desktop/src/main.cpp` and `tests/helpers/dev-server/src/test_server.cpp`
+3. Wires `#include` + `addBridge()` into both `desktop/src/application.cpp` and `tests/helpers/dev-server/src/test_server.cpp`
 
 No xmake.lua edits needed — the `lib/bridges/qt/` target uses glob discovery.
 

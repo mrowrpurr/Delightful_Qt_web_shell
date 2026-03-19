@@ -13,7 +13,22 @@ You're an agent who wants to build an app. This template gives you Qt + React + 
 ## Project Layout
 
 ```
-├── desktop/                  # Qt desktop app (main.cpp, xmake.lua, resources)
+├── desktop/                  # Qt desktop app
+│   └── src/
+│       ├── main.cpp          #   Entry point — scheme registration, app, window, show
+│       ├── application.*     #   QApplication — identity, theme, profile, bridges, tray
+│       ├── windows/
+│       │   └── main_window.* #   QMainWindow — wires menus, toolbar, status bar, web view
+│       ├── menus/
+│       │   └── menu_bar.*    #   Menu bar + toolbar construction
+│       ├── widgets/
+│       │   ├── web_shell_widget.*  # QWidget wrapping QWebEngineView + bridges + overlay
+│       │   ├── loading_overlay.*   # Loading overlay (Full or Spinner mode)
+│       │   ├── scheme_handler.*    # app:// URL scheme for embedded resources
+│       │   └── status_bar.*       # Status bar (zoom %, status, flash messages)
+│       └── dialogs/
+│           ├── about_dialog.*     # Custom QDialog example
+│           └── web_dialog.*       # React-in-a-dialog (WebShellWidget in a QDialog!)
 ├── web/                      # React app (Vite) — shared by desktop + WASM
 │   └── src/api/
 │       ├── bridge.ts         #   TypeScript bridge interfaces + transport auto-detect
@@ -30,7 +45,7 @@ You're an agent who wants to build an app. This template gives you Qt + React + 
 │   ├── pywinauto/            #   Native Qt widget tests (Windows)
 │   └── helpers/dev-server/   #   Headless C++ backend for dev/test
 ├── tools/playwright-cdp/     # Playwright CLI for driving web content (desktop + browser)
-└── xmake.lua                 # Root build config (APP_NAME, APP_SLUG, targets)
+└── xmake.lua                 # Root build config (APP_NAME, APP_SLUG, APP_ORG, targets)
 ```
 
 **dev-server** is a headless C++ process that serves your bridges over WebSocket on port 9876 — no Qt window, no GUI. It's what runs during `xmake run dev-server`, Playwright browser tests, and Bun tests. Same bridge code as the desktop app, just without a window.

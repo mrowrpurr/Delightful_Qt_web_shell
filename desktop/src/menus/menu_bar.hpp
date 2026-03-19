@@ -8,12 +8,21 @@
 
 #pragma once
 
+class QAction;
 class QMainWindow;
 
-// Builds the full menu bar: File, View, Help.
-// Attaches it to the given window.
-void buildMenuBar(QMainWindow* window);
+// Actions that the caller may need to wire up to other widgets.
+// buildMenuBar() creates them; MainWindow connects them.
+struct MenuActions {
+    QAction* zoomIn     = nullptr;
+    QAction* zoomOut    = nullptr;
+    QAction* zoomReset  = nullptr;
+    QAction* devTools   = nullptr;
+};
+
+// Builds the full menu bar: File, View, Windows, Help.
+// Returns actions that need wiring to widgets (zoom, devtools).
+MenuActions buildMenuBar(QMainWindow* window);
 
 // Builds the main toolbar with common actions.
-// Attaches it to the given window.
 void buildToolBar(QMainWindow* window);

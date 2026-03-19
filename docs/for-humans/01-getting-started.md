@@ -112,7 +112,14 @@ xmake run dev-wasm
 ## Project Structure
 
 ```
-├── desktop/                  # Qt desktop app (main.cpp, xmake.lua, resources)
+├── desktop/                  # Qt desktop app
+│   └── src/
+│       ├── main.cpp          #   Entry point (12 lines — just wiring)
+│       ├── application.*     #   QApplication — identity, theme, profile, bridges, tray
+│       ├── windows/          #   QMainWindow subclass
+│       ├── menus/            #   Menu bar + toolbar
+│       ├── widgets/          #   WebShellWidget, LoadingOverlay, StatusBar, SchemeHandler
+│       └── dialogs/          #   AboutDialog, WebDialog (React in a popup!)
 ├── web/                      # React app (Vite)
 │   └── src/api/bridge.ts     #   TypeScript bridge interfaces
 ├── lib/
@@ -127,7 +134,7 @@ xmake run dev-wasm
 │   ├── pywinauto/            #   Native Qt widget tests (Windows)
 │   └── helpers/dev-server/   #   Headless C++ backend for dev/test
 ├── tools/playwright-cdp/      # Playwright + CDP library for agent tooling
-└── xmake.lua                 # Root build config (APP_NAME, targets)
+└── xmake.lua                 # Root build config (APP_NAME, APP_ORG, targets)
 ```
 
 ## Quick Test

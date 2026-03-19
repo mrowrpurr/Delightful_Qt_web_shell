@@ -6,7 +6,6 @@
 
 #include "web_shell_widget.hpp"
 #include "loading_overlay.hpp"
-#include "scheme_handler.hpp"
 
 #include <QFile>
 #include <QVBoxLayout>
@@ -23,7 +22,8 @@
 static constexpr QColor kBackground{0x24, 0x24, 0x24};
 
 WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
-                               bool devMode, QWidget* parent)
+                               bool devMode, OverlayStyle overlayStyle,
+                               QWidget* parent)
     : QWidget(parent)
 {
     // ── Layout ───────────────────────────────────────────────
@@ -70,21 +70,22 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
     devToolsView_->setPage(devToolsPage);
 
     // ── Load content ─────────────────────────────────────────
+    // The app:// scheme handler is installed once on the shared profile
+    // (in Application), so all WebShellWidgets can use it.
     if (devMode) {
         // Dev mode: Vite dev server with hot module reload.
         // QWebChannel still works because qwebchannel.js is injected above.
         view_->setUrl(QUrl("http://localhost:5173"));
     } else {
         // Production: serve from embedded Qt resources via app:// scheme.
-        // SchemeHandler::registerUrlScheme() must have been called in main().
-        auto* handler = new SchemeHandler(profile);
-        profile->installUrlSchemeHandler("app", handler);
         view_->setUrl(QUrl("app://shell/"));
     }
 
     // ── Loading overlay ──────────────────────────────────────
     // Covers the view until React calls signalReady().
-    overlay_ = new LoadingOverlay(LoadingOverlay::Full, this);
+    auto style = (overlayStyle == FullOverlay)
+        ? LoadingOverlay::Full : LoadingOverlay::Spinner;
+    overlay_ = new LoadingOverlay(style, this);
 
     // Dismiss the overlay when the React app signals it's ready
     connect(shell, &WebShell::ready, this, [this]() {
