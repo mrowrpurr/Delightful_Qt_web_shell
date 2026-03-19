@@ -49,6 +49,9 @@ This propagates everywhere automatically: window title, binary name, Windows exe
 # Point xmake at your Qt installation (one time)
 xmake f --qt=/path/to/qt   # e.g. C:/Qt/6.10.2/msvc2022_64
 
+# Windows example:
+# xmake f -m release -p windows -a x64 --qt="C:/qt/6.10.2/msvc2022_64" -c -y
+
 # Build the desktop app (builds React via Vite, then C++)
 xmake build desktop
 

@@ -61,6 +61,9 @@ This flows everywhere: window title, binary name, Windows exe metadata, HTML `<t
 # Point xmake at your Qt installation
 xmake f --qt=/path/to/qt   # e.g. C:/Qt/6.10.2/msvc2022_64
 
+# Windows example:
+# xmake f -m release -p windows -a x64 --qt="C:/qt/6.10.2/msvc2022_64" -c -y
+
 # Install all dependencies (uv, bun, playwright-cdp, playwright chromium)
 xmake run setup
 ```
