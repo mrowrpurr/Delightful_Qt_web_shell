@@ -7,10 +7,10 @@
 //   - Business logic? → lib/
 
 #include "main_window.hpp"
+#include "application.hpp"
 #include "menus/menu_bar.hpp"
 #include "widgets/status_bar.hpp"
-
-#include <QLabel>
+#include "widgets/web_shell_widget.hpp"
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -23,13 +23,12 @@ MainWindow::MainWindow(QWidget* parent)
     buildToolBar(this);
 
     // ── Status bar ───────────────────────────────────────────
-    auto* statusBar = new StatusBar(this);
-    setStatusBar(statusBar);
-    statusBar->flash(QString("Welcome to %1 👋").arg(APP_NAME));
+    auto* status = new StatusBar(this);
+    setStatusBar(status);
 
-    // ── Central widget ───────────────────────────────────────
-    // Placeholder — will become WebShellWidget once we bring back React.
-    auto* placeholder = new QLabel("Central widget goes here", this);
-    placeholder->setAlignment(Qt::AlignCenter);
-    setCentralWidget(placeholder);
+    // ── Central widget — React app with bridges ──────────────
+    auto* app = qobject_cast<Application*>(qApp);
+    webShell_ = new WebShellWidget(
+        app->webProfile(), app->shell(), app->devMode(), this);
+    setCentralWidget(webShell_);
 }
