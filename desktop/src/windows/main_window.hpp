@@ -4,17 +4,20 @@
 //   - menu bar   (from menus/)
 //   - tool bar   (from menus/)
 //   - status bar (from widgets/)
-//   - QSplitter with two WebShellWidgets (main app + docs app)
+//   - QTabWidget with WebShellWidgets (main app tabs)
+//   - QSplitter to show docs alongside
 //
 // Business logic, bridges, and app-level concerns live in Application.
-// Window-level concerns (geometry, zoom) live here.
+// Window-level concerns (geometry, zoom, tabs) live here.
 
 #pragma once
 
 #include <QMainWindow>
 
+class QTabWidget;
 class StatusBar;
 class WebShellWidget;
+struct MenuActions;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -27,9 +30,15 @@ protected:
     // Quit via File > Quit, Ctrl+Q, or the tray icon's Quit action.
     // To disable close-to-tray: remove this override.
     void closeEvent(QCloseEvent* event) override;
+    bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
-    WebShellWidget* mainApp_ = nullptr;
+    WebShellWidget* createTab();
+    WebShellWidget* currentTab() const;
+    void closeTabAt(int index);
+    void wireZoomToCurrentTab(const MenuActions& actions);
+
+    QTabWidget* tabs_ = nullptr;
     WebShellWidget* docsApp_ = nullptr;
     StatusBar* statusBar_ = nullptr;
 };

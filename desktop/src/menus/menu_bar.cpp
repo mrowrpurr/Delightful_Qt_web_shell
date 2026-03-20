@@ -83,6 +83,18 @@ MenuActions buildMenuBar(QMainWindow* window) {
 
     fileMenu->addSeparator();
 
+    // File > New Tab — Ctrl+T
+    out.newTab = fileMenu->addAction("&New Tab");
+    out.newTab->setShortcut(QKeySequence("Ctrl+T"));
+    out.newTab->setShortcutContext(Qt::ApplicationShortcut);
+
+    // File > Close Tab — Ctrl+W
+    out.closeTab = fileMenu->addAction("&Close Tab");
+    out.closeTab->setShortcut(QKeySequence("Ctrl+W"));
+    out.closeTab->setShortcutContext(Qt::ApplicationShortcut);
+
+    fileMenu->addSeparator();
+
     auto* quitAction = fileMenu->addAction("&Quit");
     quitAction->setShortcut(QKeySequence("Ctrl+Q"));
     QObject::connect(quitAction, &QAction::triggered,

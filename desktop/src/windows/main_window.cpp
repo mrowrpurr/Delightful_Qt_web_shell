@@ -13,11 +13,15 @@
 #include "widgets/web_shell_widget.hpp"
 
 #include <QCloseEvent>
+#include <QMouseEvent>
 #include <QScreen>
 #include <QSettings>
 #include <QSplitter>
 #include <QSystemTrayIcon>
+#include <QTabBar>
+#include <QTabWidget>
 #include <QTimer>
+#include <QWebEnginePage>
 #include <QWebEngineView>
 
 #include "dialogs/web_dialog.hpp"
@@ -50,18 +54,27 @@ MainWindow::MainWindow(QWidget* parent)
     statusBar_ = new StatusBar(this);
     setStatusBar(statusBar_);
 
-    // ── Central widget — QSplitter with two web apps ─────────
-    // Left: main app (todo UI), Right: docs app.
-    // Both share the same bridges — one source of truth, signals everywhere.
+    // ── Central widget — QSplitter with tabs + docs ──────────
     auto* app = qobject_cast<Application*>(qApp);
 
     auto* splitter = new QSplitter(Qt::Horizontal, this);
     splitter->setChildrenCollapsible(true);
 
-    mainApp_ = new WebShellWidget(
-        app->webProfile(), app->shell(), app->appUrl("main"),
-        WebShellWidget::FullOverlay, splitter);
+    // ── Tab widget for main app tabs ─────────────────────────
+    // Starts with one tab, tab bar hidden. Ctrl+T adds tabs.
+    tabs_ = new QTabWidget(splitter);
+    tabs_->setTabsClosable(true);
+    tabs_->setMovable(true);
+    tabs_->tabBar()->setVisible(false);  // hidden until 2+ tabs
 
+    // Close tab via X button, middle-click, or Ctrl+W
+    connect(tabs_, &QTabWidget::tabCloseRequested, this, &MainWindow::closeTabAt);
+    tabs_->tabBar()->installEventFilter(this);  // for middle-click
+
+    // Create the first tab
+    createTab();
+
+    // ── Docs app (right panel) ───────────────────────────────
     docsApp_ = new WebShellWidget(
         app->webProfile(), app->shell(), app->appUrl("docs"),
         WebShellWidget::SpinnerOverlay, splitter);
@@ -70,8 +83,85 @@ MainWindow::MainWindow(QWidget* parent)
     splitter->setSizes({600, 300});
     setCentralWidget(splitter);
 
-    // ── Wire zoom actions to the main web view ───────────────
-    auto* view = mainApp_->view();
+    // ── Wire tab actions ──────────────────────────────────────
+    connect(actions.newTab, &QAction::triggered, this, [this]() {
+        createTab();
+        tabs_->setCurrentIndex(tabs_->count() - 1);
+    });
+
+    connect(actions.closeTab, &QAction::triggered, this, [this]() {
+        closeTabAt(tabs_->currentIndex());
+    });
+
+    // ── Wire zoom + devtools to active tab ────────────────────
+    wireZoomToCurrentTab(actions);
+
+    // Re-wire when the active tab changes
+    connect(tabs_, &QTabWidget::currentChanged, this, [this, actions](int) {
+        wireZoomToCurrentTab(actions);
+    });
+
+    // ── Wire React → native dialog ──────────────────────────
+    auto* systemBridge = qobject_cast<SystemBridge*>(
+        app->shell()->bridges().value("system"));
+    if (systemBridge) {
+        connect(systemBridge, &SystemBridge::openDialogRequested, this, [this]() {
+            QTimer::singleShot(0, this, [this]() {
+                WebDialog dlg(this);
+                dlg.exec();
+            });
+        });
+    }
+
+    // ── Save state on exit ───────────────────────────────────
+    connect(qApp, &QApplication::aboutToQuit, this, [this]() {
+        QSettings s(APP_ORG, APP_SLUG);
+        s.setValue("window/geometry", saveGeometry());
+        if (auto* tab = currentTab())
+            s.setValue("window/zoomFactor", tab->view()->zoomFactor());
+    });
+
+    // ── Restore zoom on first tab ────────────────────────────
+    if (auto* tab = currentTab())
+        tab->view()->setZoomFactor(settings.value("window/zoomFactor", 1.0).toReal());
+}
+
+WebShellWidget* MainWindow::createTab() {
+    auto* app = qobject_cast<Application*>(qApp);
+    auto* tab = new WebShellWidget(
+        app->webProfile(), app->shell(), app->appUrl("main"),
+        WebShellWidget::FullOverlay, tabs_);
+
+    int index = tabs_->addTab(tab, APP_NAME);
+
+    // Update tab title when React changes document.title
+    connect(tab->view()->page(), &QWebEnginePage::titleChanged,
+            this, [this, tab](const QString& title) {
+        int i = tabs_->indexOf(tab);
+        if (i >= 0)
+            tabs_->setTabText(i, title.isEmpty() ? APP_NAME : title);
+    });
+
+    tabs_->tabBar()->setVisible(tabs_->count() > 1);
+    return tab;
+}
+
+WebShellWidget* MainWindow::currentTab() const {
+    return qobject_cast<WebShellWidget*>(tabs_->currentWidget());
+}
+
+void MainWindow::wireZoomToCurrentTab(const MenuActions& actions) {
+    auto* tab = currentTab();
+    if (!tab) return;
+    auto* view = tab->view();
+
+    // Disconnect previous connections — reconnect to the current tab's view.
+    // Using lambda + unique context object per connection would be cleaner,
+    // but for a template, explicit disconnect/reconnect is easier to follow.
+    actions.zoomIn->disconnect();
+    actions.zoomOut->disconnect();
+    actions.zoomReset->disconnect();
+    actions.devTools->disconnect();
 
     connect(actions.zoomIn, &QAction::triggered, view, [view]() {
         view->setZoomFactor(qMin(view->zoomFactor() + 0.1, 5.0));
@@ -82,46 +172,39 @@ MainWindow::MainWindow(QWidget* parent)
     connect(actions.zoomReset, &QAction::triggered, view, [view]() {
         view->setZoomFactor(1.0);
     });
-
-    // ── Wire F12 to dev tools toggle ─────────────────────────
-    connect(actions.devTools, &QAction::triggered, mainApp_, [this]() {
-        mainApp_->toggleDevTools();
+    connect(actions.devTools, &QAction::triggered, tab, [tab]() {
+        tab->toggleDevTools();
     });
 
-    // ── Restore zoom (before content loads, behind overlay) ──
-    view->setZoomFactor(settings.value("window/zoomFactor", 1.0).toReal());
-
-    // ── Live zoom % in status bar ────────────────────────────
-    // Updates from both keyboard shortcuts and Ctrl+wheel.
+    // Update status bar zoom for active tab
     auto updateZoom = [this, view]() {
         statusBar_->setZoomLevel(qRound(view->zoomFactor() * 100));
     };
     connect(view->page(), &QWebEnginePage::zoomFactorChanged, this, updateZoom);
-    updateZoom();  // set initial value
+    updateZoom();
+}
 
-    // ── Wire React → native dialog ──────────────────────────
-    // When React calls system.openDialog(), the bridge emits a signal.
-    // We connect it here to open a WebDialog — React triggers Qt UI.
-    auto* systemBridge = qobject_cast<SystemBridge*>(
-        app->shell()->bridges().value("system"));
-    if (systemBridge) {
-        connect(systemBridge, &SystemBridge::openDialogRequested, this, [this]() {
-            // Deferred — the bridge method must return before we block with exec().
-            // Without this, the QWebChannel can't send the openDialog() response
-            // back to React, and the dialog's own QWebChannel may not initialize.
-            QTimer::singleShot(0, this, [this]() {
-                WebDialog dlg(this);
-                dlg.exec();
-            });
-        });
+void MainWindow::closeTabAt(int index) {
+    if (tabs_->count() <= 1) return;  // never close the last tab
+    auto* widget = tabs_->widget(index);
+    tabs_->removeTab(index);
+    widget->deleteLater();
+    tabs_->tabBar()->setVisible(tabs_->count() > 1);
+}
+
+bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
+    // Middle-click on a tab to close it — standard browser/IDE convention.
+    if (obj == tabs_->tabBar() && event->type() == QEvent::MouseButtonRelease) {
+        auto* me = static_cast<QMouseEvent*>(event);
+        if (me->button() == Qt::MiddleButton) {
+            int index = tabs_->tabBar()->tabAt(me->pos());
+            if (index >= 0) {
+                closeTabAt(index);
+                return true;
+            }
+        }
     }
-
-    // ── Save state on exit ───────────────────────────────────
-    connect(qApp, &QApplication::aboutToQuit, this, [this, view]() {
-        QSettings s(APP_ORG, APP_SLUG);
-        s.setValue("window/geometry", saveGeometry());
-        s.setValue("window/zoomFactor", view->zoomFactor());
-    });
+    return QMainWindow::eventFilter(obj, event);
 }
 
 void MainWindow::closeEvent(QCloseEvent* event) {
