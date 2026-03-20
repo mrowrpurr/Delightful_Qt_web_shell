@@ -1,8 +1,8 @@
-// WebDialog — React inside a popup dialog.
+// WebDialog — React inside a popup dialog, with hash-based routing.
 //
-// Same bridges, same React app, different container. The WebShellWidget
-// handles all the plumbing (QWebChannel, qwebchannel.js injection, etc.)
-// — this dialog just sets the size and overlay style.
+// Same bridges, same React build, different route. The URL includes
+// #/dialog, which React checks at mount time to render DialogView
+// instead of the main App. One build, multiple UIs.
 
 #include "web_dialog.hpp"
 #include "application.hpp"
@@ -22,11 +22,14 @@ WebDialog::WebDialog(QWidget* parent)
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
 
-    // Create a WebShellWidget with Spinner overlay — same bridges as the main window.
-    // Loads the main app by default — change "main" to load a different web app.
+    // Same React app as the main window, but with #/dialog hash route.
+    // React checks window.location.hash at mount time and renders
+    // DialogView instead of App — lightweight UI suited for a popup.
     auto* app = qobject_cast<Application*>(qApp);
+    QUrl dialogUrl = app->appUrl("main");
+    dialogUrl.setFragment("/dialog");
     webShell_ = new WebShellWidget(
-        app->webProfile(), app->shell(), app->appUrl("main"),
+        app->webProfile(), app->shell(), dialogUrl,
         WebShellWidget::SpinnerOverlay, this);
     layout->addWidget(webShell_);
 }

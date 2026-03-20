@@ -49,11 +49,25 @@ public:
         return arr;
     }
 
+    // ── Native dialogs ─────────────────────────────────────
+
+    // Request the Qt host to open a dialog. The bridge doesn't know about
+    // UI classes — it just emits a signal. MainWindow connects to it and
+    // opens the actual QDialog. This keeps the bridge decoupled from the UI.
+    Q_INVOKABLE QJsonObject openDialog() {
+        emit openDialogRequested();
+        return {{"ok", true}};
+    }
+
 signals:
     // Emitted when files are dropped onto the web view.
     // Parameterless so it auto-forwards over WebSocket/QWebChannel.
     // React subscribes, then calls getDroppedFiles() to get the paths.
     void filesDropped();
+
+    // Emitted when React requests a native dialog (e.g. Quick Add).
+    // Connect to this in MainWindow or wherever you want to handle it.
+    void openDialogRequested();
 
 private:
     QStringList droppedFiles_;

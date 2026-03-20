@@ -17,7 +17,12 @@
 #include <QSettings>
 #include <QSplitter>
 #include <QSystemTrayIcon>
+#include <QTimer>
 #include <QWebEngineView>
+
+#include "dialogs/web_dialog.hpp"
+#include "system_bridge.hpp"
+#include "web_shell.hpp"
 
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent)
@@ -93,6 +98,23 @@ MainWindow::MainWindow(QWidget* parent)
     };
     connect(view->page(), &QWebEnginePage::zoomFactorChanged, this, updateZoom);
     updateZoom();  // set initial value
+
+    // ── Wire React → native dialog ──────────────────────────
+    // When React calls system.openDialog(), the bridge emits a signal.
+    // We connect it here to open a WebDialog — React triggers Qt UI.
+    auto* systemBridge = qobject_cast<SystemBridge*>(
+        app->shell()->bridges().value("system"));
+    if (systemBridge) {
+        connect(systemBridge, &SystemBridge::openDialogRequested, this, [this]() {
+            // Deferred — the bridge method must return before we block with exec().
+            // Without this, the QWebChannel can't send the openDialog() response
+            // back to React, and the dialog's own QWebChannel may not initialize.
+            QTimer::singleShot(0, this, [this]() {
+                WebDialog dlg(this);
+                dlg.exec();
+            });
+        });
+    }
 
     // ── Save state on exit ───────────────────────────────────
     connect(qApp, &QApplication::aboutToQuit, this, [this, view]() {

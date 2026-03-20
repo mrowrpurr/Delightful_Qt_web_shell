@@ -7,7 +7,9 @@ export interface SystemBridge {
   copyToClipboard(text: string): Promise<{ ok: boolean }>
   readClipboard(): Promise<{ text: string }>
   getDroppedFiles(): Promise<string[]>
+  openDialog(): Promise<{ ok: boolean }>
   filesDropped(callback: () => void): () => void
+  openDialogRequested(callback: () => void): () => void
 }
 
 export async function getSystemBridge(): Promise<SystemBridge> {

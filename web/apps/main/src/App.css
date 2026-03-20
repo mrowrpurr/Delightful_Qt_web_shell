@@ -221,3 +221,45 @@ button:hover {
   color: #ff6b6b;
   background: #ff6b6b22;
 }
+
+/* ── Dialog view (rendered via #/dialog hash route) ─────────── */
+
+.dialog-view {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialog-view h2 {
+  text-align: center;
+  font-size: 1.3rem;
+}
+
+.dialog-view select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text);
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.dialog-view select:focus {
+  border-color: var(--accent);
+}
+
+.dialog-input {
+  display: flex;
+  gap: 8px;
+}
+
+.dialog-view .feedback {
+  color: var(--accent);
+  font-size: 0.85rem;
+  text-align: center;
+}

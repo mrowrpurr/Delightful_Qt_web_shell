@@ -102,6 +102,9 @@ export default function App() {
         <button data-testid="copy-clipboard-button" onClick={handleCopyToClipboard}>
           📋 Copy to clipboard
         </button>
+        <button data-testid="open-dialog-button" onClick={() => system.openDialog()}>
+          🗂️ Quick Add
+        </button>
         {copyFeedback && <span className="feedback">{copyFeedback}</span>}
       </div>
 
