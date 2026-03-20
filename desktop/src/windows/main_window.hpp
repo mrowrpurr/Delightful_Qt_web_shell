@@ -4,7 +4,7 @@
 //   - menu bar   (from menus/)
 //   - tool bar   (from menus/)
 //   - status bar (from widgets/)
-//   - central widget (WebShellWidget — React app with bridges)
+//   - QSplitter with two WebShellWidgets (main app + docs app)
 //
 // Business logic, bridges, and app-level concerns live in Application.
 // Window-level concerns (geometry, zoom) live here.
@@ -29,6 +29,7 @@ protected:
     void closeEvent(QCloseEvent* event) override;
 
 private:
-    WebShellWidget* webShell_ = nullptr;
+    WebShellWidget* mainApp_ = nullptr;
+    WebShellWidget* docsApp_ = nullptr;
     StatusBar* statusBar_ = nullptr;
 };

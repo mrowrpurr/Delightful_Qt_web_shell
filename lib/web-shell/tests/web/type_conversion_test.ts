@@ -1,5 +1,5 @@
 import { test, expect, beforeAll, afterAll } from 'bun:test'
-import { createWsConnection, type BridgeConnection } from '../../../../web/src/api/bridge-transport'
+import { createWsConnection, type BridgeConnection } from '../../../../web/shared/api/bridge-transport'
 import { spawn, type Subprocess } from 'bun'
 import fs from 'fs'
 

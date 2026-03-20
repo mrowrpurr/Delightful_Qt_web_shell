@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
-import { getBridge, signalReady, type TodoBridge, type TodoList, type TodoItem, type ListDetail } from './api/bridge'
-import type { SystemBridge } from './api/system-bridge'
+import { getBridge, signalReady, type TodoBridge, type TodoList, type TodoItem, type ListDetail } from '@shared/api/bridge'
+import type { SystemBridge } from '@shared/api/system-bridge'
 
 // Top-level await — Vite supports this natively.
 // Runs before React mounts. The Qt shell shows a loading overlay during this time,

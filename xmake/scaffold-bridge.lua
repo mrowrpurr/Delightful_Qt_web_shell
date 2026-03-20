@@ -82,7 +82,7 @@ target("scaffold-bridge")
         end
 
         -- ── 4. Create TS interface stub ─────────────────────────
-        local ts_path = path.join(root, "web", "src", "api", slug .. "-bridge.ts")
+        local ts_path = path.join(root, "web", "shared", "api", slug .. "-bridge.ts")
         io.writefile(ts_path,
             "import { getBridge } from './bridge'\n\n"
             .. "// TypeScript interface for the " .. class_name .. " C++ bridge.\n"
@@ -99,7 +99,7 @@ target("scaffold-bridge")
         print("✅ Scaffolded bridge: " .. class_name)
         print("")
         print("   lib/bridges/qt/include/" .. file_name .. ".hpp   ← C++ bridge (add Q_INVOKABLE methods)")
-        print("   web/src/api/" .. slug .. "-bridge.ts          ← TS interface (match C++ methods)")
+        print("   web/shared/api/" .. slug .. "-bridge.ts       ← TS interface (match C++ methods)")
         print("")
         print("   Also wired into: desktop application.cpp, dev-server test_server.cpp")
         print("")

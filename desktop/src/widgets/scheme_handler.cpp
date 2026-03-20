@@ -1,8 +1,7 @@
 // SchemeHandler — serves embedded Qt resources via app:// URLs.
 //
-// The app:// scheme gives the web content a proper origin so localStorage,
-// IndexedDB, cookies, and other web platform features work correctly.
-// Without a custom scheme, file:// restrictions block many web APIs.
+// Routes by host: app://main/ serves from :/web-main/, app://docs/ from :/web-docs/.
+// This lets each web app have its own origin, localStorage, IndexedDB, etc.
 
 #include "scheme_handler.hpp"
 
@@ -26,13 +25,15 @@ void SchemeHandler::registerUrlScheme() {
 }
 
 void SchemeHandler::requestStarted(QWebEngineUrlRequestJob* job) {
+    // Route by host: app://main/ → :/web-main/, app://docs/ → :/web-docs/
+    QString appName = job->requestUrl().host();
     QString urlPath = job->requestUrl().path();
     if (urlPath.isEmpty() || urlPath == "/") urlPath = "/index.html";
 
     // Try the exact resource path, fall back to index.html for SPA routing
-    QString resPath = ":/web" + urlPath;
+    QString resPath = ":/web-" + appName + urlPath;
     if (!QFile::exists(resPath))
-        resPath = ":/web/index.html";
+        resPath = ":/web-" + appName + "/index.html";
 
     auto* file = new QFile(resPath, job);
     if (!file->open(QIODevice::ReadOnly)) {

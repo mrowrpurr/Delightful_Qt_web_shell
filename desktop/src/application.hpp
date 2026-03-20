@@ -9,6 +9,7 @@
 #pragma once
 
 #include <QApplication>
+#include <QUrl>
 
 class QLocalServer;
 class QSystemTrayIcon;
@@ -29,6 +30,11 @@ public:
 
     // The shell that owns all bridges — shared across all WebShellWidgets
     WebShell* shell() const { return shell_; }
+
+    // Returns the URL for a named web app.
+    // Production: app://<appName>/  (served from embedded Qt resources)
+    // Dev mode:   http://localhost:<port>  (Vite dev server with HMR)
+    QUrl appUrl(const QString& appName) const;
 
     // Returns true if this is the primary instance.
     // If false, a message was sent to the running instance and this process

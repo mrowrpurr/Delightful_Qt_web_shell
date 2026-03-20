@@ -3,10 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "typecheck": "tsc -b --noEmit",
-    "preview": "vite preview"
+    "dev:main": "cd apps/main && vite",
+    "dev:docs": "cd apps/docs && vite",
+    "build:main": "cd apps/main && tsc -b && vite build",
+    "build:docs": "cd apps/docs && tsc -b && vite build",
+    "build": "npm run build:main && npm run build:docs",
+    "typecheck": "cd apps/main && tsc -b --noEmit && cd ../docs && tsc -b --noEmit"
   },
   "dependencies": {
     "react": "^19.2.0",

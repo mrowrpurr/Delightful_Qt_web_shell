@@ -9,19 +9,19 @@
 // fire to every connected view automatically.
 //
 // Usage:
-//   auto* widget = new WebShellWidget(profile, shell, devMode, this);
-//   setCentralWidget(widget);
+//   auto* widget = new WebShellWidget(profile, shell,
+//                                     QUrl("app://main/"), this);
 //
 // The widget handles:
 //   - QWebEngineView + page setup
 //   - qwebchannel.js injection
 //   - QWebChannel registration of shell + bridges
 //   - LoadingOverlay (auto-dismissed when React calls signalReady())
-//   - Dev mode (Vite HMR) vs production (app:// scheme) URL loading
 //   - Developer tools window (F12)
 
 #pragma once
 
+#include <QUrl>
 #include <QWidget>
 
 class LoadingOverlay;
@@ -37,11 +37,12 @@ public:
 
     // profile      — shared QWebEngineProfile (owned by Application)
     // shell        — the WebShell that owns all bridges (shared across widgets)
-    // devMode      — true = load from Vite dev server, false = embedded resources
+    // contentUrl   — what to load (e.g. QUrl("app://main/") or QUrl("http://localhost:5173"))
     // overlayStyle — Full (logo+progress) for main window, Spinner for dialogs
     // parent       — parent widget (MainWindow, QDialog, etc.)
     WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
-                   bool devMode, OverlayStyle overlayStyle = FullOverlay,
+                   const QUrl& contentUrl,
+                   OverlayStyle overlayStyle = FullOverlay,
                    QWidget* parent = nullptr);
 
     // Access the underlying view (e.g. for zoom control)

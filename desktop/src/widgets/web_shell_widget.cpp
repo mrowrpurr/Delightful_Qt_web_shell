@@ -26,7 +26,8 @@
 static constexpr QColor kBackground{0x24, 0x24, 0x24};
 
 WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
-                               bool devMode, OverlayStyle overlayStyle,
+                               const QUrl& contentUrl,
+                               OverlayStyle overlayStyle,
                                QWidget* parent)
     : QWidget(parent), shell_(shell)
 {
@@ -76,16 +77,7 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
     devToolsView_->setPage(devToolsPage);
 
     // ── Load content ─────────────────────────────────────────
-    // The app:// scheme handler is installed once on the shared profile
-    // (in Application), so all WebShellWidgets can use it.
-    if (devMode) {
-        // Dev mode: Vite dev server with hot module reload.
-        // QWebChannel still works because qwebchannel.js is injected above.
-        view_->setUrl(QUrl("http://localhost:5173"));
-    } else {
-        // Production: serve from embedded Qt resources via app:// scheme.
-        view_->setUrl(QUrl("app://shell/"));
-    }
+    view_->setUrl(contentUrl);
 
     // ── Loading overlay ──────────────────────────────────────
     // Covers the view until React calls signalReady().

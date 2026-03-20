@@ -15,6 +15,7 @@
 #include <QCloseEvent>
 #include <QScreen>
 #include <QSettings>
+#include <QSplitter>
 #include <QSystemTrayIcon>
 #include <QWebEngineView>
 
@@ -44,15 +45,28 @@ MainWindow::MainWindow(QWidget* parent)
     statusBar_ = new StatusBar(this);
     setStatusBar(statusBar_);
 
-    // ── Central widget — React app with bridges ──────────────
+    // ── Central widget — QSplitter with two web apps ─────────
+    // Left: main app (todo UI), Right: docs app.
+    // Both share the same bridges — one source of truth, signals everywhere.
     auto* app = qobject_cast<Application*>(qApp);
-    webShell_ = new WebShellWidget(
-        app->webProfile(), app->shell(), app->devMode(),
-        WebShellWidget::FullOverlay, this);
-    setCentralWidget(webShell_);
 
-    // ── Wire zoom actions to the web view ────────────────────
-    auto* view = webShell_->view();
+    auto* splitter = new QSplitter(Qt::Horizontal, this);
+    splitter->setChildrenCollapsible(true);
+
+    mainApp_ = new WebShellWidget(
+        app->webProfile(), app->shell(), app->appUrl("main"),
+        WebShellWidget::FullOverlay, splitter);
+
+    docsApp_ = new WebShellWidget(
+        app->webProfile(), app->shell(), app->appUrl("docs"),
+        WebShellWidget::SpinnerOverlay, splitter);
+
+    // Give the main app 2/3 of the space, docs 1/3
+    splitter->setSizes({600, 300});
+    setCentralWidget(splitter);
+
+    // ── Wire zoom actions to the main web view ───────────────
+    auto* view = mainApp_->view();
 
     connect(actions.zoomIn, &QAction::triggered, view, [view]() {
         view->setZoomFactor(qMin(view->zoomFactor() + 0.1, 5.0));
@@ -65,8 +79,8 @@ MainWindow::MainWindow(QWidget* parent)
     });
 
     // ── Wire F12 to dev tools toggle ─────────────────────────
-    connect(actions.devTools, &QAction::triggered, webShell_, [this]() {
-        webShell_->toggleDevTools();
+    connect(actions.devTools, &QAction::triggered, mainApp_, [this]() {
+        mainApp_->toggleDevTools();
     });
 
     // ── Restore zoom (before content loads, behind overlay) ──

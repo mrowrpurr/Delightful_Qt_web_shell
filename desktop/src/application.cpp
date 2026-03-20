@@ -41,7 +41,7 @@ Application::Application(int& argc, char** argv)
     parser.addHelpOption();
     parser.addVersionOption();
     QCommandLineOption devOption("dev",
-        "Dev mode: load from Vite dev server (localhost:5173) with hot reload");
+        "Dev mode: load from Vite dev servers (main=5173, docs=5174) with hot reload");
     parser.addOption(devOption);
     parser.process(*this);
     devMode_ = parser.isSet(devOption);
@@ -172,4 +172,19 @@ void Application::setupSystemTray() {
     });
 
     trayIcon_->show();
+}
+
+QUrl Application::appUrl(const QString& appName) const {
+    if (devMode_) {
+        // Each web app runs its own Vite dev server.
+        // Convention: main=5173, docs=5174, additional apps=5175+
+        static const QHash<QString, int> devPorts = {
+            {"main", 5173},
+            {"docs", 5174},
+        };
+        int port = devPorts.value(appName, 5175);
+        return QUrl(QString("http://localhost:%1").arg(port));
+    }
+    // Production: serve from embedded Qt resources via app://<name>/
+    return QUrl(QString("app://%1/").arg(appName));
 }
