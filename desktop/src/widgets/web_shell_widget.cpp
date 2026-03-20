@@ -11,6 +11,7 @@
 #include <QDropEvent>
 #include <QFile>
 #include <QMimeData>
+#include <QTimer>
 #include <QVBoxLayout>
 #include <QWebChannel>
 #include <QWebEnginePage>
@@ -31,8 +32,6 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
                                QWidget* parent)
     : QWidget(parent), shell_(shell)
 {
-    setAcceptDrops(true);
-
     // ── Layout ───────────────────────────────────────────────
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -76,6 +75,17 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
     devToolsPage->setBackgroundColor(kBackground);
     devToolsView_->setPage(devToolsPage);
 
+    // ── Drag & drop ─────────────────────────────────────────
+    // QWebEngineView's internal widget (focusProxy) swallows drag events.
+    // We install an event filter on it to intercept file drops from the OS.
+    // The focusProxy isn't ready until the view is shown, so we defer.
+    QTimer::singleShot(0, this, [this]() {
+        if (auto* target = view_->focusProxy()) {
+            target->setAcceptDrops(true);
+            target->installEventFilter(this);
+        }
+    });
+
     // ── Load content ─────────────────────────────────────────
     view_->setUrl(contentUrl);
 
@@ -107,24 +117,34 @@ void WebShellWidget::toggleDevTools() {
     }
 }
 
-void WebShellWidget::dragEnterEvent(QDragEnterEvent* event) {
-    // Accept file drops from the OS (Explorer, Finder, etc.)
-    if (event->mimeData()->hasUrls())
-        event->acceptProposedAction();
-}
+bool WebShellWidget::eventFilter(QObject* obj, QEvent* event) {
+    // Intercept drag & drop on QWebEngineView's internal widget.
+    // Without this, the web engine swallows the events and they never
+    // reach our widget's dragEnterEvent/dropEvent.
 
-void WebShellWidget::dropEvent(QDropEvent* event) {
-    // Collect dropped file paths and forward to the SystemBridge.
-    // React subscribes to the filesDropped signal and calls getDroppedFiles().
-    QStringList paths;
-    for (const auto& url : event->mimeData()->urls()) {
-        if (url.isLocalFile())
-            paths.append(url.toLocalFile());
+    if (event->type() == QEvent::DragEnter) {
+        auto* e = static_cast<QDragEnterEvent*>(event);
+        if (e->mimeData()->hasUrls()) {
+            e->acceptProposedAction();
+            return true;
+        }
     }
-    if (paths.isEmpty()) return;
 
-    // Find the SystemBridge by name — no tight coupling to the class
-    auto* bridge = qobject_cast<SystemBridge*>(shell_->bridges().value("system"));
-    if (bridge)
-        bridge->handleFilesDropped(paths);
+    if (event->type() == QEvent::Drop) {
+        auto* e = static_cast<QDropEvent*>(event);
+        QStringList paths;
+        for (const auto& url : e->mimeData()->urls()) {
+            if (url.isLocalFile())
+                paths.append(url.toLocalFile());
+        }
+        if (!paths.isEmpty()) {
+            auto* bridge = qobject_cast<SystemBridge*>(
+                shell_->bridges().value("system"));
+            if (bridge)
+                bridge->handleFilesDropped(paths);
+        }
+        return true;
+    }
+
+    return QWidget::eventFilter(obj, event);
 }
