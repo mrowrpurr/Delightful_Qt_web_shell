@@ -222,6 +222,180 @@ button:hover {
   background: #ff6b6b22;
 }
 
+/* ── File browser ──────────────────────────────────────────── */
+
+.file-browser {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-browser-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.browse-path {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.browse-up-btn {
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.browse-up-btn:hover {
+  background: var(--bg-surface-selected);
+}
+
+.browse-entries {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.browse-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.1s;
+}
+
+.browse-entry:hover {
+  background: #ffffff08;
+}
+
+.browse-entry.is-dir {
+  font-weight: 500;
+}
+
+.entry-icon {
+  flex-shrink: 0;
+}
+
+.entry-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry-size {
+  color: var(--text-faded);
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.file-preview {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.preview-header {
+  padding: 8px 12px;
+  font-weight: 500;
+  font-size: 0.85rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--accent);
+}
+
+.preview-method {
+  float: right;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-hint);
+  font-family: 'Consolas', 'Fira Code', monospace;
+  background: #ffffff0a;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.preview-content {
+  padding: 12px;
+  font-size: 0.8rem;
+  font-family: 'Consolas', 'Fira Code', monospace;
+  color: var(--text-muted);
+  max-height: 300px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+}
+
+.preview-image {
+  padding: 12px;
+  text-align: center;
+}
+
+.preview-image img {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 4px;
+}
+
+.glob-search {
+  display: flex;
+  gap: 8px;
+}
+
+.glob-results {
+  background: var(--bg-surface);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.glob-results-header {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: var(--bg-surface);
+}
+
+.glob-clear-btn {
+  background: transparent;
+  color: var(--text-faded);
+  border: none;
+  padding: 2px 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.glob-clear-btn:hover {
+  color: #ff6b6b;
+}
+
+.glob-result {
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-family: 'Consolas', 'Fira Code', monospace;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
 /* ── Dialog view (rendered via #/dialog hash route) ─────────── */
 
 .dialog-view {

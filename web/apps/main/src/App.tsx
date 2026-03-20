@@ -9,6 +9,12 @@ import type { SystemBridge } from '@shared/api/system-bridge'
 const todos = await getBridge<TodoBridge>('todos')
 const system = await getBridge<SystemBridge>('system')
 
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export default function App() {
   const [lists, setLists] = useState<TodoList[]>([])
   const [selectedListId, setSelectedListId] = useState<string | null>(null)
@@ -17,6 +23,12 @@ export default function App() {
   const [newItemText, setNewItemText] = useState('')
   const [droppedFiles, setDroppedFiles] = useState<string[]>([])
   const [copyFeedback, setCopyFeedback] = useState('')
+  const [browseFolder, setBrowseFolder] = useState<string | null>(null)
+  const [browseEntries, setBrowseEntries] = useState<Array<{ name: string; isDir: boolean; size: number }>>([])
+  const [filePreview, setFilePreview] = useState<{ name: string; text: string; method: string } | null>(null)
+  const [imagePreview, setImagePreview] = useState<{ name: string; dataUrl: string } | null>(null)
+  const [globPattern, setGlobPattern] = useState('')
+  const [globResults, setGlobResults] = useState<string[] | null>(null)
 
   const loadLists = useCallback(async () => {
     const result = await todos.listLists()
@@ -85,6 +97,125 @@ export default function App() {
     setTimeout(() => setCopyFeedback(''), 2000)
   }, [])
 
+  const clearPreviews = useCallback(() => {
+    setFilePreview(null)
+    setImagePreview(null)
+  }, [])
+
+  const handleBrowseFolder = useCallback(async () => {
+    const result = await system.openFolderChooser()
+    if ('cancelled' in result) return
+    setBrowseFolder(result.path)
+    clearPreviews()
+    setGlobResults(null)
+    setGlobPattern('')
+    const listing = await system.listFolder(result.path)
+    if ('error' in listing) return
+    setBrowseEntries(listing.entries)
+  }, [clearPreviews])
+
+  const handleOpenFile = useCallback(async () => {
+    const result = await system.openFileChooser()
+    if ('cancelled' in result) return
+    // Preview the chosen file using readTextFile (simple API demo)
+    const read = await system.readTextFile(result.path)
+    const fileName = result.path.split(/[/\\]/).pop() || result.path
+    clearPreviews()
+    if ('error' in read) {
+      setFilePreview({ name: fileName, text: `⚠️ ${read.error}`, method: 'readTextFile' })
+    } else {
+      const preview = read.text.length > 4000
+        ? read.text.slice(0, 4000) + `\n\n… truncated (${formatSize(read.text.length)})`
+        : read.text
+      setFilePreview({ name: fileName, text: preview, method: 'readTextFile' })
+    }
+  }, [clearPreviews])
+
+  const imageExts = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'svg'])
+
+  const handleBrowseEntry = useCallback(async (name: string, isDir: boolean, size: number) => {
+    if (!browseFolder) return
+    const fullPath = browseFolder + '/' + name
+    if (isDir) {
+      setBrowseFolder(fullPath)
+      clearPreviews()
+      setGlobResults(null)
+      setGlobPattern('')
+      const listing = await system.listFolder(fullPath)
+      if ('error' in listing) return
+      setBrowseEntries(listing.entries)
+      return
+    }
+
+    const ext = name.split('.').pop()?.toLowerCase() || ''
+
+    // Images → readFileBytes, render inline (demo of binary read)
+    if (imageExts.has(ext) && size < 10 * 1024 * 1024) {
+      const result = await system.readFileBytes(fullPath)
+      clearPreviews()
+      if ('error' in result) {
+        setFilePreview({ name, text: `⚠️ ${result.error}`, method: 'readFileBytes' })
+      } else {
+        const mime = ext === 'svg' ? 'image/svg+xml' : `image/${ext === 'jpg' ? 'jpeg' : ext}`
+        setImagePreview({ name, dataUrl: `data:${mime};base64,${result.data}` })
+      }
+      return
+    }
+
+    // Small text files (< 100KB) → readTextFile (simple API)
+    if (size < 100 * 1024) {
+      const result = await system.readTextFile(fullPath)
+      clearPreviews()
+      if ('error' in result) {
+        setFilePreview({ name, text: `⚠️ ${result.error}`, method: 'readTextFile' })
+      } else {
+        setFilePreview({ name, text: result.text, method: 'readTextFile' })
+      }
+      return
+    }
+
+    // Large files → streaming via file handle (safe for any size)
+    const handle = await system.openFileHandle(fullPath)
+    clearPreviews()
+    if ('error' in handle) {
+      setFilePreview({ name, text: `⚠️ ${handle.error}`, method: 'openFileHandle' })
+      return
+    }
+    const sizeLabel = formatSize(handle.size)
+    const chunk = await system.readFileChunk(handle.handle, 0, 4096)
+    await system.closeFileHandle(handle.handle)
+    if ('error' in chunk) {
+      setFilePreview({ name, text: `⚠️ ${chunk.error}`, method: 'readFileChunk' })
+      return
+    }
+    const text = atob(chunk.data)
+    setFilePreview({
+      name,
+      text: text + `\n\n… showing 4 KB of ${sizeLabel} (streamed via file handle)`,
+      method: 'openFileHandle → readFileChunk → closeFileHandle',
+    })
+  }, [browseFolder, clearPreviews])
+
+  const handleBrowseUp = useCallback(async () => {
+    if (!browseFolder) return
+    const parent = browseFolder.replace(/[/\\][^/\\]+$/, '')
+    if (parent === browseFolder) return
+    setBrowseFolder(parent)
+    clearPreviews()
+    setGlobResults(null)
+    setGlobPattern('')
+    const listing = await system.listFolder(parent)
+    if ('error' in listing) return
+    setBrowseEntries(listing.entries)
+  }, [browseFolder, clearPreviews])
+
+  const handleGlob = useCallback(async () => {
+    if (!browseFolder || !globPattern.trim()) return
+    const result = await system.globFolder(browseFolder, globPattern.trim(), true)
+    if ('error' in result) return
+    setGlobResults(result.paths)
+  }, [browseFolder, globPattern])
+
   // Subscribe to file drop events from Qt
   useEffect(() => {
     return system.filesDropped(async () => {
@@ -116,6 +247,78 @@ export default function App() {
           ))}
         </div>
       )}
+
+      <div className="file-browser">
+        <div className="file-browser-actions">
+          <button data-testid="browse-folder-button" onClick={handleBrowseFolder}>
+            📂 Browse Folder
+          </button>
+          <button data-testid="open-file-button" onClick={handleOpenFile}>
+            📄 Open File
+          </button>
+        </div>
+        {browseFolder && (
+          <>
+            <div className="browse-path">
+              <button className="browse-up-btn" onClick={handleBrowseUp} title="Go up">⬆</button>
+              <span>{browseFolder}</span>
+            </div>
+            <div className="glob-search">
+              <input
+                placeholder="Glob pattern (e.g. *.tsx)"
+                value={globPattern}
+                onChange={e => setGlobPattern(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleGlob()}
+              />
+              <button onClick={handleGlob}>🔍 Glob</button>
+            </div>
+            {globResults && (
+              <div className="glob-results">
+                <div className="glob-results-header">
+                  {globResults.length} match{globResults.length !== 1 ? 'es' : ''} for "{globPattern}"
+                  <button className="glob-clear-btn" onClick={() => setGlobResults(null)}>✕</button>
+                </div>
+                {globResults.map((path, i) => (
+                  <div key={i} className="glob-result">{path}</div>
+                ))}
+              </div>
+            )}
+            <div className="browse-entries">
+              {browseEntries.map(entry => (
+                <div
+                  key={entry.name}
+                  className={`browse-entry ${entry.isDir ? 'is-dir' : ''}`}
+                  onClick={() => handleBrowseEntry(entry.name, entry.isDir, entry.size)}
+                >
+                  <span className="entry-icon">{entry.isDir ? '📁' : '📄'}</span>
+                  <span className="entry-name">{entry.name}</span>
+                  {!entry.isDir && <span className="entry-size">{formatSize(entry.size)}</span>}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        {imagePreview && (
+          <div className="file-preview">
+            <div className="preview-header">
+              {imagePreview.name}
+              <span className="preview-method">readFileBytes</span>
+            </div>
+            <div className="preview-image">
+              <img src={imagePreview.dataUrl} alt={imagePreview.name} />
+            </div>
+          </div>
+        )}
+        {filePreview && (
+          <div className="file-preview">
+            <div className="preview-header">
+              {filePreview.name}
+              <span className="preview-method">{filePreview.method}</span>
+            </div>
+            <pre className="preview-content">{filePreview.text}</pre>
+          </div>
+        )}
+      </div>
 
       <div className="create-list">
         <input
