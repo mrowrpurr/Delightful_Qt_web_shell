@@ -7,11 +7,18 @@
 
 #include <QCommandLineOption>
 #include <QCommandLineParser>
+#include <QCheckBox>
+#include <QDir>
+#include <QEvent>
+#include <QFileOpenEvent>
 #include <QIcon>
 #include <QLocalServer>
 #include <QLocalSocket>
 #include <QMenu>
+#include <QMessageBox>
 #include <QPalette>
+#include <QProcess>
+#include <QSettings>
 #include <QStandardPaths>
 #include <QStyleHints>
 #include <QSystemTrayIcon>
@@ -50,7 +57,9 @@ Application::Application(int& argc, char** argv)
     QCommandLineOption devOption("dev",
         "Dev mode: load from Vite dev servers (main=5173, docs=5174) with hot reload");
     parser.addOption(devOption);
-    parser.process(*this);
+    // parse() instead of process() — unknown args pass through to the app
+    // instead of showing an error dialog. Template users add their own options here.
+    parser.parse(arguments());
     devMode_ = parser.isSet(devOption);
 
     // ── Single instance guard ────────────────────────────────
@@ -100,6 +109,11 @@ Application::Application(int& argc, char** argv)
     auto* systemBridge = new SystemBridge;
     shell_->addBridge("system", systemBridge);
 
+    // ── URL protocol registration ────────────────────────────
+    // Prompt the user to register if not already done.
+    // Also accessible via Tools > Register/Unregister URL Protocol in the menu.
+    promptUrlProtocolRegistration();
+
     // ── System tray ──────────────────────────────────────────
     // The tray icon lets the app live in the background without a visible window.
     // To disable: remove this call and the tray-related code.
@@ -117,8 +131,15 @@ void Application::setupSingleInstance() {
     QLocalSocket socket;
     socket.connectToServer(serverName);
     if (socket.waitForConnected(500)) {
-        // Another instance is running — ask it to activate and bail out
-        socket.write("activate");
+        // Another instance is running — send our args and bail out.
+        // Protocol: one line per arg, or just "activate" if no args.
+        QStringList allArgs = arguments().mid(1);
+        if (allArgs.isEmpty()) {
+            socket.write("activate\n");
+        } else {
+            for (const auto& arg : allArgs)
+                socket.write(("arg:" + arg + "\n").toUtf8());
+        }
         socket.waitForBytesWritten(1000);
         socket.disconnectFromServer();
         isPrimary_ = false;
@@ -134,11 +155,172 @@ void Application::setupSingleInstance() {
     connect(instanceServer_, &QLocalServer::newConnection, this, [this]() {
         auto* client = instanceServer_->nextPendingConnection();
         connect(client, &QLocalSocket::readyRead, this, [this, client]() {
-            client->readAll();  // consume the "activate" message
+            // Parse messages: "activate\n" or "arg:<value>\n"
+            QString data = QString::fromUtf8(client->readAll());
+            QStringList lines = data.split('\n', Qt::SkipEmptyParts);
+            QStringList args;
+            for (const auto& line : lines) {
+                if (line.startsWith("arg:"))
+                    args.append(line.mid(4));
+            }
+            if (!args.isEmpty())
+                emit argsReceived(args);
             emit activationRequested();
             client->deleteLater();
         });
     });
+}
+
+QString Application::urlProtocolName() {
+    return QString(APP_SLUG).toLower();
+}
+
+bool Application::isUrlProtocolRegistered() {
+    QString protocol = urlProtocolName();
+
+#ifdef Q_OS_WIN
+    QSettings reg("HKEY_CURRENT_USER\\Software\\Classes\\" + protocol,
+                   QSettings::NativeFormat);
+    QString cmd = reg.value("shell/open/command/Default").toString();
+    return cmd.contains(QDir::toNativeSeparators(applicationFilePath()));
+#endif
+
+#ifdef Q_OS_LINUX
+    QString desktopDir = QStandardPaths::writableLocation(
+        QStandardPaths::ApplicationsLocation);
+    return QFile::exists(desktopDir + "/" + protocol + ".desktop");
+#endif
+
+    // macOS: declared in Info.plist at build time — always "registered" if plist is right
+    return true;
+}
+
+void Application::registerUrlProtocol() {
+    // Register this app as the handler for a custom URL protocol.
+    // After registration, clicking "delightful-qt://anything" in a browser
+    // will launch this app (or activate it via single-instance) with the URL as an arg.
+    //
+    // The protocol name comes from APP_SLUG — change it in xmake.lua to change the scheme.
+    // The URL arrives as a normal command line arg, so the existing single-instance
+    // pipe forwards it to React via the argsReceived signal.
+
+    QString protocol = urlProtocolName();
+    QString exePath = QDir::toNativeSeparators(applicationFilePath());
+
+#ifdef Q_OS_WIN
+    // Windows: write to HKCU\Software\Classes\<protocol>
+    // User-level — no admin required. Survives reboots.
+    QSettings reg("HKEY_CURRENT_USER\\Software\\Classes\\" + protocol,
+                   QSettings::NativeFormat);
+    reg.setValue("Default", QString("URL:%1 Protocol").arg(APP_NAME));
+    reg.setValue("URL Protocol", "");
+    reg.setValue("shell/open/command/Default",
+                 QString("\"%1\" \"%2\"").arg(exePath, "%1"));
+#endif
+
+#ifdef Q_OS_LINUX
+    // Linux: write a .desktop file and register via xdg-mime.
+    // Goes to ~/.local/share/applications/ — user-level, no root required.
+    QString desktopDir = QStandardPaths::writableLocation(
+        QStandardPaths::ApplicationsLocation);
+    QDir().mkpath(desktopDir);
+    QString desktopPath = desktopDir + "/" + protocol + ".desktop";
+
+    QFile f(desktopPath);
+    if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QTextStream out(&f);
+        out << "[Desktop Entry]\n"
+            << "Type=Application\n"
+            << "Name=" << APP_NAME << "\n"
+            << "Exec=\"" << exePath << "\" %u\n"
+            << "MimeType=x-scheme-handler/" << protocol << "\n"
+            << "NoDisplay=true\n";
+        f.close();
+        QProcess::startDetached("xdg-mime",
+            {"default", protocol + ".desktop", "x-scheme-handler/" + protocol});
+    }
+#endif
+
+    // macOS: URL schemes are declared in Info.plist, not registered at runtime.
+    // Add this to your Info.plist (xmake can generate it):
+    //
+    //   <key>CFBundleURLTypes</key>
+    //   <array>
+    //     <dict>
+    //       <key>CFBundleURLSchemes</key>
+    //       <array>
+    //         <string>delightful-qt</string>
+    //       </array>
+    //       <key>CFBundleURLName</key>
+    //       <string>com.example.delightful-qt</string>
+    //     </dict>
+    //   </array>
+    //
+    // macOS delivers the URL via QEvent::FileOpen — handled in event() below.
+}
+
+void Application::unregisterUrlProtocol() {
+    QString protocol = urlProtocolName();
+
+#ifdef Q_OS_WIN
+    // Remove the registry key tree for this protocol
+    QSettings reg("HKEY_CURRENT_USER\\Software\\Classes",
+                   QSettings::NativeFormat);
+    reg.remove(protocol);
+#endif
+
+#ifdef Q_OS_LINUX
+    QString desktopDir = QStandardPaths::writableLocation(
+        QStandardPaths::ApplicationsLocation);
+    QFile::remove(desktopDir + "/" + protocol + ".desktop");
+#endif
+}
+
+void Application::promptUrlProtocolRegistration() {
+    // If already registered or user said "don't ask", skip.
+    QSettings settings(APP_ORG, APP_SLUG);
+    if (settings.value("urlProtocol/dontAsk", false).toBool()) return;
+    if (isUrlProtocolRegistered()) return;
+
+    // Show a dialog asking the user to register
+    QMessageBox box;
+    box.setWindowTitle(APP_NAME);
+    box.setIcon(QMessageBox::Question);
+    box.setText(QString("Register <b>%1://</b> URL protocol?").arg(urlProtocolName()));
+    box.setInformativeText(
+        QString("This lets you open %1 from a browser or other apps by clicking "
+                "<b>%2://</b> links.").arg(APP_NAME, urlProtocolName()));
+
+    auto* dontAskCheck = new QCheckBox("Don't ask me again");
+    box.setCheckBox(dontAskCheck);
+
+    box.addButton(QMessageBox::Yes);
+    box.addButton(QMessageBox::No);
+    box.setDefaultButton(QMessageBox::Yes);
+
+    int result = box.exec();
+
+    if (dontAskCheck->isChecked())
+        settings.setValue("urlProtocol/dontAsk", true);
+
+    if (result == QMessageBox::Yes)
+        registerUrlProtocol();
+}
+
+bool Application::event(QEvent* event) {
+    // macOS delivers URL scheme activations and file-open requests via this event.
+    // e.g. clicking "delightful-qt://some/path" in Safari sends a FileOpen event
+    // with the full URL as the payload. We emit argsReceived so React can handle it.
+    if (event->type() == QEvent::FileOpen) {
+        auto* openEvent = static_cast<QFileOpenEvent*>(event);
+        QString payload = openEvent->url().toString();
+        if (payload.isEmpty())
+            payload = openEvent->file();
+        if (!payload.isEmpty())
+            emit argsReceived({payload});
+        return true;
+    }
+    return QApplication::event(event);
 }
 
 void Application::setupSystemTray() {

@@ -27,6 +27,10 @@ export interface SystemBridge {
   readFileChunk(handle: string, offset: number, length: number): Promise<{ data: string; bytesRead: number } | { error: string }> // base64
   closeFileHandle(handle: string): Promise<{ ok: boolean } | { error: string }>
 
+  // ── Args from CLI / URL protocol / other instance ───────
+  getReceivedArgs(): Promise<string[]>
+  argsReceived(callback: () => void): () => void
+
   // ── File drop ──────────────────────────────────────────
   getDroppedFiles(): Promise<string[]>
   filesDropped(callback: () => void): () => void

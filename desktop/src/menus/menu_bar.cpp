@@ -16,6 +16,7 @@
 //   toolBar->addAction(actions.myAction);
 
 #include "menu_bar.hpp"
+#include "application.hpp"
 #include "dialogs/about_dialog.hpp"
 #include "dialogs/web_dialog.hpp"
 
@@ -138,6 +139,30 @@ MenuActions buildMenuBar(QMainWindow* window) {
     QObject::connect(webDialogAction, &QAction::triggered, window, [window]() {
         WebDialog dlg(window);
         dlg.exec();
+    });
+
+    // ── Tools ─────────────────────────────────────────────────
+    auto* toolsMenu = menuBar->addMenu("&Tools");
+
+    // URL protocol register/unregister — shows current state in the label
+    auto* protocolAction = toolsMenu->addAction("");
+    auto updateProtocolLabel = [protocolAction]() {
+        bool registered = Application::isUrlProtocolRegistered();
+        QString protocol = Application::urlProtocolName();
+        protocolAction->setText(registered
+            ? QString("Unregister %1:// Protocol").arg(protocol)
+            : QString("Register %1:// Protocol").arg(protocol));
+    };
+    updateProtocolLabel();
+
+    QObject::connect(protocolAction, &QAction::triggered, window,
+                     [window, updateProtocolLabel]() {
+        if (Application::isUrlProtocolRegistered()) {
+            Application::unregisterUrlProtocol();
+        } else {
+            Application::registerUrlProtocol();
+        }
+        updateProtocolLabel();
     });
 
     // ── Help ─────────────────────────────────────────────────
