@@ -12,6 +12,7 @@ This is a concise index of traps. Details live in the doc where you're doing the
 | Use Bun instead of Node for playwright-cdp | `connectOverCDP` hangs forever — no error, no timeout | [05-tools.md, Critical: Node Not Bun](05-tools.md) |
 | Bridge method opens modal dialog synchronously | Dialog's QWebChannel can't init — loading overlay forever | [03-adding-features.md, Hash Routes](03-adding-features.md) |
 | Drag & drop handler on WebShellWidget | QWebEngineView's focusProxy swallows all drag events | [07-desktop-capabilities.md](07-desktop-capabilities.md) |
+| Native `<select>` element in QWebEngine | Expanding white rectangle appears while dropdown is open | Use a custom dropdown component instead — see `shared/components/ui/select.tsx` |
 
 > **Use `xmake run scaffold-bridge <name>`** to create new bridges. It handles registration in both entry points and MOC setup automatically — you won't hit the first gotcha above.
 
