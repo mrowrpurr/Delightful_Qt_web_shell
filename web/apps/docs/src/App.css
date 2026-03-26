@@ -7,6 +7,7 @@
   --accent: #7c6ef0;
   --card-bg: #2a2a2a;
   --border: #3a3a3a;
+  --code-bg: #1a1a1a;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -19,68 +20,156 @@ body {
 }
 
 .docs {
-  max-width: 640px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: 2rem 1.5rem;
+  padding: 1.5rem;
 }
 
-.docs h1 {
-  color: var(--accent);
-  font-size: 1.6rem;
-  margin-bottom: 0.25rem;
-}
-
-.docs .subtitle {
-  color: var(--text-muted);
-  font-size: 0.9rem;
+.docs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
 }
 
-.docs section {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.25rem;
-  margin-bottom: 1rem;
-}
-
-.docs section h2 {
-  font-size: 1rem;
-  margin-bottom: 0.5rem;
+.docs-header h1 {
   color: var(--accent);
+  font-size: 1.2rem;
+  white-space: nowrap;
 }
 
-.docs section p {
+.doc-select {
+  width: 200px;
+  background: var(--card-bg);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+/* ── Markdown body styles ──────────────────────────────── */
+
+.markdown-body {
   font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.markdown-body h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--accent);
+  margin: 1.5rem 0 0.75rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.markdown-body h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 1.25rem 0 0.5rem;
+}
+
+.markdown-body h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 1rem 0 0.4rem;
+}
+
+.markdown-body p {
+  margin: 0.5rem 0;
   color: var(--text-muted);
 }
 
-.docs code {
-  background: #1a1a1a;
+.markdown-body a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.markdown-body a:hover {
+  text-decoration: underline;
+}
+
+.markdown-body ul, .markdown-body ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  color: var(--text-muted);
+}
+
+.markdown-body li {
+  margin: 0.25rem 0;
+}
+
+.markdown-body strong {
+  color: var(--text);
+}
+
+.markdown-body code {
+  background: var(--code-bg);
   padding: 0.15em 0.4em;
   border-radius: 3px;
   font-size: 0.85em;
+  font-family: 'Consolas', 'Fira Code', monospace;
 }
 
-.docs .bridge-status {
-  display: inline-block;
-  padding: 0.2em 0.6em;
-  border-radius: 4px;
+.markdown-body pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+  overflow-x: auto;
   font-size: 0.8rem;
-  font-weight: 600;
+  line-height: 1.5;
 }
-.docs .bridge-status.connected { background: #1a3a1a; color: #4ade80; }
-.docs .bridge-status.disconnected { background: #3a1a1a; color: #f87171; }
 
-.docs .bridge-list {
-  list-style: none;
-  margin-top: 0.75rem;
+.markdown-body pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
 }
-.docs .bridge-list li {
-  padding: 0.4rem 0;
-  border-bottom: 1px solid var(--border);
+
+.markdown-body blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 0.25rem 0.75rem;
+  margin: 0.75rem 0;
+  color: var(--text-muted);
+  background: var(--code-bg);
+  border-radius: 0 4px 4px 0;
+}
+
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
   font-size: 0.85rem;
 }
-.docs .bridge-list li:last-child { border-bottom: none; }
-.docs .bridge-list .name { color: var(--accent); font-weight: 600; }
-.docs .bridge-list .count { color: var(--text-muted); margin-left: 0.5rem; }
+
+.markdown-body th {
+  background: var(--code-bg);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.markdown-body td {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.markdown-body hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.5rem 0;
+}
+
+.markdown-body img {
+  max-width: 100%;
+  border-radius: 4px;
+}
