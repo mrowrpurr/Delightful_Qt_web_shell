@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { cn } from '@shared/lib/utils'
-import { ChevronDown } from 'lucide-react'
+import { Check, ChevronDown } from 'lucide-react'
 
 interface SelectOption {
   value: string
@@ -34,32 +34,43 @@ function Select({ value, onChange, options, placeholder, className }: SelectProp
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={cn(
-          'flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer',
-        )}
+        className="flex h-9 w-full items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm shadow-sm ring-offset-background transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
       >
-        <span className={selected ? '' : 'text-muted-foreground'}>
+        <span className={cn('truncate', selected ? 'text-foreground' : 'text-muted-foreground')}>
           {selected?.label ?? placeholder ?? 'Select...'}
         </span>
-        <ChevronDown className="h-4 w-4 opacity-50" />
+        <ChevronDown className={cn(
+          'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200',
+          open && 'rotate-180'
+        )} />
       </button>
       {open && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border border-input bg-background shadow-lg">
-          {options.map(option => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => { onChange(option.value); setOpen(false) }}
-              className={cn(
-                'flex w-full items-center px-3 py-1.5 text-sm cursor-pointer transition-colors',
-                option.value === value
-                  ? 'bg-accent text-accent-foreground'
-                  : 'hover:bg-accent/50',
-              )}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border border-border bg-card shadow-lg animate-in fade-in-0 zoom-in-95">
+          <div className="p-1">
+            {options.map(option => {
+              const isSelected = option.value === value
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => { onChange(option.value); setOpen(false) }}
+                  className={cn(
+                    'relative flex w-full items-center rounded-sm px-2 py-1.5 pl-8 text-sm outline-none cursor-pointer transition-colors',
+                    isSelected
+                      ? 'bg-primary/15 text-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                  )}
+                >
+                  {isSelected && (
+                    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+                      <Check className="h-4 w-4 text-primary" />
+                    </span>
+                  )}
+                  {option.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
       )}
     </div>
