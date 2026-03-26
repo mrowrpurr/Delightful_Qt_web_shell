@@ -1,4 +1,27 @@
-@import "../../../shared/styles/globals.css";
+@import "tailwindcss";
+
+@source "../../../shared/components";
+
+@theme {
+  --color-background: #242424;
+  --color-foreground: #e0e0e0;
+  --color-card: #2a2a2a;
+  --color-card-foreground: #e0e0e0;
+  --color-primary: #7c6ef0;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #3a3a3a;
+  --color-secondary-foreground: #e0e0e0;
+  --color-muted: #2a2a2a;
+  --color-muted-foreground: #888888;
+  --color-accent: #3a3a4a;
+  --color-accent-foreground: #e0e0e0;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #3a3a3a;
+  --color-input: #3a3a3a;
+  --color-ring: #7c6ef0;
+  --radius: 0.5rem;
+}
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
