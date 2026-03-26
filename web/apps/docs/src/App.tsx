@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { signalReady } from '@shared/api/bridge'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Select } from '@shared/components/ui/select'
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@shared/components/ui/select'
 
 // Import docs as raw strings — Vite handles this with ?raw
 import readme from '../../../../README.md?raw'
@@ -30,12 +30,16 @@ export default function App() {
     <div className="docs">
       <div className="docs-header">
         <h1>{import.meta.env.VITE_APP_NAME || 'App'}</h1>
-        <Select
-          value={selectedDoc}
-          onChange={setSelectedDoc}
-          options={docs}
-          className="doc-select"
-        />
+        <Select value={selectedDoc} onValueChange={setSelectedDoc}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {docs.map(d => (
+              <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="markdown-body">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{doc.content}</ReactMarkdown>

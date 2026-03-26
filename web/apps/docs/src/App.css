@@ -1,5 +1,6 @@
-@import "tailwindcss";
+@import "../../../shared/styles/globals.css";
 
+/* App-specific overrides (on top of shared theme) */
 :root {
   --bg: #242424;
   --text: #e0e0e0;

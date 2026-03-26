@@ -1,6 +1,5 @@
-import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { Select, type SelectProps } from './select'
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from './select'
 
 const meta = {
   title: 'UI/Select',
@@ -8,27 +7,19 @@ const meta = {
 } satisfies Meta<typeof Select>
 
 export default meta
-type Story = StoryObj<typeof meta>
 
-const options = [
-  { value: 'readme', label: 'README' },
-  { value: 'architecture', label: 'Architecture' },
-  { value: 'tutorial', label: 'Tutorial' },
-  { value: 'testing', label: 'Testing' },
-]
-
-export const Default: Story = {
-  args: { value: 'readme', onChange: () => {}, options },
-  render: (args) => {
-    const [value, setValue] = useState(args.value)
-    return <Select {...args} value={value} onChange={setValue} className="w-[200px]" />
-  },
-}
-
-export const WithPlaceholder: Story = {
-  args: { value: '', onChange: () => {}, options, placeholder: 'Choose a doc...' },
-  render: (args) => {
-    const [value, setValue] = useState(args.value)
-    return <Select {...args} value={value} onChange={setValue} className="w-[200px]" />
-  },
+export const Default = {
+  render: () => (
+    <Select defaultValue="readme">
+      <SelectTrigger className="w-[200px]">
+        <SelectValue placeholder="Choose a doc..." />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="readme">README</SelectItem>
+        <SelectItem value="architecture">Architecture</SelectItem>
+        <SelectItem value="tutorial">Tutorial</SelectItem>
+        <SelectItem value="testing">Testing</SelectItem>
+      </SelectContent>
+    </Select>
+  ),
 }
