@@ -5,7 +5,6 @@
 //   - tool bar   (from menus/)
 //   - status bar (from widgets/)
 //   - QTabWidget with WebShellWidgets (main app tabs)
-//   - QSplitter to show docs alongside
 //
 // Business logic, bridges, and app-level concerns live in Application.
 // Window-level concerns (geometry, zoom, tabs) live here.
@@ -39,6 +38,5 @@ private:
     void wireZoomToCurrentTab(const MenuActions& actions);
 
     QTabWidget* tabs_ = nullptr;
-    WebShellWidget* docsApp_ = nullptr;
     StatusBar* statusBar_ = nullptr;
 };

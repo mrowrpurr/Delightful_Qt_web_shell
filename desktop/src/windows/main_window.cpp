@@ -16,7 +16,6 @@
 #include <QMouseEvent>
 #include <QScreen>
 #include <QSettings>
-#include <QSplitter>
 #include <QSystemTrayIcon>
 #include <QTabBar>
 #include <QTabWidget>
@@ -54,15 +53,12 @@ MainWindow::MainWindow(QWidget* parent)
     statusBar_ = new StatusBar(this);
     setStatusBar(statusBar_);
 
-    // ── Central widget — QSplitter with tabs + docs ──────────
+    // ── Central widget — tabbed main app ─────────────────────
     auto* app = qobject_cast<Application*>(qApp);
-
-    auto* splitter = new QSplitter(Qt::Horizontal, this);
-    splitter->setChildrenCollapsible(true);
 
     // ── Tab widget for main app tabs ─────────────────────────
     // Starts with one tab, tab bar hidden. Ctrl+T adds tabs.
-    tabs_ = new QTabWidget(splitter);
+    tabs_ = new QTabWidget(this);
     tabs_->setTabsClosable(true);
     tabs_->setMovable(true);
     tabs_->tabBar()->setVisible(false);  // hidden until 2+ tabs
@@ -73,15 +69,7 @@ MainWindow::MainWindow(QWidget* parent)
 
     // Create the first tab
     createTab();
-
-    // ── Docs app (right panel) ───────────────────────────────
-    docsApp_ = new WebShellWidget(
-        app->webProfile(), app->shell(), app->appUrl("docs"),
-        WebShellWidget::SpinnerOverlay, splitter);
-
-    // Give the main app 2/3 of the space, docs 1/3
-    splitter->setSizes({600, 300});
-    setCentralWidget(splitter);
+    setCentralWidget(tabs_);
 
     // ── Wire window + tab actions ───────────────────────────────
     connect(actions.newWindow, &QAction::triggered, this, []() {
