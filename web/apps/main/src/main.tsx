@@ -12,9 +12,15 @@ import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 self.MonacoEnvironment = { getWorker: () => new editorWorker() }
 loader.config({ monaco })
 
+// Load theme + font data (imported at build time — fetch doesn't work with app:// scheme)
+import { setThemeData, initTheme } from '@shared/lib/themes'
+import { setFontData, initFont } from '@shared/lib/fonts'
+import themesJson from '../public/themes.json'
+import fontsJson from '../public/google-fonts.json'
+setThemeData(themesJson as any)
+setFontData(fontsJson as any)
+
 // Apply saved theme + font before first render to prevent flash
-import { initTheme } from '@shared/lib/themes'
-import { initFont } from '@shared/lib/fonts'
 initTheme()
 initFont()
 

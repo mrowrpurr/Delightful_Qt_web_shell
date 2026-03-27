@@ -3,19 +3,18 @@ export interface GoogleFont {
   c: string  // category: sans-serif, serif, display, handwriting, monospace
 }
 
-let fontsCache: GoogleFont[] | null = null
-let fontsPromise: Promise<GoogleFont[]> | null = null
+let fontsData: GoogleFont[] = []
 
-export function loadGoogleFonts(): Promise<GoogleFont[]> {
-  if (fontsCache) return Promise.resolve(fontsCache)
-  fontsPromise ??= fetch('./google-fonts.json')
-    .then(r => r.json())
-    .then((data: GoogleFont[]) => { fontsCache = data; return data })
-  return fontsPromise
+export function setFontData(data: GoogleFont[]) {
+  fontsData = data
 }
 
-export function getGoogleFontsSync(): GoogleFont[] | null {
-  return fontsCache
+export function loadGoogleFonts(): Promise<GoogleFont[]> {
+  return Promise.resolve(fontsData)
+}
+
+export function getGoogleFontsSync(): GoogleFont[] {
+  return fontsData
 }
 
 const fontReadyPromises = new Map<string, Promise<void>>()

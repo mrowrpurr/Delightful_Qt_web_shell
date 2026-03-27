@@ -5,19 +5,20 @@ export interface ThemeEntry {
   dark: Record<string, string>
 }
 
-let themesCache: ThemeEntry[] | null = null
-let themesPromise: Promise<ThemeEntry[]> | null = null
+// Lazy-loaded at runtime. The app that uses themes must call setThemeData()
+// with the imported JSON before any theme operations work.
+let themesData: ThemeEntry[] = []
 
-export function loadThemes(): Promise<ThemeEntry[]> {
-  if (themesCache) return Promise.resolve(themesCache)
-  themesPromise ??= fetch('./themes.json')
-    .then(r => r.json())
-    .then((data: ThemeEntry[]) => { themesCache = data; return data })
-  return themesPromise
+export function setThemeData(data: ThemeEntry[]) {
+  themesData = data
 }
 
-export function getThemesSync(): ThemeEntry[] | null {
-  return themesCache
+export function loadThemes(): Promise<ThemeEntry[]> {
+  return Promise.resolve(themesData)
+}
+
+export function getThemesSync(): ThemeEntry[] {
+  return themesData
 }
 
 // Theme JSON uses --background, --foreground, etc.
