@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { getBridge, signalReady, type TodoBridge, type TodoList } from '@shared/api/bridge'
+import { Button } from '@shared/components/ui/button'
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@shared/components/ui/select'
 
-// Top-level await — same pattern as App.tsx.
 const todos = await getBridge<TodoBridge>('todos')
 
 // DialogView — a lightweight UI rendered when the hash is #/dialog.
@@ -19,16 +20,13 @@ export default function DialogView() {
   const loadLists = useCallback(async () => {
     const result = await todos.listLists()
     setLists(result)
-    // Auto-select first list if none selected
     if (result.length > 0 && !selectedListId) {
       setSelectedListId(result[0].id)
     }
   }, [selectedListId])
 
-  // signalReady() — every view must call this to dismiss the loading overlay.
   useEffect(() => { signalReady() }, [])
 
-  // Load lists and subscribe to changes
   useEffect(() => {
     loadLists()
     return todos.dataChanged(() => loadLists())
@@ -44,41 +42,41 @@ export default function DialogView() {
   }, [itemText, selectedListId])
 
   return (
-    <div className="dialog-view">
-      <h2>Quick Add Todo</h2>
-      <p className="hint">Add an item — it appears in the main window instantly.</p>
+    <div className="min-h-screen bg-background text-foreground p-8 flex flex-col items-center gap-4 max-w-md mx-auto">
+      <h2 className="text-xl font-semibold text-primary">Quick Add Todo</h2>
+      <p className="text-sm text-muted-foreground text-center">Add an item — it appears in the main window instantly.</p>
 
       {lists.length === 0 ? (
-        <p className="hint">No lists yet. Create one in the main window first.</p>
+        <p className="text-sm text-muted-foreground">No lists yet. Create one in the main window first.</p>
       ) : (
         <>
-          <select
-            data-testid="dialog-list-select"
-            value={selectedListId ?? ''}
-            onChange={e => setSelectedListId(e.target.value)}
-          >
-            {lists.map(list => (
-              <option key={list.id} value={list.id}>
-                {list.name} ({list.item_count} items)
-              </option>
-            ))}
-          </select>
+          <Select value={selectedListId ?? ''} onValueChange={setSelectedListId}>
+            <SelectTrigger className="w-full" data-testid="dialog-list-select">
+              <SelectValue placeholder="Select a list..." />
+            </SelectTrigger>
+            <SelectContent>
+              {lists.map(list => (
+                <SelectItem key={list.id} value={list.id}>
+                  {list.name} ({list.item_count} items)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          <div className="dialog-input">
+          <div className="flex gap-2 w-full">
             <input
               data-testid="dialog-item-input"
+              className="flex-1 h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
               placeholder="New todo item"
               value={itemText}
               onChange={e => setItemText(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAdd()}
               autoFocus
             />
-            <button data-testid="dialog-add-button" onClick={handleAdd}>
-              Add
-            </button>
+            <Button data-testid="dialog-add-button" onClick={handleAdd}>Add</Button>
           </div>
 
-          {feedback && <span className="feedback">{feedback}</span>}
+          {feedback && <span className="text-sm text-primary">{feedback}</span>}
         </>
       )}
     </div>
