@@ -1,6 +1,24 @@
 # Delightful Qt Web Shell
 
-A template for building desktop apps with **Qt WebEngine + React** — native menus, dialogs, and system integration with a web UI, connected by a zero-boilerplate bridge.
+A template for building apps with **Qt + React** — two deployment targets from one codebase:
+
+- **Desktop** — native Qt window with menus, tabs, system tray, dialogs, file access, drag & drop, URL protocol
+- **Browser** — same app compiled to WebAssembly, runs anywhere with no install
+
+Write React for the UI, C++ for the logic. The framework bridges them — zero boilerplate. Same React code, same C++ logic, different transport.
+
+## What's in the Box
+
+- **Tabbed UI** — Ctrl+T new tab, Ctrl+W close, reactive titles from `document.title`
+- **Multiple windows** — Ctrl+N, shared bridges, all windows see the same data
+- **File access** — native choosers, directory listing, glob search, streaming file handles for large files
+- **Drag & drop** — drop files from the OS, React receives the paths
+- **CLI args & URL protocol** — register `your-app://`, args forwarded between instances
+- **System tray** — close-to-tray, quit from tray menu
+- **Live docs** — embedded markdown viewer with doc selector
+- **shadcn/ui + Tailwind** — production-ready components with Storybook
+- **Five test layers** — Catch2, Bun, Playwright (browser + desktop), pywinauto
+- **Agent tooling** — playwright-cdp + pywinauto + screenshots for AI agents
 
 ## Table of Contents
 
@@ -29,9 +47,15 @@ This flows everywhere: window title, binary name, Windows exe metadata, HTML `<t
 ## Build & Run
 
 ```bash
+# Desktop
 xmake f --qt=/path/to/qt      # point at your Qt installation (one time)
 xmake build desktop            # build React + C++
 xmake run desktop              # run the app
+
+# WASM (browser, no Qt needed)
+xmake f -p wasm && xmake build wasm-app
+xmake f -p windows --qt=/path/to/qt   # switch back to desktop
+xmake run dev-wasm                      # serve in browser
 ```
 
 ## Documentation
@@ -48,6 +72,7 @@ You're an AI agent building a desktop app. These docs are written for you — co
 | [04 — Testing](docs/for-agents/04-testing.md) | All 5 layers, what to test when, debugging, adding tests |
 | [05 — Tools](docs/for-agents/05-tools.md) | playwright-cdp + pywinauto — seeing and driving the app |
 | [06 — Gotchas](docs/for-agents/06-gotchas.md) | Quick reference for silent failures and traps |
+| [07 — Desktop Capabilities](docs/for-agents/07-desktop-capabilities.md) | SystemBridge API, tabs, windows, tray, menus |
 
 Start with **01**, read through **03**, and keep **06** open while you work.
 
