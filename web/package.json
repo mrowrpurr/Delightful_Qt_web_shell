@@ -3,19 +3,39 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "typecheck": "tsc -b --noEmit",
-    "preview": "vite preview"
+    "dev:main": "cd apps/main && vite",
+    "dev:docs": "cd apps/docs && vite",
+    "build:main": "cd apps/main && tsc -b && vite build",
+    "build:docs": "cd apps/docs && tsc -b && vite build",
+    "build": "npm run build:main && npm run build:docs",
+    "typecheck": "cd apps/main && tsc -b --noEmit && cd ../docs && tsc -b --noEmit",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "@radix-ui/react-select": "^2.2.6",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.7.0",
+    "monaco-editor": "^0.55.1",
+    "monaco-vim": "^0.4.4",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
+    "@storybook/addon-a11y": "^10.3.3",
+    "@storybook/addon-docs": "^10.3.3",
+    "@storybook/react-vite": "^10.3.3",
+    "@tailwindcss/vite": "^4.2.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^4.5.2",
+    "storybook": "^10.3.3",
+    "tailwindcss": "^4.2.2",
     "typescript": "~5.8.3",
     "vite": "^6.3.5"
   }

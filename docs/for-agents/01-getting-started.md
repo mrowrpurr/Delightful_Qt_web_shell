@@ -13,11 +13,31 @@ You're an agent who wants to build an app. This template gives you Qt + React + 
 ## Project Layout
 
 ```
-├── desktop/                  # Qt desktop app (main.cpp, xmake.lua, resources)
-├── web/                      # React app (Vite) — shared by desktop + WASM
-│   └── src/api/
-│       ├── bridge.ts         #   TypeScript bridge interfaces + transport auto-detect
-│       └── wasm-transport.ts #   WASM transport (Embind calls wrapped in Promises)
+├── desktop/                  # Qt desktop app
+│   └── src/
+│       ├── main.cpp          #   Entry point — scheme registration, app, window, show
+│       ├── application.*     #   QApplication — identity, theme, profile, bridges, tray
+│       ├── windows/
+│       │   └── main_window.* #   QMainWindow — wires menus, toolbar, status bar, web view
+│       ├── menus/
+│       │   └── menu_bar.*    #   Menu bar + toolbar construction
+│       ├── widgets/
+│       │   ├── web_shell_widget.*  # QWidget wrapping QWebEngineView + bridges + overlay
+│       │   ├── loading_overlay.*   # Loading overlay (Full or Spinner mode)
+│       │   ├── scheme_handler.*    # app:// URL scheme for embedded resources
+│       │   └── status_bar.*       # Status bar (zoom %, status, flash messages)
+│       └── dialogs/
+│           ├── about_dialog.*     # Custom QDialog example
+│           └── web_dialog.*       # React-in-a-dialog (WebShellWidget in a QDialog!)
+├── web/                      # React apps (Vite) — shared by desktop + WASM
+│   ├── shared/api/           #   Bridge transport + TS interfaces (shared by all apps)
+│   │   ├── bridge.ts         #     TypeScript bridge interfaces + transport auto-detect
+│   │   ├── system-bridge.ts  #     SystemBridge — desktop capabilities (file I/O, clipboard, etc.)
+│   │   └── wasm-transport.ts #     WASM transport (Embind calls wrapped in Promises)
+│   ├── apps/
+│   │   ├── main/             #   Main app (todo demo + file browser + all bridge demos)
+│   │   └── docs/             #   Docs app (architecture guide, runs alongside main)
+│   └── package.json          #   Single deps, per-app scripts (build:main, dev:main, etc.)
 ├── lib/
 │   ├── todos/                #   Domain logic (pure C++, no Qt, no Emscripten)
 │   ├── bridges/
@@ -30,7 +50,7 @@ You're an agent who wants to build an app. This template gives you Qt + React + 
 │   ├── pywinauto/            #   Native Qt widget tests (Windows)
 │   └── helpers/dev-server/   #   Headless C++ backend for dev/test
 ├── tools/playwright-cdp/     # Playwright CLI for driving web content (desktop + browser)
-└── xmake.lua                 # Root build config (APP_NAME, APP_SLUG, targets)
+└── xmake.lua                 # Root build config (APP_NAME, APP_SLUG, APP_ORG, targets)
 ```
 
 **dev-server** is a headless C++ process that serves your bridges over WebSocket on port 9876 — no Qt window, no GUI. It's what runs during `xmake run dev-server`, Playwright browser tests, and Bun tests. Same bridge code as the desktop app, just without a window.
@@ -79,7 +99,7 @@ xmake build desktop
 xmake run desktop
 ```
 
-The first build takes ~30s (Vite + C++ compile). Subsequent builds skip Vite if `web/src/` hasn't changed.
+The first build takes ~30s (Vite + C++ compile). Subsequent builds skip Vite if web code hasn't changed.
 
 ## Dev Mode
 

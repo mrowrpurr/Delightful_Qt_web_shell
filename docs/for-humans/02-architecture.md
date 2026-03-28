@@ -26,7 +26,7 @@ One React UI, one domain library, two deployment targets:
 
 The app has four layers:
 
-1. **React UI** (`web/`) — Everything the user sees. Standard React + Vite.
+1. **React UI** (`web/apps/`) — Everything the user sees. Standard React + Vite. Multiple apps share code from `web/shared/`.
 2. **Domain logic** (`lib/todos/`) — Pure C++, no Qt, no Emscripten. Your business logic, testable in isolation with Catch2. Compiled for both desktop and WASM.
 3. **Qt bridge** (`lib/bridges/qt/`) — A thin `QObject` with `Q_INVOKABLE` methods that wrap your domain logic. Returns `QJsonObject`. Used by the desktop app.
 4. **WASM bridge** (`lib/bridges/wasm/`) — An Embind-registered class with the **same method names** as the Qt bridge. Returns `emscripten::val` (JS objects created directly in WASM memory). Used by the browser app.
@@ -77,6 +77,22 @@ Only parameterless signals are auto-forwarded. If you need to push data, emit a 
 React calls `signalReady()` after mounting. This tells the C++ side to fade out the loading overlay. If it never fires (JS error, bridge broken), a 15-second timeout shows an error message.
 
 This call lives in `App.tsx`. If you refactor, move it — but never remove it. In WASM mode, `signalReady()` is a no-op — there's no loading overlay to dismiss.
+
+## Multiple Web Apps
+
+The web layer isn't one Vite app — it's several, sharing common code:
+
+```
+web/
+  shared/api/     ← bridge interfaces + transport (used by all apps)
+  apps/main/      ← main app (todo demo, file browser, bridge demos)
+  apps/docs/      ← docs app (standalone multi-app example)
+  package.json    ← single deps, per-app scripts (build:main, dev:main, etc.)
+```
+
+Each app has its own `vite.config.ts` and dev server port. They share bridge code via a `@shared` import alias. The Qt side routes between them using a custom URL scheme — `app://main/` loads the main app, `app://docs/` loads docs.
+
+To add a new app, copy `web/apps/docs/`, give it a name, register it in the scheme handler, and point a `WebShellWidget` at it. The [agent docs](../for-agents/03-adding-features.md) have the step-by-step recipe.
 
 ## Cross-Platform
 

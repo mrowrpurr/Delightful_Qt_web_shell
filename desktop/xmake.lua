@@ -4,15 +4,21 @@ local _APP_SLUG    = APP_SLUG
 local _APP_ORG     = APP_ORG
 local _APP_VERSION = APP_VERSION
 
+-- ── Web apps to build and embed ──────────────────────────────────────
+-- Each entry becomes a separate Vite build + Qt resource bundle.
+-- Add/remove entries here to control which web apps ship in the binary.
+local WEB_APPS = {"main", "docs"}
+
 target("desktop")
     set_kind("binary")
     add_rules("qt.widgetapp")
     add_deps("qt-bridges", "web-shell")
+    add_files("src/**.cpp", "src/**.hpp")
     add_files(
-        "src/main.cpp",
         "resources/resources.qrc",
         "web_dist_resources.cpp"
     )
+    add_includedirs("src")
     if is_plat("windows") then
         set_filename(APP_NAME .. ".exe")
         add_files("resources/app.rc")
@@ -21,9 +27,11 @@ target("desktop")
     else
         set_filename(APP_SLUG)
     end
+    add_packages("qlementine-icons")
     add_frameworks(
         "QtWidgets", "QtGui",
-        "QtWebEngineCore", "QtWebEngineWidgets", "QtWebChannel"
+        "QtWebEngineCore", "QtWebEngineWidgets", "QtWebChannel",
+        "QtNetwork"  -- QLocalServer/QLocalSocket for single-instance guard
     )
     add_defines('APP_NAME="' .. APP_NAME:gsub('"', '\\"') .. '"')
     add_defines('APP_SLUG="' .. APP_SLUG:gsub('"', '\\"') .. '"')
@@ -34,47 +42,42 @@ target("desktop")
         local base = os.scriptdir()
         local project_root = os.projectdir()
         local web_dir = path.join(project_root, "web")
-        local dist_dir = path.join(web_dir, "dist")
 
         -- Pass APP_NAME to Vite so index.html and React can use it
         os.setenv("VITE_APP_NAME", _APP_NAME)
 
-        -- 1. Build the web app (skip if sources haven't changed)
-        local stamp_file = path.join(project_root, "build", ".web-build-stamp")
-        local src_dir = path.join(web_dir, "src")
-        local needs_build = not os.isdir(dist_dir) or not os.isfile(stamp_file)
-        if not needs_build then
-            local stamp_mtime = os.mtime(stamp_file)
-            for _, f in ipairs(os.files(path.join(src_dir, "**"))) do
-                if os.mtime(f) > stamp_mtime then needs_build = true; break end
+        -- ── Build each web app ───────────────────────────────────
+        -- Each app lives in web/apps/<name>/ with its own vite.config.ts.
+        -- Always rebuild — Vite is fast (~3s) and stamp files are a footgun.
+        -- Vite can import files from anywhere (?raw imports from root, docs/, etc.)
+        -- so there's no reliable way to detect "nothing changed" without Vite itself.
+        local all_qrc_lines = {'<RCC>'}
+
+        os.execv("bun", {"install"}, {curdir = web_dir})
+
+        for _, app_name in ipairs(WEB_APPS) do
+            local app_dir = path.join(web_dir, "apps", app_name)
+            local dist_dir = path.join(app_dir, "dist")
+
+            os.execv("bun", {"run", "build:" .. app_name}, {curdir = web_dir})
+
+            -- Add this app's dist files to the qrc with prefix /web-<name>
+            table.insert(all_qrc_lines, '    <qresource prefix="/web-' .. app_name .. '">')
+            for _, f in ipairs(os.files(path.join(dist_dir, "**"))) do
+                local rel = path.relative(f, dist_dir):gsub("\\", "/")
+                local abs = path.absolute(f):gsub("\\", "/")
+                table.insert(all_qrc_lines, '        <file alias="' .. rel .. '">' .. abs .. '</file>')
             end
-            -- Also check index.html and package.json
-            for _, f in ipairs({path.join(web_dir, "index.html"), path.join(web_dir, "package.json")}) do
-                if os.isfile(f) and os.mtime(f) > stamp_mtime then needs_build = true; break end
-            end
-        end
-        if needs_build then
-            os.execv("bun", {"install"}, {curdir = web_dir})
-            os.execv("bun", {"run", "build"}, {curdir = web_dir})
-            io.writefile(stamp_file, os.date())
-        else
-            print("Web build is up to date — skipping.")
+            table.insert(all_qrc_lines, '    </qresource>')
         end
 
-        -- 2. Generate a .qrc listing every file in dist/
-        local qrc_lines = {'<RCC>', '    <qresource prefix="/web">'}
-        for _, f in ipairs(os.files(path.join(dist_dir, "**"))) do
-            local rel = path.relative(f, dist_dir):gsub("\\", "/")
-            local abs = path.absolute(f):gsub("\\", "/")
-            table.insert(qrc_lines, '        <file alias="' .. rel .. '">' .. abs .. '</file>')
-        end
-        table.insert(qrc_lines, '    </qresource>')
-        table.insert(qrc_lines, '</RCC>')
+        table.insert(all_qrc_lines, '</RCC>')
 
+        -- Write a single qrc containing all web apps
         local qrc_path = path.join(base, "web_dist.qrc")
-        io.writefile(qrc_path, table.concat(qrc_lines, "\n") .. "\n")
+        io.writefile(qrc_path, table.concat(all_qrc_lines, "\n") .. "\n")
 
-        -- 3. Compile the .qrc into a .cpp via rcc
+        -- Compile the .qrc into a .cpp via rcc
         --    Windows: bin/rcc.exe    macOS/Linux: libexec/rcc (since Qt 6.1)
         local qt_dir = target:data("qt.dir") or get_config("qt")
         local rcc
@@ -89,7 +92,7 @@ target("desktop")
         local cpp_path = path.join(base, "web_dist_resources.cpp")
         os.runv(rcc, {"-o", cpp_path, qrc_path})
 
-        -- 4. Generate Windows resource file (app.rc) from APP_NAME/APP_SLUG
+        -- Generate Windows resource file (app.rc) from APP_NAME/APP_SLUG
         if is_plat("windows") then
             local version = _APP_VERSION
             local version_parts = version:split("%.")

@@ -46,5 +46,5 @@ def close_dialogs():
     """
     yield
     time.sleep(0.3)
-    close_windows_by_title("About", "Save File", "Open Folder", "Developer Tools")
+    close_windows_by_title("About", "Save", "Save File", "Open Folder", "Developer Tools")
     time.sleep(0.3)

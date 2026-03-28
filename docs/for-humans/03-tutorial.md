@@ -10,7 +10,7 @@ We'll add an `addItem` method — from C++ domain logic to React UI — and see 
 ├── lib/todos/include/todo_store.hpp              ← C++ domain logic
 ├── lib/bridges/qt/include/todo_bridge.hpp        ← Qt bridge (Q_INVOKABLE)
 ├── lib/bridges/wasm/include/todo_wasm_bridge.hpp ← WASM bridge (Embind)
-└── web/src/api/bridge.ts                         ← TypeScript interface
+└── web/shared/api/bridge.ts                         ← TypeScript interface
 ```
 
 ## Step 1: Write the C++ Logic
@@ -94,7 +94,7 @@ EMSCRIPTEN_BINDINGS(todo_bridge) {
 
 ## Step 4: Define the TypeScript Interface
 
-**`web/src/api/bridge.ts`:**
+**`web/shared/api/bridge.ts`:**
 
 ```typescript
 export interface TodoBridge {

@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '.claude/**'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '.claude/**'
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build-and-test:
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install xmake
+        uses: xmake-io/github-action-setup-xmake@cc0f56c35b75d0975ed5d9e29005fae707721cd5 # v1
+
+      # Still on node20 — track: https://github.com/jurplel/install-qt-action/releases
+      - name: Install Qt 6
+        uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005 # v4.3.0 (node20)
+        with:
+          version: '6.10.2'
+          modules: 'qtwebengine qtwebchannel qtwebsockets qtpositioning'
+          cache: true
+
+      - name: Cache xmake packages
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: |
+            ~/.xmake/packages
+            ~/AppData/Local/.xmake/packages
+          key: xmake-${{ runner.os }}-${{ hashFiles('**/xmake.lua') }}
+          restore-keys: |
+            xmake-${{ runner.os }}-
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+
+      - name: Install web dependencies
+        run: bun install && cd web && bun install
+
+      - name: Configure xmake
+        run: xmake config -y
+
+      - name: Build desktop app
+        run: xmake build desktop
+
+      - name: Build dev-server
+        run: xmake build dev-server
+
+      - name: Run C++ unit tests
+        run: xmake run test-todo-store
+
+      - name: Run TypeScript unit tests
+        run: xmake run test-bun
+
+      - name: Get Playwright version and cache paths
+        shell: bash
+        run: |
+          PW_VER=$(node -e "console.log(require('./node_modules/@playwright/test/package.json').version)")
+          echo "PLAYWRIGHT_VERSION=$PW_VER" >> "$GITHUB_ENV"
+          echo "PLAYWRIGHT_BROWSERS_PATH=${LOCALAPPDATA:-$HOME/.cache}/ms-playwright" >> "$GITHUB_ENV"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        id: playwright-cache
+        with:
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          key: playwright-${{ runner.os }}-${{ env.PLAYWRIGHT_VERSION }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      # Run Playwright directly — xmake's os.execv can't resolve npx.cmd on Windows
+      - name: Run browser e2e tests
+        shell: bash
+        run: npx playwright test
+        env:
+          CI: 'true'
+          VITE_APP_NAME: 'Delightful Qt Web Shell'
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: test-results-${{ runner.os }}
+          path: test-results/
+          if-no-files-found: ignore
