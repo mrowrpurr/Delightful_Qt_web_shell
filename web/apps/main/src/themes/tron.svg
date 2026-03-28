@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+  <rect width="1920" height="1080" fill="hsl(220 80% 4%)"/>
   <g stroke="rgba(26,255,236,0.22)" stroke-width="1.5" stroke-linecap="round">
     <line x1="955.2" y1="379.5" x2="964.8" y2="379.5"/>
     <line x1="941.0" y1="383.8" x2="979.0" y2="383.8"/>
