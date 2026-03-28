@@ -55,3 +55,29 @@ Last window hides to tray instead of quitting. Quit via File > Quit, Ctrl+Q, or 
 ### Menu Bar
 
 File (Save, Open Folder, New Window, New Tab, Close Tab, Quit), View (Zoom), Windows (DevTools, React Dialog), Tools (URL Protocol), Help (About). The toolbar reuses the same `QAction` objects — one action, two places, synced automatically. Code: `menu_bar.cpp`.
+
+## Theming, Fonts & Monaco Editor
+
+The app ships a full theming and editor customization system. All settings are persisted to localStorage with separate controls for the app UI vs the code editor.
+
+### Themes
+
+1000+ shadcn themes live in `themes.json`, loaded via **Vite JSON import** (not `fetch` — `fetch` cannot load `app://` URLs). `setThemeData()` registers a theme, `applyTheme(theme, dark)` applies it. The apply function maps `--background` to both `--background` and `--color-background` for Tailwind v4 compatibility.
+
+Custom theme effects go beyond CSS variables: wallpaper backgrounds (Dragon), animated SVG overlays (Tron), canvas-drawn grids (Tron Moving), and glow CSS (Synthwave). These are managed in `apps/main/src/theme-effects.ts`.
+
+### Fonts
+
+1900+ Google Fonts are catalogued in `google-fonts.json`. `injectGoogleFont(family)` loads a font from Google CDN. `applyFont(family, 'app'|'editor')` applies it to either the app UI or the code editor independently.
+
+### Monaco Editor
+
+Monaco editor with vim mode (`monaco-vim`). A shared instance is configured in `main.tsx`. Theme syncing uses `buildMonacoThemeFromVars()` to derive a Monaco theme from the current CSS variables. App and editor each have independent theme, font, and transparency settings.
+
+### Key Files
+
+- `shared/lib/themes.ts` — theme loading and application
+- `shared/lib/fonts.ts` — font injection and application
+- `shared/lib/monaco-theme.ts` — Monaco theme derivation from CSS vars
+- `shared/lib/tron-grid.ts` — animated canvas grid effect
+- `apps/main/src/theme-effects.ts` — custom wallpaper/animation effects

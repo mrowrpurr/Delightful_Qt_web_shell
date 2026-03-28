@@ -163,6 +163,11 @@ Beyond the bridge pattern, the template includes a bunch of desktop features out
 - **CLI argument passing** — launch the app with args and React sees them. A second instance forwards its args to the running one.
 - **URL protocol** — register `your-app://` so clicking links in a browser opens your app. Configurable via the Tools menu.
 - **Menus and toolbar** — File, View, Windows, Tools, Help. Toolbar reuses the same actions as the menu — one source of truth.
+- **1000+ color themes** — live preview with dark/light toggle, powered by shadcn themes
+- **Google Fonts picker** — 1900+ fonts, applied independently to app UI or code editor
+- **Monaco code editor** — with vim mode support
+- **Separate settings for app vs editor** — independent theme, font, and transparency controls
+- **Custom wallpaper themes** — Dragon, Tron, Synthwave, and more visual effects
 
 All of these are in the demo app. Play with them to see how they work, then look at the source to understand how they're built.
 

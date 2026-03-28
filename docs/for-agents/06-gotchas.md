@@ -13,14 +13,14 @@ This is a concise index of traps. Details live in the doc where you're doing the
 | Bridge method opens modal dialog synchronously | Dialog's QWebChannel can't init — loading overlay forever | [03-adding-features.md, Hash Routes](03-adding-features.md) |
 | Drag & drop handler on WebShellWidget | QWebEngineView's focusProxy swallows all drag events | [07-desktop-capabilities.md](07-desktop-capabilities.md) |
 | Native `<select>` element in QWebEngine | Expanding white rectangle appears while dropdown is open | Use a custom dropdown component instead — see `shared/components/ui/select.tsx` |
+| `fetch()` with `app://` scheme | Fetch API cannot load `app://` URLs. Use Vite JSON import at build time instead. | [07-desktop-capabilities.md](07-desktop-capabilities.md) |
+| Vite asset inlining | SVGs < 4KB get inlined as data URIs which break in QWebEngine. Set `assetsInlineLimit: 0` in `vite.config.ts` | [06-gotchas.md](#theming-gotchas) |
 
 > **Use `xmake run scaffold-bridge <name>`** to create new bridges. It handles registration in both entry points and MOC setup automatically — you won't hit the first gotcha above.
 
 ## Build Gotchas
 
-**Web build caching:** The build skips Vite if web code hasn't changed (timestamps vs `build/.web-build-stamp-*`). If you edited web code but see old output, delete the stamp files in `build/` to force a rebuild.
-
-**First build is slow:** ~30s (Vite + C++ compile). Subsequent builds skip Vite and only recompile changed C++.
+**First build is slow:** ~30s (Vite + C++ compile). Subsequent builds always run Vite (~3s) then only recompile changed C++.
 
 **`xmake build desktop` before desktop tests:** Desktop e2e and pywinauto tests need the app binary. Build first.
 
@@ -49,6 +49,14 @@ QtWebEngine doesn't support `Browser.setDownloadBehavior` — Playwright crashes
 **Platform switch resets Qt path:** After `xmake f -p wasm`, switching back with `xmake f -p windows` loses the `--qt=` setting. Always pass it explicitly: `xmake f -p windows --qt=C:/qt/6.10.2/msvc2022_64`.
 
 **WASM state is in-memory:** The WASM bridge has no persistence — page refresh resets everything. This is expected. After rebuilding WASM, use `reload()` in playwright-cdp to pick up the new build.
+
+## Theming Gotchas
+
+- **`fetch` doesn't work with custom URL schemes** — `app://` URLs fail silently. Import JSON at build time via Vite's JSON import instead.
+- **Vite inlines small assets as data URIs** — SVGs under 4KB become `data:` URIs which QWebEngine can't always handle. Disable with `assetsInlineLimit: 0` in `vite.config.ts`.
+- **Theme vars need both `--background` and `--color-background`** — Tailwind v4 uses `--color-background` while shadcn themes set `--background`. The theme system maps both.
+- **oklch() relative color syntax for transparency** — the page transparency feature uses oklch relative color syntax to derive transparent variants from theme colors.
+- **Default theme has empty light/dark objects** — if a theme's light or dark palette is empty, the apply function needs fallback colors or the UI goes blank.
 
 ## Port Conflicts
 
