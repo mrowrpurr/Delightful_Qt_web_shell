@@ -254,7 +254,7 @@ if __name__ == "__main__":
     sys.stdout.reconfigure(line_buffering=True)
 
     # Safety net: close any lingering dialogs before starting
-    close_windows_by_title("About", "Save File", "Open Folder")
+    close_windows_by_title("About", "Save", "Save File", "Open Folder")
     time.sleep(0.3)
 
     try:
@@ -275,4 +275,4 @@ if __name__ == "__main__":
         import traceback
         traceback.print_exc()
     finally:
-        close_windows_by_title("About", "Save File", "Open Folder")
+        close_windows_by_title("About", "Save", "Save File", "Open Folder")
