@@ -87,10 +87,13 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
 
+      # Run Playwright directly — xmake's os.execv can't resolve npx.cmd on Windows
       - name: Run browser e2e tests
-        run: xmake run test-browser
+        shell: bash
+        run: npx playwright test
         env:
           CI: 'true'
+          VITE_APP_NAME: 'Delightful Qt Web Shell'
 
       - name: Locate built binary
         id: binary
