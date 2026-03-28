@@ -46,15 +46,15 @@ const DEFAULT_DARK: Record<string, string> = {
 }
 
 const DEFAULT_LIGHT: Record<string, string> = {
-  '--background': '#ffffff', '--foreground': '#1a1a1a',
-  '--card': '#ffffff', '--card-foreground': '#1a1a1a',
-  '--popover': '#ffffff', '--popover-foreground': '#1a1a1a',
+  '--background': '#ffffff', '--foreground': '#0a0a0a',
+  '--card': '#ffffff', '--card-foreground': '#0a0a0a',
+  '--popover': '#ffffff', '--popover-foreground': '#0a0a0a',
   '--primary': '#7c6ef0', '--primary-foreground': '#ffffff',
-  '--secondary': '#f0f0f0', '--secondary-foreground': '#1a1a1a',
-  '--muted': '#f5f5f5', '--muted-foreground': '#666666',
-  '--accent': '#f0f0f5', '--accent-foreground': '#1a1a1a',
+  '--secondary': '#f4f4f5', '--secondary-foreground': '#0a0a0a',
+  '--muted': '#f4f4f5', '--muted-foreground': '#71717a',
+  '--accent': '#f4f4f5', '--accent-foreground': '#0a0a0a',
   '--destructive': '#ef4444', '--destructive-foreground': '#ffffff',
-  '--border': '#e0e0e0', '--input': '#e0e0e0', '--ring': '#7c6ef0',
+  '--border': '#e4e4e7', '--input': '#e4e4e7', '--ring': '#7c6ef0',
 }
 
 export function isDarkMode(): boolean {

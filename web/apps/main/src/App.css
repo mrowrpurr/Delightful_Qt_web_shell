@@ -23,6 +23,11 @@
   --radius: 0.5rem;
 }
 
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+
 /* ── Markdown rendering (for DocsTab) ─────────────────── */
 
 .markdown-body { font-size: 0.9rem; line-height: 1.7; }
