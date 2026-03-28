@@ -1,0 +1,388 @@
+// ── Qt Widget Styling ─────────────────────────────────────────────
+// Maps shadcn-style color variables to Qt widget selectors.
+// Each theme file sets $background, $foreground, etc. and @imports this.
+//
+// Variables expected from the theme:
+//   $background, $foreground
+//   $card, $card-foreground
+//   $popover, $popover-foreground
+//   $primary, $primary-foreground
+//   $secondary, $secondary-foreground
+//   $muted, $muted-foreground
+//   $accent, $accent-foreground
+//   $destructive, $destructive-foreground
+//   $border, $input, $ring
+
+// ── Base application ──────────────────────────────────────────────
+
+QWidget {
+  background-color: $background;
+  color: $foreground;
+}
+
+// ── Main window ───────────────────────────────────────────────────
+
+QMainWindow {
+  background-color: $background;
+}
+
+QMainWindow::separator {
+  background-color: $border;
+  width: 1px;
+  height: 1px;
+}
+
+// ── Menu bar ──────────────────────────────────────────────────────
+
+QMenuBar {
+  background-color: $background;
+  color: $foreground;
+  border-bottom: 1px solid $border;
+}
+
+QMenuBar::item {
+  padding: 4px 8px;
+  background: transparent;
+}
+
+QMenuBar::item:selected {
+  background-color: $accent;
+  color: $accent-foreground;
+  border-radius: 4px;
+}
+
+// ── Menus (dropdowns) ─────────────────────────────────────────────
+
+QMenu {
+  background-color: $popover;
+  color: $popover-foreground;
+  border: 1px solid $border;
+  border-radius: 6px;
+  padding: 4px;
+}
+
+QMenu::item {
+  padding: 6px 24px 6px 12px;
+  border-radius: 4px;
+}
+
+QMenu::item:selected {
+  background-color: $accent;
+  color: $accent-foreground;
+}
+
+QMenu::item:disabled {
+  color: $muted-foreground;
+}
+
+QMenu::separator {
+  height: 1px;
+  background: $border;
+  margin: 4px 8px;
+}
+
+// ── Tab widget ────────────────────────────────────────────────────
+
+QTabWidget::pane {
+  background-color: $background;
+  border: none;
+}
+
+QTabBar {
+  background-color: $background;
+}
+
+QTabBar::tab {
+  background-color: $secondary;
+  color: $secondary-foreground;
+  padding: 6px 16px;
+  border: none;
+  border-bottom: 2px solid transparent;
+}
+
+QTabBar::tab:selected {
+  background-color: $background;
+  color: $foreground;
+  border-bottom: 2px solid $primary;
+}
+
+QTabBar::tab:hover:!selected {
+  background-color: $accent;
+  color: $accent-foreground;
+}
+
+QTabBar::close-button {
+  image: none;
+}
+
+// ── Toolbar ───────────────────────────────────────────────────────
+
+QToolBar {
+  background-color: $background;
+  border-bottom: 1px solid $border;
+  spacing: 2px;
+  padding: 2px;
+}
+
+QToolButton {
+  background: transparent;
+  color: $foreground;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+QToolButton:hover {
+  background-color: $accent;
+  color: $accent-foreground;
+}
+
+QToolButton:pressed {
+  background-color: $primary;
+  color: $primary-foreground;
+}
+
+// ── Status bar ────────────────────────────────────────────────────
+
+QStatusBar {
+  background-color: $background;
+  color: $muted-foreground;
+  border-top: 1px solid $border;
+}
+
+QStatusBar::item {
+  border: none;
+}
+
+// ── Push buttons ──────────────────────────────────────────────────
+
+QPushButton {
+  background-color: $primary;
+  color: $primary-foreground;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-weight: bold;
+}
+
+QPushButton:hover {
+  background-color: $ring;
+}
+
+QPushButton:pressed {
+  background-color: $primary;
+  opacity: 0.9;
+}
+
+QPushButton:disabled {
+  background-color: $muted;
+  color: $muted-foreground;
+}
+
+// Destructive buttons — use class property: setProperty("class", QStringList{"destructive"})
+QPushButton[class~="destructive"] {
+  background-color: $destructive;
+  color: $destructive-foreground;
+}
+
+// Secondary/ghost buttons
+QPushButton[class~="secondary"] {
+  background-color: $secondary;
+  color: $secondary-foreground;
+}
+
+QPushButton[class~="ghost"] {
+  background-color: transparent;
+  color: $foreground;
+}
+
+QPushButton[class~="ghost"]:hover {
+  background-color: $accent;
+  color: $accent-foreground;
+}
+
+// ── Scroll bars ───────────────────────────────────────────────────
+
+QScrollBar:vertical {
+  background: transparent;
+  width: 10px;
+  margin: 0;
+}
+
+QScrollBar::handle:vertical {
+  background-color: $muted;
+  border-radius: 5px;
+  min-height: 20px;
+}
+
+QScrollBar::handle:vertical:hover {
+  background-color: $muted-foreground;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+  height: 0;
+}
+
+QScrollBar:horizontal {
+  background: transparent;
+  height: 10px;
+  margin: 0;
+}
+
+QScrollBar::handle:horizontal {
+  background-color: $muted;
+  border-radius: 5px;
+  min-height: 20px;
+}
+
+QScrollBar::handle:horizontal:hover {
+  background-color: $muted-foreground;
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+  width: 0;
+}
+
+// ── Input fields ──────────────────────────────────────────────────
+
+QLineEdit, QTextEdit, QPlainTextEdit {
+  background-color: $background;
+  color: $foreground;
+  border: 1px solid $input;
+  border-radius: 6px;
+  padding: 6px 10px;
+  selection-background-color: $primary;
+  selection-color: $primary-foreground;
+}
+
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
+  border-color: $ring;
+}
+
+// ── Combo box ─────────────────────────────────────────────────────
+
+QComboBox {
+  background-color: $background;
+  color: $foreground;
+  border: 1px solid $input;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+QComboBox::drop-down {
+  subcontrol-origin: padding;
+  subcontrol-position: top right;
+  width: 24px;
+  border-left: 1px solid $border;
+}
+
+QComboBox::down-arrow {
+  image: url(:/down-arrow.svg);
+  width: 12px;
+  height: 8px;
+}
+
+QComboBox QAbstractItemView {
+  background-color: $popover;
+  color: $popover-foreground;
+  border: 1px solid $border;
+  selection-background-color: $accent;
+  selection-color: $accent-foreground;
+}
+
+// ── Check box / Radio ─────────────────────────────────────────────
+
+QCheckBox, QRadioButton {
+  color: $foreground;
+  spacing: 8px;
+}
+
+QCheckBox::indicator, QRadioButton::indicator {
+  width: 16px;
+  height: 16px;
+  border: 1px solid $input;
+  border-radius: 3px;
+  background-color: $background;
+}
+
+QCheckBox::indicator:checked {
+  background-color: $primary;
+  border-color: $primary;
+}
+
+QRadioButton::indicator {
+  border-radius: 8px;
+}
+
+QRadioButton::indicator:checked {
+  background-color: $primary;
+  border-color: $primary;
+}
+
+// ── Dialogs ───────────────────────────────────────────────────────
+
+QDialog {
+  background-color: $card;
+  color: $card-foreground;
+}
+
+QMessageBox {
+  background-color: $card;
+  color: $card-foreground;
+}
+
+// ── Group box ─────────────────────────────────────────────────────
+
+QGroupBox {
+  border: 1px solid $border;
+  border-radius: 6px;
+  margin-top: 12px;
+  padding-top: 16px;
+  color: $foreground;
+}
+
+QGroupBox::title {
+  subcontrol-origin: margin;
+  left: 12px;
+  padding: 0 4px;
+  color: $foreground;
+}
+
+// ── Tooltips ──────────────────────────────────────────────────────
+
+QToolTip {
+  background-color: $popover;
+  color: $popover-foreground;
+  border: 1px solid $border;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+// ── Progress bar ──────────────────────────────────────────────────
+
+QProgressBar {
+  background-color: $secondary;
+  border: none;
+  border-radius: 4px;
+  text-align: center;
+  color: $foreground;
+}
+
+QProgressBar::chunk {
+  background-color: $primary;
+  border-radius: 4px;
+}
+
+// ── Splitter ──────────────────────────────────────────────────────
+
+QSplitter::handle {
+  background-color: $border;
+}
+
+QSplitter::handle:horizontal {
+  width: 1px;
+}
+
+QSplitter::handle:vertical {
+  height: 1px;
+}

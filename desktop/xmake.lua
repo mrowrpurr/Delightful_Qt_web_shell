@@ -27,7 +27,7 @@ target("desktop")
     else
         set_filename(APP_SLUG)
     end
-    add_packages("qlementine-icons")
+    add_packages("qlementine-icons", "libsass")
     add_frameworks(
         "QtWidgets", "QtGui",
         "QtWebEngineCore", "QtWebEngineWidgets", "QtWebChannel",
@@ -37,6 +37,13 @@ target("desktop")
     add_defines('APP_SLUG="' .. APP_SLUG:gsub('"', '\\"') .. '"')
     add_defines('APP_ORG="' .. APP_ORG:gsub('"', '\\"') .. '"')
     add_defines('APP_VERSION="' .. APP_VERSION:gsub('"', '\\"') .. '"')
+
+    -- Point at the repo's styles folder for live SCSS reload during development.
+    -- Not set in CI (no STYLES_DEV_PATH define → falls back to QRC embedded themes).
+    if not os.getenv("CI") then
+        local styles_path = path.join(os.projectdir(), "desktop", "styles"):gsub("\\", "/")
+        add_defines('STYLES_DEV_PATH="' .. styles_path .. '"')
+    end
 
     before_build(function(target)
         local base = os.scriptdir()

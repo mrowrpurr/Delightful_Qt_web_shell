@@ -18,13 +18,18 @@
 #include "menu_bar.hpp"
 #include "application.hpp"
 #include "dialogs/about_dialog.hpp"
+#include "dialogs/demo_widget_dialog.hpp"
 #include "dialogs/web_dialog.hpp"
+#include "style_manager.hpp"
 
 #include <QAction>
 #include <QApplication>
+#include <QComboBox>
+#include <QCompleter>
 #include <QFileDialog>
 #include <QIcon>
 #include <QKeySequence>
+#include <QLabel>
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -141,6 +146,14 @@ MenuActions buildMenuBar(QMainWindow* window) {
         dlg.exec();
     });
 
+    // Demo Widget — gallery of Qt widgets for theme preview.
+    auto* demoAction = windowsMenu->addAction("&Demo Widget...");
+    QObject::connect(demoAction, &QAction::triggered, window, [window]() {
+        auto* demo = new DemoWidgetDialog(nullptr);
+        demo->setAttribute(Qt::WA_DeleteOnClose);
+        demo->show();
+    });
+
     // ── Tools ─────────────────────────────────────────────────
     auto* toolsMenu = menuBar->addMenu("&Tools");
 
@@ -189,4 +202,45 @@ void buildToolBar(QMainWindow* window, const MenuActions& actions) {
 
     toolBar->addAction(actions.save);
     toolBar->addAction(actions.openFolder);
+
+    // ── Theme selector ────────────────────────────────────────
+    // Searchable dropdown with all available QSS themes.
+    // Type to filter, pick to apply instantly.
+    auto* app = qobject_cast<Application*>(qApp);
+    if (app && app->styleManager()) {
+        toolBar->addSeparator();
+
+        auto* themeLabel = new QLabel(" Theme: ");
+        toolBar->addWidget(themeLabel);
+
+        auto* themeCombo = new QComboBox;
+        themeCombo->setEditable(true);
+        themeCombo->setInsertPolicy(QComboBox::NoInsert);
+        themeCombo->setMinimumWidth(250);
+        themeCombo->setMaxVisibleItems(20);
+
+        // Populate with available themes
+        QStringList themes = app->styleManager()->availableThemes();
+        themeCombo->addItems(themes);
+
+        // Set current theme
+        QString current = app->styleManager()->currentTheme();
+        int idx = themes.indexOf(current);
+        if (idx >= 0) themeCombo->setCurrentIndex(idx);
+
+        // Type-to-search via QCompleter
+        auto* completer = new QCompleter(themes, themeCombo);
+        completer->setCaseSensitivity(Qt::CaseInsensitive);
+        completer->setFilterMode(Qt::MatchContains);
+        themeCombo->setCompleter(completer);
+
+        // Apply theme when selected
+        QObject::connect(themeCombo, &QComboBox::currentTextChanged,
+                         window, [app](const QString& themeName) {
+            if (!themeName.isEmpty())
+                app->styleManager()->applyTheme(themeName);
+        });
+
+        toolBar->addWidget(themeCombo);
+    }
 }

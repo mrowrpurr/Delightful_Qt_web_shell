@@ -24,6 +24,7 @@
 #include <QSystemTrayIcon>
 #include <QWebEngineProfile>
 
+#include "style_manager.hpp"
 #include "widgets/scheme_handler.hpp"
 
 #include <oclero/qlementine/icons/QlementineIcons.hpp>
@@ -77,6 +78,12 @@ Application::Application(int& argc, char** argv)
     darkPalette.setColor(QPalette::Window, kBackground);
     darkPalette.setColor(QPalette::Base, kBackground);
     setPalette(darkPalette);
+
+    // ── Style manager ──────────────────────────────────────────
+    // Handles QSS theme loading from QRC, AppData, or dev SCSS folder.
+    // Must come after palette setup — the stylesheet overrides palette colors.
+    styleManager_ = new StyleManager(this);
+    styleManager_->applyTheme("default-dark");
 
     // ── Web profile ──────────────────────────────────────────
     // Named profile = persistent localStorage and IndexedDB across sessions.
