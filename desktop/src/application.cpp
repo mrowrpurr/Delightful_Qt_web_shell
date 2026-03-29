@@ -120,12 +120,12 @@ Application::Application(int& argc, char** argv)
     // When StyleManager changes theme (toolbar, live reload) → update bridge state → React gets signal
     connect(styleManager_, &StyleManager::themeChanged, this, [this, systemBridge]() {
         systemBridge->updateQtThemeState(
-            styleManager_->currentBaseName(), styleManager_->isDarkMode());
+            styleManager_->currentDisplayName(), styleManager_->isDarkMode());
     });
     // When React requests a theme change via bridge → apply to StyleManager
     connect(systemBridge, &SystemBridge::qtThemeRequested,
-            this, [this](const QString& baseName, bool isDark) {
-        styleManager_->applyTheme(baseName, isDark);
+            this, [this](const QString& displayName, bool isDark) {
+        styleManager_->applyThemeByDisplayName(displayName, isDark);
     });
 
     // ── URL protocol registration ────────────────────────────

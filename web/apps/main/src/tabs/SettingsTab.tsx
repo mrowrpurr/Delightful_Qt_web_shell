@@ -369,8 +369,8 @@ export default function SettingsTab() {
         // Update React to match Qt's theme
         setDark(state.isDark)
         setDarkMode(state.isDark)
-        // Try to find a matching React theme by base name
-        const theme = themes.find(t => t.name === state.baseName)
+        // Find the matching React theme by display name
+        const theme = themes.find(t => t.name === state.displayName)
         if (theme) {
           setAppTheme(theme.name)
           applyTheme(theme, state.isDark)

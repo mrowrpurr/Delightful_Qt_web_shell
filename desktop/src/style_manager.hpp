@@ -36,6 +36,10 @@ public:
     // Apply a theme by base name + mode (e.g. "synthwave-84", dark=true → "synthwave-84-dark").
     void applyTheme(const QString& baseName, bool dark);
 
+    // Apply a theme from a React display name (e.g. "Mrowr Purr - Synthwave '84") + mode.
+    // Slugifies the display name to find the matching QSS file.
+    void applyThemeByDisplayName(const QString& displayName, bool dark);
+
     // Toggle between dark and light mode for the current theme.
     // If current is "synthwave-84-dark", switches to "synthwave-84-light" (if it exists).
     // Falls back to "default-light"/"default-dark" if the opposite doesn't exist.
@@ -48,8 +52,11 @@ public:
     // Get the currently applied full theme name (e.g. "synthwave-84-dark").
     QString currentTheme() const { return currentTheme_; }
 
-    // Get the base theme name without -dark/-light suffix.
+    // Get the base theme name without -dark/-light suffix (slugified).
     QString currentBaseName() const;
+
+    // Get the React display name for the current theme (if set via applyThemeByDisplayName).
+    QString currentDisplayName() const { return currentDisplayName_; }
 
     // Whether we're currently in dark mode.
     bool isDarkMode() const { return isDark_; }
@@ -78,13 +85,18 @@ private:
 
     // Strips -dark or -light suffix from a theme name.
     static QString stripModeSuffix(const QString& name);
+    // Convert a display name to a slug (e.g. "Mrowr Purr - Synthwave '84" → "mrowr-purr-synthwave-84")
+    static QString slugify(const QString& name);
     // Whether a given theme exists in our sources.
     bool themeExists(const QString& name) const;
 
     QString currentTheme_;
+    QString currentDisplayName_;  // React display name (set via applyThemeByDisplayName)
     bool isDark_ = true;
     QString lastDarkTheme_;    // remember last dark theme for toggle-back
     QString lastLightTheme_;   // remember last light theme for toggle-back
+    QString lastDarkDisplayName_;
+    QString lastLightDisplayName_;
     QString watchedDir_;
     QString devPath_;
     QString userPath_;

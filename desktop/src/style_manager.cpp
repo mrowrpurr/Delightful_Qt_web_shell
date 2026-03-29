@@ -9,6 +9,7 @@
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QSet>
 #include <QStandardPaths>
 #include <QStyleHints>
@@ -107,9 +108,16 @@ void StyleManager::applyTheme(const QString& baseName, bool dark) {
     if (themeExists(fullName)) {
         applyTheme(fullName);
     } else {
-        // Fallback to default for this mode
         applyTheme(dark ? "default-dark" : "default-light");
     }
+}
+
+void StyleManager::applyThemeByDisplayName(const QString& displayName, bool dark) {
+    QString slug = slugify(displayName);
+    currentDisplayName_ = displayName;
+    if (dark) lastDarkDisplayName_ = displayName;
+    else lastLightDisplayName_ = displayName;
+    applyTheme(slug, dark);
 }
 
 void StyleManager::toggleDarkMode() {
@@ -120,19 +128,22 @@ void StyleManager::setDarkMode(bool dark) {
     if (dark == isDark_) return;
 
     QString baseName = currentBaseName();
-
-    // Try to switch to the same theme in the other mode
     QString target = baseName + (dark ? "-dark" : "-light");
 
     if (themeExists(target)) {
+        // Same theme exists in the other mode — switch to it
+        // Preserve display name
+        currentDisplayName_ = dark ? lastDarkDisplayName_ : lastLightDisplayName_;
+        if (currentDisplayName_.isEmpty()) currentDisplayName_ = currentDisplayName_;
         applyTheme(target);
     } else {
-        // No matching theme in the other mode — try the last remembered theme for that mode
+        // Try the last remembered theme for that mode
         QString& lastForMode = dark ? lastDarkTheme_ : lastLightTheme_;
         if (!lastForMode.isEmpty() && themeExists(lastForMode)) {
+            currentDisplayName_ = dark ? lastDarkDisplayName_ : lastLightDisplayName_;
             applyTheme(lastForMode);
         } else {
-            // Ultimate fallback
+            currentDisplayName_ = "Default";
             applyTheme(dark ? "default-dark" : "default-light");
         }
     }
@@ -146,6 +157,17 @@ QString StyleManager::stripModeSuffix(const QString& name) {
     if (name.endsWith("-dark")) return name.left(name.length() - 5);
     if (name.endsWith("-light")) return name.left(name.length() - 6);
     return name;
+}
+
+QString StyleManager::slugify(const QString& name) {
+    QString slug = name.toLower();
+    // Remove apostrophes
+    slug.replace(QRegularExpression("[''']"), "");
+    // Replace non-alnum with hyphens
+    slug.replace(QRegularExpression("[^a-z0-9]+"), "-");
+    // Trim leading/trailing hyphens
+    slug.replace(QRegularExpression("^-+|-+$"), "");
+    return slug;
 }
 
 bool StyleManager::themeExists(const QString& name) const {

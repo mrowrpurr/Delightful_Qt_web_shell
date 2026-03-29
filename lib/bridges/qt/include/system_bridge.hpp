@@ -209,22 +209,23 @@ public:
     // React can change the Qt-side QSS theme and dark/light mode.
     // Changes emit qtThemeChanged so all subscribers stay in sync.
 
-    // Set the Qt theme. baseName is the theme without -dark/-light suffix
-    // (e.g. "synthwave-84"). isDark selects the variant.
-    Q_INVOKABLE QJsonObject setQtTheme(const QString& baseName, bool isDark) {
-        emit qtThemeRequested(baseName, isDark);
+    // Set the Qt theme. displayName is the React-side theme name (e.g. "Mrowr Purr - Synthwave '84").
+    // isDark selects the -dark or -light QSS variant.
+    Q_INVOKABLE QJsonObject setQtTheme(const QString& displayName, bool isDark) {
+        emit qtThemeRequested(displayName, isDark);
         return {{"ok", true}};
     }
 
     // Get the current Qt theme state.
+    // Returns displayName (React-side name) and isDark.
     Q_INVOKABLE QJsonObject getQtTheme() {
-        return {{"baseName", qtBaseName_}, {"isDark", qtIsDark_}};
+        return {{"displayName", qtDisplayName_}, {"isDark", qtIsDark_}};
     }
 
     // Called by Application/StyleManager when the Qt theme changes.
     // Updates internal state and emits the parameterless signal.
-    void updateQtThemeState(const QString& baseName, bool isDark) {
-        qtBaseName_ = baseName;
+    void updateQtThemeState(const QString& displayName, bool isDark) {
+        qtDisplayName_ = displayName;
         qtIsDark_ = isDark;
         emit qtThemeChanged();
     }
@@ -246,7 +247,7 @@ signals:
 
     // Internal: bridge requests theme change → Application wires this to StyleManager.
     // Not forwarded to WebSocket (has parameters).
-    void qtThemeRequested(const QString& baseName, bool isDark);
+    void qtThemeRequested(const QString& displayName, bool isDark);
     // Emitted when files are dropped onto the web view.
     // Parameterless so it auto-forwards over WebSocket/QWebChannel.
     // React subscribes, then calls getDroppedFiles() to get the paths.
@@ -264,6 +265,6 @@ private:
     QStringList droppedFiles_;
     QStringList receivedArgs_;
     QMap<QString, QFile*> openFiles_;  // handle ID → open QFile
-    QString qtBaseName_;               // current Qt theme base name (no suffix)
+    QString qtDisplayName_;            // current React display name (e.g. "Mrowr Purr - Synthwave '84")
     bool qtIsDark_ = true;             // current Qt dark/light state
 };
