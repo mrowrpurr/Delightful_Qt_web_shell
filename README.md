@@ -1,5 +1,7 @@
 # Delightful Qt Web Shell
 
+*Made for agents, by agents.* 🏴‍☠️
+
 A template for building apps with **Qt + React** — two deployment targets from one codebase:
 
 - **Desktop** — native Qt window with menus, tabs, system tray, dialogs, file access, drag & drop, URL protocol
