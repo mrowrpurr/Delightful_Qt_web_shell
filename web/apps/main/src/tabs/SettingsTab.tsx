@@ -9,9 +9,6 @@ import { getSystemBridge } from '@shared/api/system-bridge'
 let systemBridge: Awaited<ReturnType<typeof getSystemBridge>> | null = null
 getSystemBridge().then(b => { systemBridge = b }).catch(() => {})
 
-// Guard against infinite sync loops (React → Qt → React → ...)
-let syncGuard = false
-
 // ── Toggle switch ─────────────────────────────────────────
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
@@ -335,9 +332,8 @@ export default function SettingsTab() {
     applyThemeEffects(appTheme)
     notifyEditor()
     // Sync to Qt
-    if (systemBridge && !syncGuard) {
-      syncGuard = true
-      systemBridge.setQtTheme(appTheme, newDark).finally(() => { syncGuard = false })
+    if (systemBridge) {
+      systemBridge.setQtTheme(appTheme, newDark).catch(() => {})
     }
   }, [dark, themes, appTheme])
 
@@ -352,41 +348,21 @@ export default function SettingsTab() {
     }
     notifyEditor()
     // Sync to Qt
-    if (systemBridge && !syncGuard) {
-      syncGuard = true
-      systemBridge.setQtTheme(name, dark).finally(() => { syncGuard = false })
+    if (systemBridge) {
+      systemBridge.setQtTheme(name, dark).catch(() => {})
     }
   }, [themes, dark, editorUseAppTheme])
 
-  // ── Listen for Qt theme changes (toolbar dropdown / dark toggle) ──
+  // ── Refresh local state when Qt theme changes (handled globally in App.tsx) ──
   useEffect(() => {
-    if (!systemBridge) return
-    const cleanup = systemBridge.qtThemeChanged(async () => {
-      if (syncGuard) return
-      syncGuard = true
-      try {
-        const state = await systemBridge!.getQtTheme()
-        // Update React to match Qt's theme
-        setDark(state.isDark)
-        setDarkMode(state.isDark)
-        // Find the matching React theme by display name
-        const theme = themes.find(t => t.name === state.displayName)
-        if (theme) {
-          setAppTheme(theme.name)
-          applyTheme(theme, state.isDark)
-          applyThemeEffects(theme.name)
-          if (editorUseAppTheme) {
-            setEditorTheme(theme.name)
-            localStorage.setItem('editor-theme-name', theme.name)
-          }
-          notifyEditor()
-        }
-      } finally {
-        syncGuard = false
-      }
-    })
-    return cleanup
-  }, [themes, editorUseAppTheme])
+    const handler = () => {
+      setDark(isDarkMode())
+      setAppTheme(localStorage.getItem('theme-name') || 'Default')
+      setEditorTheme(localStorage.getItem('editor-theme-name') || 'Default')
+    }
+    window.addEventListener('qt-theme-synced', handler)
+    return () => window.removeEventListener('qt-theme-synced', handler)
+  }, [])
 
   const onAppFont = useCallback((family: string | null) => {
     setAppFont(family)
