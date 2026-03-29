@@ -136,10 +136,13 @@ mkdirSync(COMPILED_DIR, { recursive: true })
 
 let generated = 0
 let skipped = 0
+const slugToName: Record<string, string> = {}
 
 for (const theme of themes) {
   const slug = slugify(theme.name)
   if (!slug) { skipped++; continue }
+
+  slugToName[slug] = theme.name
 
   for (const mode of ['dark', 'light'] as const) {
     const qss = generateQss(template, theme, mode)
@@ -149,5 +152,9 @@ for (const theme of themes) {
   generated++
 }
 
-console.log(`\n✅ Generated ${generated * 2} QSS files in desktop/styles/compiled/`)
+// Write slug→displayName mapping so C++ can translate between slug and React name
+const mappingPath = join(COMPILED_DIR, 'theme-names.json')
+writeFileSync(mappingPath, JSON.stringify(slugToName, null, 2))
+
+console.log(`\n✅ Generated ${generated * 2} QSS files + theme-names.json in desktop/styles/compiled/`)
 if (skipped > 0) console.log(`   (${skipped} themes skipped — empty name)`)

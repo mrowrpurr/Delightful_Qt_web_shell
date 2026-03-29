@@ -10,6 +10,8 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QRegularExpression>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QSet>
 #include <QStandardPaths>
 #include <QStyleHints>
@@ -40,6 +42,8 @@ StyleManager::StyleManager(QObject* parent)
     } else if (QDir(userPath_).exists() && !QDir(userPath_).isEmpty()) {
         setupWatcher(userPath_);
     }
+
+    loadNameMapping();
 
     connect(&watcher_, &QFileSystemWatcher::fileChanged,
             this, &StyleManager::onFileChanged);
@@ -92,10 +96,13 @@ void StyleManager::applyTheme(const QString& themeName) {
         lastLightTheme_ = themeName;
     }
 
-    // If no display name was set (e.g. theme applied from toolbar slug),
-    // default to "Default" so React can at least find the fallback theme.
-    if (currentDisplayName_.isEmpty())
-        currentDisplayName_ = "Default";
+    // Auto-resolve display name from slug→name mapping.
+    // applyThemeByDisplayName sets it explicitly before calling us;
+    // for all other paths (toolbar, setDarkMode), resolve from the mapping.
+    QString baseName = stripModeSuffix(themeName);
+    if (currentDisplayName_.isEmpty() || slugify(currentDisplayName_) != baseName) {
+        currentDisplayName_ = slugToDisplayName_.value(baseName, "Default");
+    }
 
     // Update platform color scheme to match
     if (auto* hints = qApp->styleHints()) {
@@ -276,4 +283,28 @@ QStringList StyleManager::listThemesInDir(const QString& dir) const {
         themes.append(entry.baseName());
     }
     return themes;
+}
+
+void StyleManager::loadNameMapping() {
+    // Try loading theme-names.json from the active source
+    QStringList candidates;
+    if (!watchedDir_.isEmpty()) {
+        candidates << watchedDir_ + "/compiled/theme-names.json";
+        candidates << watchedDir_ + "/theme-names.json";
+    }
+    candidates << ":/styles/theme-names.json";
+
+    for (const auto& path : candidates) {
+        QFile file(path);
+        if (!file.open(QIODevice::ReadOnly)) continue;
+
+        QJsonObject obj = QJsonDocument::fromJson(file.readAll()).object();
+        for (auto it = obj.begin(); it != obj.end(); ++it) {
+            slugToDisplayName_.insert(it.key(), it.value().toString());
+        }
+        qDebug() << "[StyleManager] Loaded" << slugToDisplayName_.size()
+                 << "theme name mappings from" << path;
+        return;
+    }
+    qDebug() << "[StyleManager] No theme-names.json found — Qt→React theme name sync disabled";
 }

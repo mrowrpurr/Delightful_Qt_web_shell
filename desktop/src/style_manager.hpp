@@ -17,6 +17,7 @@
 #pragma once
 
 #include <QFileSystemWatcher>
+#include <QHash>
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -90,9 +91,12 @@ private:
     // Whether a given theme exists in our sources.
     bool themeExists(const QString& name) const;
 
+    void loadNameMapping();
+
     QString currentTheme_;
     QString currentDisplayName_;  // React display name (set via applyThemeByDisplayName)
     bool isDark_ = true;
+    QHash<QString, QString> slugToDisplayName_;  // slug → React display name
     QString lastDarkTheme_;    // remember last dark theme for toggle-back
     QString lastLightTheme_;   // remember last light theme for toggle-back
     QString lastDarkDisplayName_;
