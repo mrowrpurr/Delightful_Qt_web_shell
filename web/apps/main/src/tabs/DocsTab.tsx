@@ -9,6 +9,10 @@ import humanGettingStarted from '../../../../../docs/DelightfulQtWebShell/for-hu
 import humanArchitecture from '../../../../../docs/DelightfulQtWebShell/for-humans/02-architecture.md?raw'
 import humanTutorial from '../../../../../docs/DelightfulQtWebShell/for-humans/03-tutorial.md?raw'
 import humanTesting from '../../../../../docs/DelightfulQtWebShell/for-humans/04-testing.md?raw'
+import humanTools from '../../../../../docs/DelightfulQtWebShell/for-humans/05-tools.md?raw'
+import humanGotchas from '../../../../../docs/DelightfulQtWebShell/for-humans/06-gotchas.md?raw'
+import humanDesktopCapabilities from '../../../../../docs/DelightfulQtWebShell/for-humans/07-desktop-capabilities.md?raw'
+import humanTheming from '../../../../../docs/DelightfulQtWebShell/for-humans/08-theming.md?raw'
 
 // ── Agent docs ────────────────────────────────────────────
 import agentGettingStarted from '../../../../../docs/DelightfulQtWebShell/for-agents/01-getting-started.md?raw'
@@ -26,6 +30,10 @@ const humanDocs = [
   { value: 'architecture', label: '02 — Architecture', content: humanArchitecture },
   { value: 'tutorial', label: '03 — Tutorial', content: humanTutorial },
   { value: 'testing', label: '04 — Testing', content: humanTesting },
+  { value: 'tools', label: '05 — Tools', content: humanTools },
+  { value: 'gotchas', label: '06 — Gotchas', content: humanGotchas },
+  { value: 'desktop-capabilities', label: '07 — Desktop Capabilities', content: humanDesktopCapabilities },
+  { value: 'theming', label: '08 — Theming', content: humanTheming },
 ]
 
 const agentDocs = [

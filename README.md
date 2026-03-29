@@ -90,6 +90,10 @@ You're a developer who wants to understand the template and start building.
 | [02 — Architecture](docs/DelightfulQtWebShell/for-humans/02-architecture.md) | How the pieces fit together, the proxy pattern, signals |
 | [03 — Tutorial](docs/DelightfulQtWebShell/for-humans/03-tutorial.md) | Add your first feature in 5 minutes |
 | [04 — Testing](docs/DelightfulQtWebShell/for-humans/04-testing.md) | Five test layers, debugging, adding tests |
+| [05 — Tools](docs/DelightfulQtWebShell/for-humans/05-tools.md) | DevTools, pywinauto, screenshots |
+| [06 — Gotchas](docs/DelightfulQtWebShell/for-humans/06-gotchas.md) | Silent failures, build traps, port conflicts |
+| [07 — Desktop Capabilities](docs/DelightfulQtWebShell/for-humans/07-desktop-capabilities.md) | File access, drag & drop, tabs, tray, menus |
+| [08 — Theming](docs/DelightfulQtWebShell/for-humans/08-theming.md) | 1000+ themes, live editor, dark/light, custom themes |
 
 Start with **01**, then jump to **03** to get your hands dirty.
 
