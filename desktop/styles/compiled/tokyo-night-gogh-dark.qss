@@ -1,0 +1,339 @@
+/* Auto-generated — Tokyo Night Gogh (dark) */
+
+QWidget {
+  background-color: hsl(235, 18.8%, 12.5%);
+  color: hsl(228.7, 72.6%, 85.7%);
+}
+
+QMainWindow {
+  background-color: hsl(235, 18.8%, 12.5%);
+}
+
+QMainWindow::separator {
+  background-color: hsl(235, 18.8%, 12.5%);
+  width: 1px;
+  height: 1px;
+}
+
+QMenuBar {
+  background-color: hsl(235, 18.8%, 12.5%);
+  color: hsl(228.7, 72.6%, 85.7%);
+  border-bottom: 1px solid hsl(235, 18.8%, 12.5%);
+}
+
+QMenuBar::item {
+  padding: 4px 8px;
+  background: transparent;
+}
+
+QMenuBar::item:selected {
+  background-color: hsl(235, 9.4%, 22.5%);
+  color: hsl(0, 0%, 100%);
+  border-radius: 4px;
+}
+
+QMenu {
+  background-color: hsl(232.5, 21.6%, 14.5%);
+  color: hsl(227.5, 20%, 76.5%);
+  border: 1px solid hsl(235, 18.8%, 12.5%);
+  border-radius: 6px;
+  padding: 4px;
+}
+
+QMenu::item {
+  padding: 6px 24px 6px 12px;
+  border-radius: 4px;
+}
+
+QMenu::item:selected {
+  background-color: hsl(235, 9.4%, 22.5%);
+  color: hsl(0, 0%, 100%);
+}
+
+QMenu::item:disabled {
+  color: hsl(228.7, 15%, 50%);
+}
+
+QMenu::separator {
+  height: 1px;
+  background: hsl(235, 18.8%, 12.5%);
+  margin: 4px 8px;
+}
+
+QTabWidget::pane {
+  background-color: hsl(235, 18.8%, 12.5%);
+  border: none;
+}
+
+QTabBar {
+  background-color: hsl(235, 18.8%, 12.5%);
+}
+
+QTabBar::tab {
+  background-color: hsl(235, 9.4%, 22.5%);
+  color: hsl(235, 1.9%, 99%);
+  padding: 6px 16px;
+  border: none;
+  border-bottom: 2px solid transparent;
+}
+
+QTabBar::tab:selected {
+  background-color: hsl(235, 18.8%, 12.5%);
+  color: hsl(228.7, 72.6%, 85.7%);
+  border-bottom: 2px solid hsl(228.7, 72.6%, 85.7%);
+}
+
+QTabBar::tab:hover:!selected {
+  background-color: hsl(235, 9.4%, 22.5%);
+  color: hsl(0, 0%, 100%);
+}
+
+QTabBar::close-button {
+  image: none;
+}
+
+QToolBar {
+  background-color: hsl(235, 18.8%, 12.5%);
+  border-bottom: 1px solid hsl(235, 18.8%, 12.5%);
+  spacing: 2px;
+  padding: 2px;
+}
+
+QToolButton {
+  background: transparent;
+  color: hsl(228.7, 72.6%, 85.7%);
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+QToolButton:hover {
+  background-color: hsl(235, 9.4%, 22.5%);
+  color: hsl(0, 0%, 100%);
+}
+
+QToolButton:pressed {
+  background-color: hsl(228.7, 72.6%, 85.7%);
+  color: hsl(228.7, 21.8%, 2%);
+}
+
+QStatusBar {
+  background-color: hsl(235, 18.8%, 12.5%);
+  color: hsl(228.7, 15%, 50%);
+  border-top: 1px solid hsl(235, 18.8%, 12.5%);
+}
+
+QStatusBar::item {
+  border: none;
+}
+
+QPushButton {
+  background-color: hsl(228.7, 72.6%, 85.7%);
+  color: hsl(228.7, 21.8%, 2%);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-weight: bold;
+}
+
+QPushButton:hover {
+  background-color: hsl(228.7, 72.6%, 85.7%);
+}
+
+QPushButton:pressed {
+  background-color: hsl(228.7, 72.6%, 85.7%);
+  opacity: 0.9;
+}
+
+QPushButton:disabled {
+  background-color: hsl(235, 5.6%, 19.5%);
+  color: hsl(228.7, 15%, 50%);
+}
+
+QPushButton[class~="destructive"] {
+  background-color: hsl(0, 63%, 31%);
+  color: hsl(0, 0%, 98%);
+}
+
+QPushButton[class~="secondary"] {
+  background-color: hsl(235, 9.4%, 22.5%);
+  color: hsl(235, 1.9%, 99%);
+}
+
+QPushButton[class~="ghost"] {
+  background-color: transparent;
+  color: hsl(228.7, 72.6%, 85.7%);
+}
+
+QPushButton[class~="ghost"]:hover {
+  background-color: hsl(235, 9.4%, 22.5%);
+  color: hsl(0, 0%, 100%);
+}
+
+QScrollBar:vertical {
+  background: transparent;
+  width: 10px;
+  margin: 0;
+}
+
+QScrollBar::handle:vertical {
+  background-color: hsl(235, 5.6%, 19.5%);
+  border-radius: 5px;
+  min-height: 20px;
+}
+
+QScrollBar::handle:vertical:hover {
+  background-color: hsl(228.7, 15%, 50%);
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+  height: 0;
+}
+
+QScrollBar:horizontal {
+  background: transparent;
+  height: 10px;
+  margin: 0;
+}
+
+QScrollBar::handle:horizontal {
+  background-color: hsl(235, 5.6%, 19.5%);
+  border-radius: 5px;
+  min-height: 20px;
+}
+
+QScrollBar::handle:horizontal:hover {
+  background-color: hsl(228.7, 15%, 50%);
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+  width: 0;
+}
+
+QLineEdit, QTextEdit, QPlainTextEdit {
+  background-color: hsl(235, 18.8%, 12.5%);
+  color: hsl(228.7, 72.6%, 85.7%);
+  border: 1px solid hsl(235, 18.8%, 12.5%);
+  border-radius: 6px;
+  padding: 6px 10px;
+  selection-background-color: hsl(228.7, 72.6%, 85.7%);
+  selection-color: hsl(228.7, 21.8%, 2%);
+}
+
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
+  border-color: hsl(228.7, 72.6%, 85.7%);
+}
+
+QComboBox {
+  background-color: hsl(235, 18.8%, 12.5%);
+  color: hsl(228.7, 72.6%, 85.7%);
+  border: 1px solid hsl(235, 18.8%, 12.5%);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+QComboBox::drop-down {
+  subcontrol-origin: padding;
+  subcontrol-position: top right;
+  width: 24px;
+  border-left: 1px solid hsl(235, 18.8%, 12.5%);
+}
+
+QComboBox::down-arrow {
+  image: url(:/down-arrow.svg);
+  width: 12px;
+  height: 8px;
+}
+
+QComboBox QAbstractItemView {
+  background-color: hsl(232.5, 21.6%, 14.5%);
+  color: hsl(227.5, 20%, 76.5%);
+  border: 1px solid hsl(235, 18.8%, 12.5%);
+  selection-background-color: hsl(235, 9.4%, 22.5%);
+  selection-color: hsl(0, 0%, 100%);
+}
+
+QCheckBox, QRadioButton {
+  color: hsl(228.7, 72.6%, 85.7%);
+  spacing: 8px;
+}
+
+QCheckBox::indicator, QRadioButton::indicator {
+  width: 16px;
+  height: 16px;
+  border: 1px solid hsl(235, 18.8%, 12.5%);
+  border-radius: 3px;
+  background-color: hsl(235, 18.8%, 12.5%);
+}
+
+QCheckBox::indicator:checked {
+  background-color: hsl(228.7, 72.6%, 85.7%);
+  border-color: hsl(228.7, 72.6%, 85.7%);
+}
+
+QRadioButton::indicator {
+  border-radius: 8px;
+}
+
+QRadioButton::indicator:checked {
+  background-color: hsl(228.7, 72.6%, 85.7%);
+  border-color: hsl(228.7, 72.6%, 85.7%);
+}
+
+QDialog {
+  background-color: hsl(235, 15%, 15.5%);
+  color: hsl(228.7, 72.6%, 85.7%);
+}
+
+QMessageBox {
+  background-color: hsl(235, 15%, 15.5%);
+  color: hsl(228.7, 72.6%, 85.7%);
+}
+
+QGroupBox {
+  border: 1px solid hsl(235, 18.8%, 12.5%);
+  border-radius: 6px;
+  margin-top: 12px;
+  padding-top: 16px;
+  color: hsl(228.7, 72.6%, 85.7%);
+}
+
+QGroupBox::title {
+  subcontrol-origin: margin;
+  left: 12px;
+  padding: 0 4px;
+  color: hsl(228.7, 72.6%, 85.7%);
+}
+
+QToolTip {
+  background-color: hsl(232.5, 21.6%, 14.5%);
+  color: hsl(227.5, 20%, 76.5%);
+  border: 1px solid hsl(235, 18.8%, 12.5%);
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+QProgressBar {
+  background-color: hsl(235, 9.4%, 22.5%);
+  border: none;
+  border-radius: 4px;
+  text-align: center;
+  color: hsl(228.7, 72.6%, 85.7%);
+}
+
+QProgressBar::chunk {
+  background-color: hsl(228.7, 72.6%, 85.7%);
+  border-radius: 4px;
+}
+
+QSplitter::handle {
+  background-color: hsl(235, 18.8%, 12.5%);
+}
+
+QSplitter::handle:horizontal {
+  width: 1px;
+}
+
+QSplitter::handle:vertical {
+  height: 1px;
+}
