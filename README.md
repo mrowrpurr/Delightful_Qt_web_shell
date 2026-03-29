@@ -109,6 +109,10 @@ xmake run test-all                                # all layers: Catch2 + Bun + P
 
 Five layers: C++ unit (Catch2), bridge protocol (Bun), browser e2e (Playwright), desktop e2e (Playwright + CDP), native Qt (pywinauto). See [testing docs](docs/for-humans/04-testing.md) for details.
 
+## Acknowledgements
+
+- **Themes** — 1000+ color themes from [ui.jln.dev](https://github.com/jln13x/ui.jln.dev) by Julian (MIT License)
+
 ## License
 
 Use however, no attribution required.
