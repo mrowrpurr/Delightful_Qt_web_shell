@@ -16,10 +16,10 @@ export interface SystemBridge {
   listFolder(path: string): Promise<{ entries: Array<{ name: string; isDir: boolean; size: number }> } | { error: string }>
   globFolder(path: string, pattern: string, recursive?: boolean): Promise<{ paths: string[] } | { error: string }>
 
-  // ── Simple file reads ──────────────────────────────────
-  // For small files. Use handles below for large files.
+  // ── Simple file reads/writes ──────────────────────────────
   readTextFile(path: string): Promise<{ text: string } | { error: string }>
   readFileBytes(path: string): Promise<{ data: string } | { error: string }> // base64
+  writeTextFile(path: string, text: string): Promise<{ ok: boolean } | { error: string }>
 
   // ── File handles (streaming) ───────────────────────────
   // For large files: open a handle, read chunks, close when done.
@@ -34,6 +34,15 @@ export interface SystemBridge {
   // ── File drop ──────────────────────────────────────────
   getDroppedFiles(): Promise<string[]>
   filesDropped(callback: () => void): () => void
+
+  // ── Qt theme control ──────────────────────────────────────
+  setQtTheme(displayName: string, isDark: boolean): Promise<{ ok: boolean }>
+  getQtTheme(): Promise<{ displayName: string; isDark: boolean }>
+  getQtThemeFilePath(): Promise<{ path: string } | { embedded: boolean }>
+  qtThemeChanged(callback: () => void): () => void
+
+  // ── Save ──────────────────────────────────────────────────
+  saveRequested(callback: () => void): () => void
 
   // ── Native dialogs ─────────────────────────────────────
   openDialog(): Promise<{ ok: boolean }>

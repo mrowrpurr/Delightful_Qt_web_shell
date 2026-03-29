@@ -18,19 +18,26 @@
 #include "menu_bar.hpp"
 #include "application.hpp"
 #include "dialogs/about_dialog.hpp"
+#include "dialogs/demo_widget_dialog.hpp"
 #include "dialogs/web_dialog.hpp"
+#include "style_manager.hpp"
+#include "web_shell.hpp"
 
 #include <QAction>
 #include <QApplication>
+#include <QComboBox>
+#include <QCompleter>
 #include <QFileDialog>
 #include <QIcon>
 #include <QKeySequence>
+#include <QLabel>
 #include <QMainWindow>
 #include <QMenuBar>
 #include <QMessageBox>
 #include <QPainter>
 #include <QPixmap>
 #include <QToolBar>
+#include <QToolButton>
 
 #include <oclero/qlementine/icons/QlementineIcons.hpp>
 #include <oclero/qlementine/icons/Icons16.hpp>
@@ -57,17 +64,28 @@ MenuActions buildMenuBar(QMainWindow* window) {
     // ── File ─────────────────────────────────────────────────
     auto* fileMenu = menuBar->addMenu("&File");
 
-    // File > Save — native file picker (testable with pywinauto)
+    // File > Save — emits saveRequested signal to React.
+    // If the theme editor is active, React saves the QSS file.
+    // Otherwise falls back to a native file picker.
     out.save = fileMenu->addAction(
         tintedIcon(Icons16::Action_Save), "&Save...");
     out.save->setShortcut(QKeySequence("Ctrl+S"));
     out.save->setToolTip("Save file (Ctrl+S)");
-    QObject::connect(out.save, &QAction::triggered, window, [window]() {
-        QString path = QFileDialog::getSaveFileName(
-            window, "Save File", "", "JSON Files (*.json);;All Files (*)");
-        if (!path.isEmpty())
-            QMessageBox::information(window, "Save", "You selected file: " + path);
-    });
+    {
+        auto* appInstance = qobject_cast<Application*>(qApp);
+        QObject* bridge = appInstance ? appInstance->shell()->bridges().value("system") : nullptr;
+        QObject::connect(out.save, &QAction::triggered, window, [window, bridge]() {
+            if (bridge) {
+                // Emit saveRequested — React intercepts if editing a theme
+                QMetaObject::invokeMethod(bridge, "saveRequested");
+            } else {
+                QString path = QFileDialog::getSaveFileName(
+                    window, "Save File", "", "JSON Files (*.json);;All Files (*)");
+                if (!path.isEmpty())
+                    QMessageBox::information(window, "Save", "You selected file: " + path);
+            }
+        });
+    }
 
     // File > Open Folder — native folder picker
     out.openFolder = fileMenu->addAction(
@@ -141,6 +159,14 @@ MenuActions buildMenuBar(QMainWindow* window) {
         dlg.exec();
     });
 
+    // Demo Widget — gallery of Qt widgets for theme preview.
+    auto* demoAction = windowsMenu->addAction("&Demo Widget...");
+    QObject::connect(demoAction, &QAction::triggered, window, [window]() {
+        auto* demo = new DemoWidgetDialog(nullptr);
+        demo->setAttribute(Qt::WA_DeleteOnClose);
+        demo->show();
+    });
+
     // ── Tools ─────────────────────────────────────────────────
     auto* toolsMenu = menuBar->addMenu("&Tools");
 
@@ -189,4 +215,79 @@ void buildToolBar(QMainWindow* window, const MenuActions& actions) {
 
     toolBar->addAction(actions.save);
     toolBar->addAction(actions.openFolder);
+
+    // ── Theme selector ────────────────────────────────────────
+    // Searchable dropdown with base theme names (without -dark/-light suffix).
+    // Combined with a dark/light toggle button.
+    auto* app = qobject_cast<Application*>(qApp);
+    if (app && app->styleManager()) {
+        toolBar->addSeparator();
+
+        auto* themeLabel = new QLabel(" Theme: ");
+        toolBar->addWidget(themeLabel);
+
+        auto* themeCombo = new QComboBox;
+        themeCombo->setEditable(true);
+        themeCombo->setInsertPolicy(QComboBox::NoInsert);
+        themeCombo->setMinimumWidth(250);
+        themeCombo->setMaxVisibleItems(20);
+
+        // Populate with base theme names (deduplicated, no -dark/-light)
+        QStringList baseThemes = app->styleManager()->availableBaseThemes();
+        themeCombo->addItems(baseThemes);
+
+        // Set current base theme
+        QString currentBase = app->styleManager()->currentBaseName();
+        int idx = baseThemes.indexOf(currentBase);
+        if (idx >= 0) themeCombo->setCurrentIndex(idx);
+
+        // Type-to-search via QCompleter
+        auto* completer = new QCompleter(baseThemes, themeCombo);
+        completer->setCaseSensitivity(Qt::CaseInsensitive);
+        completer->setFilterMode(Qt::MatchContains);
+        themeCombo->setCompleter(completer);
+
+        // Apply theme when user picks from dropdown or presses Enter.
+        // NOT currentTextChanged — that fires on every keystroke and fights typing.
+        QObject::connect(themeCombo, &QComboBox::activated,
+                         window, [app, themeCombo]() {
+            QString baseName = themeCombo->currentText();
+            if (!baseName.isEmpty())
+                app->styleManager()->applyTheme(baseName, app->styleManager()->isDarkMode());
+        });
+
+        toolBar->addWidget(themeCombo);
+
+        // ── Dark/Light toggle ─────────────────────────────────
+        auto* darkToggle = new QToolButton;
+        darkToggle->setCheckable(true);
+        darkToggle->setChecked(app->styleManager()->isDarkMode());
+        darkToggle->setText(app->styleManager()->isDarkMode() ? "🌙" : "☀️");
+        darkToggle->setToolTip("Toggle dark/light mode");
+
+        QObject::connect(darkToggle, &QToolButton::clicked,
+                         window, [app, darkToggle]() {
+            app->styleManager()->toggleDarkMode();
+            // Update button text after toggle
+            darkToggle->setChecked(app->styleManager()->isDarkMode());
+            darkToggle->setText(app->styleManager()->isDarkMode() ? "🌙" : "☀️");
+        });
+
+        // Keep toggle in sync if theme changes from elsewhere (bridge, etc.)
+        QObject::connect(app->styleManager(), &StyleManager::themeChanged,
+                         darkToggle, [app, darkToggle, themeCombo]() {
+            darkToggle->setChecked(app->styleManager()->isDarkMode());
+            darkToggle->setText(app->styleManager()->isDarkMode() ? "🌙" : "☀️");
+            // Update combo to match current base name
+            QString base = app->styleManager()->currentBaseName();
+            if (themeCombo->currentText() != base) {
+                // Block signals to avoid re-triggering applyTheme
+                themeCombo->blockSignals(true);
+                themeCombo->setCurrentText(base);
+                themeCombo->blockSignals(false);
+            }
+        });
+
+        toolBar->addWidget(darkToggle);
+    }
 }

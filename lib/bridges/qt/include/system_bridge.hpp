@@ -129,6 +129,18 @@ public:
         return {{"data", QString::fromLatin1(file.readAll().toBase64())}};
     }
 
+    // Write a UTF-8 string to a file. Creates the file if it doesn't exist.
+    Q_INVOKABLE QJsonObject writeTextFile(const QString& path, const QString& text) {
+        QFile file(path);
+        // WriteOnly without Text flag — write bytes exactly as received.
+        // Text flag converts \n to \r\n on Windows, which doubles line endings
+        // when the input already contains \r\n (e.g. from Monaco editor).
+        if (!file.open(QIODevice::WriteOnly))
+            return {{"error", "Cannot write file: " + path}};
+        file.write(text.toUtf8());
+        return {{"ok", true}};
+    }
+
     // ── File handles (streaming) ─────────────────────────────
     // For large files: open a handle on the C++ side, read chunks from JS.
     // The file stays open until you close the handle. No 1GB JSON payloads.
@@ -205,6 +217,42 @@ public:
         return arr;
     }
 
+    // ── Qt theme control ────────────────────────────────────
+    // React can change the Qt-side QSS theme and dark/light mode.
+    // Changes emit qtThemeChanged so all subscribers stay in sync.
+
+    // Set the Qt theme. displayName is the React-side theme name (e.g. "Mrowr Purr - Synthwave '84").
+    // isDark selects the -dark or -light QSS variant.
+    Q_INVOKABLE QJsonObject setQtTheme(const QString& displayName, bool isDark) {
+        emit qtThemeRequested(displayName, isDark);
+        return {{"ok", true}};
+    }
+
+    // Get the current Qt theme state.
+    // Returns displayName (React-side name) and isDark.
+    Q_INVOKABLE QJsonObject getQtTheme() {
+        return {{"displayName", qtDisplayName_}, {"isDark", qtIsDark_}};
+    }
+
+    // Called by Application/StyleManager when the Qt theme changes.
+    // Updates internal state and emits the parameterless signal.
+    void updateQtThemeState(const QString& displayName, bool isDark) {
+        qtDisplayName_ = displayName;
+        qtIsDark_ = isDark;
+        emit qtThemeChanged();
+    }
+
+    // Get the filesystem path of the current Qt theme file.
+    // Returns { path } if a local file is being used, { embedded: true } if QRC.
+    Q_INVOKABLE QJsonObject getQtThemeFilePath() {
+        return qtThemeFilePath_;
+    }
+
+    // Called by Application when theme changes to update the file path info.
+    void setQtThemeFilePath(const QJsonObject& info) {
+        qtThemeFilePath_ = info;
+    }
+
     // ── Native dialogs ─────────────────────────────────────
 
     // Request the Qt host to open a dialog. The bridge doesn't know about
@@ -216,6 +264,13 @@ public:
     }
 
 signals:
+    // Emitted when the Qt QSS theme changes (from toolbar or bridge call).
+    // Parameterless — React calls getQtTheme() to read the new state.
+    void qtThemeChanged();
+
+    // Internal: bridge requests theme change → Application wires this to StyleManager.
+    // Not forwarded to WebSocket (has parameters).
+    void qtThemeRequested(const QString& displayName, bool isDark);
     // Emitted when files are dropped onto the web view.
     // Parameterless so it auto-forwards over WebSocket/QWebChannel.
     // React subscribes, then calls getDroppedFiles() to get the paths.
@@ -225,6 +280,11 @@ signals:
     // React subscribes, then calls getReceivedArgs().
     void argsReceived();
 
+    // Emitted when the user triggers Save from Qt (toolbar/menu).
+    // React can intercept this — if the theme editor is active, save the theme
+    // instead of opening the file dialog.
+    void saveRequested();
+
     // Emitted when React requests a native dialog (e.g. Quick Add).
     // Connect to this in MainWindow or wherever you want to handle it.
     void openDialogRequested();
@@ -233,4 +293,7 @@ private:
     QStringList droppedFiles_;
     QStringList receivedArgs_;
     QMap<QString, QFile*> openFiles_;  // handle ID → open QFile
+    QString qtDisplayName_;            // current React display name (e.g. "Mrowr Purr - Synthwave '84")
+    bool qtIsDark_ = true;             // current Qt dark/light state
+    QJsonObject qtThemeFilePath_;      // { "path": "..." } or { "embedded": true }
 };

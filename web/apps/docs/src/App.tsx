@@ -6,10 +6,10 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
 
 // Import docs as raw strings — Vite handles this with ?raw
 import readme from '../../../../README.md?raw'
-import gettingStarted from '../../../../docs/for-humans/01-getting-started.md?raw'
-import architecture from '../../../../docs/for-humans/02-architecture.md?raw'
-import tutorial from '../../../../docs/for-humans/03-tutorial.md?raw'
-import testing from '../../../../docs/for-humans/04-testing.md?raw'
+import gettingStarted from '../../../../docs/DelightfulQtWebShell/for-humans/01-getting-started.md?raw'
+import architecture from '../../../../docs/DelightfulQtWebShell/for-humans/02-architecture.md?raw'
+import tutorial from '../../../../docs/DelightfulQtWebShell/for-humans/03-tutorial.md?raw'
+import testing from '../../../../docs/DelightfulQtWebShell/for-humans/04-testing.md?raw'
 
 const docs = [
   { value: 'readme', label: 'README', content: readme },

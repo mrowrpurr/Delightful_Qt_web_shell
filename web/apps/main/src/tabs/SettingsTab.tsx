@@ -3,6 +3,11 @@ import { cn } from '@shared/lib/utils'
 import { applyTheme, loadThemes, getThemesSync, isDarkMode, setDarkMode, extractPreviewColor, extractBgColor, type ThemeEntry } from '@shared/lib/themes'
 import { loadGoogleFonts, getGoogleFontsSync, applyFont, type GoogleFont } from '@shared/lib/fonts'
 import { applyThemeEffects } from '../theme-effects'
+import { getSystemBridge } from '@shared/api/system-bridge'
+
+// Lazy-init the system bridge (may not be available in WASM/browser mode)
+let systemBridge: Awaited<ReturnType<typeof getSystemBridge>> | null = null
+getSystemBridge().then(b => { systemBridge = b }).catch(() => {})
 
 // ── Toggle switch ─────────────────────────────────────────
 
@@ -326,6 +331,10 @@ export default function SettingsTab() {
     if (theme) applyTheme(theme, newDark)
     applyThemeEffects(appTheme)
     notifyEditor()
+    // Sync to Qt
+    if (systemBridge) {
+      systemBridge.setQtTheme(appTheme, newDark).catch(() => {})
+    }
   }, [dark, themes, appTheme])
 
   const onAppTheme = useCallback((name: string) => {
@@ -338,7 +347,22 @@ export default function SettingsTab() {
       localStorage.setItem('editor-theme-name', name)
     }
     notifyEditor()
+    // Sync to Qt
+    if (systemBridge) {
+      systemBridge.setQtTheme(name, dark).catch(() => {})
+    }
   }, [themes, dark, editorUseAppTheme])
+
+  // ── Refresh local state when Qt theme changes (handled globally in App.tsx) ──
+  useEffect(() => {
+    const handler = () => {
+      setDark(isDarkMode())
+      setAppTheme(localStorage.getItem('theme-name') || 'Default')
+      setEditorTheme(localStorage.getItem('editor-theme-name') || 'Default')
+    }
+    window.addEventListener('qt-theme-synced', handler)
+    return () => window.removeEventListener('qt-theme-synced', handler)
+  }, [])
 
   const onAppFont = useCallback((family: string | null) => {
     setAppFont(family)

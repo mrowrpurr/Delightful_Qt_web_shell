@@ -14,6 +14,7 @@
 class QLocalServer;
 class QSystemTrayIcon;
 class QWebEngineProfile;
+class StyleManager;
 class WebShell;
 
 class Application : public QApplication {
@@ -30,6 +31,9 @@ public:
 
     // The shell that owns all bridges — shared across all WebShellWidgets
     WebShell* shell() const { return shell_; }
+
+    // Style manager — handles QSS theme loading, live reload, SCSS compilation
+    StyleManager* styleManager() const { return styleManager_; }
 
     // Returns the URL for a named web app.
     // Production: app://<appName>/  (served from embedded Qt resources)
@@ -74,4 +78,5 @@ private:
     WebShell* shell_ = nullptr;
     QLocalServer* instanceServer_ = nullptr;
     QSystemTrayIcon* trayIcon_ = nullptr;
+    StyleManager* styleManager_ = nullptr;
 };

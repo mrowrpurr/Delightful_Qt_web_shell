@@ -24,6 +24,7 @@
 #include <QSystemTrayIcon>
 #include <QWebEngineProfile>
 
+#include "style_manager.hpp"
 #include "widgets/scheme_handler.hpp"
 
 #include <oclero/qlementine/icons/QlementineIcons.hpp>
@@ -78,6 +79,14 @@ Application::Application(int& argc, char** argv)
     darkPalette.setColor(QPalette::Base, kBackground);
     setPalette(darkPalette);
 
+    // ── Style manager ──────────────────────────────────────────
+    // Handles QSS theme loading from QRC, AppData, or dev SCSS folder.
+    // Must come after palette setup — the stylesheet overrides palette colors.
+    // Initial theme is set by React on startup (it owns localStorage state).
+    // We apply default-dark as a baseline to prevent unstyled flash.
+    styleManager_ = new StyleManager(this);
+    styleManager_->applyTheme("default-dark");
+
     // ── Web profile ──────────────────────────────────────────
     // Named profile = persistent localStorage and IndexedDB across sessions.
     // Data lives in the platform's standard app data directory:
@@ -108,6 +117,25 @@ Application::Application(int& argc, char** argv)
     shell_->addBridge("todos", todoBridge);
     auto* systemBridge = new SystemBridge;
     shell_->addBridge("system", systemBridge);
+
+    // ── Wire StyleManager ↔ SystemBridge ──────────────────────
+    // When StyleManager changes theme (toolbar, live reload) → update bridge state → React gets signal
+    connect(styleManager_, &StyleManager::themeChanged, this, [this, systemBridge]() {
+        systemBridge->updateQtThemeState(
+            styleManager_->currentDisplayName(), styleManager_->isDarkMode());
+        // Update theme file path for the editor
+        QString filePath = styleManager_->currentThemeFilePath();
+        if (filePath.startsWith(":/")) {
+            systemBridge->setQtThemeFilePath({{"embedded", true}});
+        } else {
+            systemBridge->setQtThemeFilePath({{"path", filePath}});
+        }
+    });
+    // When React requests a theme change via bridge → apply to StyleManager
+    connect(systemBridge, &SystemBridge::qtThemeRequested,
+            this, [this](const QString& displayName, bool isDark) {
+        styleManager_->applyThemeByDisplayName(displayName, isDark);
+    });
 
     // ── URL protocol registration ────────────────────────────
     // Prompt the user to register if not already done.

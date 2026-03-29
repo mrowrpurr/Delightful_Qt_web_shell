@@ -1,0 +1,339 @@
+/* Auto-generated — βui - Ayu Light (light) */
+
+QWidget {
+  background-color: hsl(0, 0%, 98%);
+  color: hsl(216, 5.2%, 38%);
+}
+
+QMainWindow {
+  background-color: hsl(0, 0%, 98%);
+}
+
+QMainWindow::separator {
+  background-color: hsl(0, 0%, 88.2%);
+  width: 1px;
+  height: 1px;
+}
+
+QMenuBar {
+  background-color: hsl(0, 0%, 98%);
+  color: hsl(216, 5.2%, 38%);
+  border-bottom: 1px solid hsl(0, 0%, 88.2%);
+}
+
+QMenuBar::item {
+  padding: 4px 8px;
+  background: transparent;
+}
+
+QMenuBar::item:selected {
+  background-color: hsl(0, 0%, 94%);
+  color: hsl(216, 5.2%, 38%);
+  border-radius: 4px;
+}
+
+QMenu {
+  background-color: hsl(0, 0%, 91%);
+  color: hsl(216, 4.9%, 40%);
+  border: 1px solid hsl(0, 0%, 88.2%);
+  border-radius: 6px;
+  padding: 4px;
+}
+
+QMenu::item {
+  padding: 6px 24px 6px 12px;
+  border-radius: 4px;
+}
+
+QMenu::item:selected {
+  background-color: hsl(0, 0%, 94%);
+  color: hsl(216, 5.2%, 38%);
+}
+
+QMenu::item:disabled {
+  color: hsl(216, 1.5%, 55%);
+}
+
+QMenu::separator {
+  height: 1px;
+  background: hsl(0, 0%, 88.2%);
+  margin: 4px 8px;
+}
+
+QTabWidget::pane {
+  background-color: hsl(0, 0%, 98%);
+  border: none;
+}
+
+QTabBar {
+  background-color: hsl(0, 0%, 98%);
+}
+
+QTabBar::tab {
+  background-color: hsl(0, 0%, 94%);
+  color: hsl(0, 0%, 9%);
+  padding: 6px 16px;
+  border: none;
+  border-bottom: 2px solid transparent;
+}
+
+QTabBar::tab:selected {
+  background-color: hsl(0, 0%, 98%);
+  color: hsl(216, 5.2%, 38%);
+  border-bottom: 2px solid hsl(20.1, 90.3%, 32.4%);
+}
+
+QTabBar::tab:hover:!selected {
+  background-color: hsl(0, 0%, 94%);
+  color: hsl(216, 5.2%, 38%);
+}
+
+QTabBar::close-button {
+  image: none;
+}
+
+QToolBar {
+  background-color: hsl(0, 0%, 98%);
+  border-bottom: 1px solid hsl(0, 0%, 88.2%);
+  spacing: 2px;
+  padding: 2px;
+}
+
+QToolButton {
+  background: transparent;
+  color: hsl(216, 5.2%, 38%);
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+QToolButton:hover {
+  background-color: hsl(0, 0%, 94%);
+  color: hsl(216, 5.2%, 38%);
+}
+
+QToolButton:pressed {
+  background-color: hsl(20.1, 90.3%, 32.4%);
+  color: hsl(20.1, 18.1%, 99%);
+}
+
+QStatusBar {
+  background-color: hsl(0, 0%, 98%);
+  color: hsl(216, 1.5%, 55%);
+  border-top: 1px solid hsl(0, 0%, 88.2%);
+}
+
+QStatusBar::item {
+  border: none;
+}
+
+QPushButton {
+  background-color: hsl(20.1, 90.3%, 32.4%);
+  color: hsl(20.1, 18.1%, 99%);
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-weight: bold;
+}
+
+QPushButton:hover {
+  background-color: hsl(20.1, 90.3%, 32.4%);
+}
+
+QPushButton:pressed {
+  background-color: hsl(20.1, 90.3%, 32.4%);
+  opacity: 0.9;
+}
+
+QPushButton:disabled {
+  background-color: hsl(0, 0%, 94%);
+  color: hsl(216, 1.5%, 55%);
+}
+
+QPushButton[class~="destructive"] {
+  background-color: hsl(0, 84%, 60%);
+  color: hsl(0, 0%, 98%);
+}
+
+QPushButton[class~="secondary"] {
+  background-color: hsl(0, 0%, 94%);
+  color: hsl(0, 0%, 9%);
+}
+
+QPushButton[class~="ghost"] {
+  background-color: transparent;
+  color: hsl(216, 5.2%, 38%);
+}
+
+QPushButton[class~="ghost"]:hover {
+  background-color: hsl(0, 0%, 94%);
+  color: hsl(216, 5.2%, 38%);
+}
+
+QScrollBar:vertical {
+  background: transparent;
+  width: 10px;
+  margin: 0;
+}
+
+QScrollBar::handle:vertical {
+  background-color: hsl(0, 0%, 94%);
+  border-radius: 5px;
+  min-height: 20px;
+}
+
+QScrollBar::handle:vertical:hover {
+  background-color: hsl(216, 1.5%, 55%);
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+  height: 0;
+}
+
+QScrollBar:horizontal {
+  background: transparent;
+  height: 10px;
+  margin: 0;
+}
+
+QScrollBar::handle:horizontal {
+  background-color: hsl(0, 0%, 94%);
+  border-radius: 5px;
+  min-height: 20px;
+}
+
+QScrollBar::handle:horizontal:hover {
+  background-color: hsl(216, 1.5%, 55%);
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+  width: 0;
+}
+
+QLineEdit, QTextEdit, QPlainTextEdit {
+  background-color: hsl(0, 0%, 98%);
+  color: hsl(216, 5.2%, 38%);
+  border: 1px solid hsl(0, 0%, 88.2%);
+  border-radius: 6px;
+  padding: 6px 10px;
+  selection-background-color: hsl(20.1, 90.3%, 32.4%);
+  selection-color: hsl(20.1, 18.1%, 99%);
+}
+
+QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
+  border-color: hsl(20.1, 90.3%, 32.4%);
+}
+
+QComboBox {
+  background-color: hsl(0, 0%, 98%);
+  color: hsl(216, 5.2%, 38%);
+  border: 1px solid hsl(0, 0%, 88.2%);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+QComboBox::drop-down {
+  subcontrol-origin: padding;
+  subcontrol-position: top right;
+  width: 24px;
+  border-left: 1px solid hsl(0, 0%, 88.2%);
+}
+
+QComboBox::down-arrow {
+  image: url(:/down-arrow.svg);
+  width: 12px;
+  height: 8px;
+}
+
+QComboBox QAbstractItemView {
+  background-color: hsl(0, 0%, 91%);
+  color: hsl(216, 4.9%, 40%);
+  border: 1px solid hsl(0, 0%, 88.2%);
+  selection-background-color: hsl(0, 0%, 94%);
+  selection-color: hsl(216, 5.2%, 38%);
+}
+
+QCheckBox, QRadioButton {
+  color: hsl(216, 5.2%, 38%);
+  spacing: 8px;
+}
+
+QCheckBox::indicator, QRadioButton::indicator {
+  width: 16px;
+  height: 16px;
+  border: 1px solid hsl(0, 0%, 88.2%);
+  border-radius: 3px;
+  background-color: hsl(0, 0%, 98%);
+}
+
+QCheckBox::indicator:checked {
+  background-color: hsl(20.1, 90.3%, 32.4%);
+  border-color: hsl(20.1, 90.3%, 32.4%);
+}
+
+QRadioButton::indicator {
+  border-radius: 8px;
+}
+
+QRadioButton::indicator:checked {
+  background-color: hsl(20.1, 90.3%, 32.4%);
+  border-color: hsl(20.1, 90.3%, 32.4%);
+}
+
+QDialog {
+  background-color: hsl(0, 0%, 92.9%);
+  color: hsl(216, 5.2%, 38%);
+}
+
+QMessageBox {
+  background-color: hsl(0, 0%, 92.9%);
+  color: hsl(216, 5.2%, 38%);
+}
+
+QGroupBox {
+  border: 1px solid hsl(0, 0%, 88.2%);
+  border-radius: 6px;
+  margin-top: 12px;
+  padding-top: 16px;
+  color: hsl(216, 5.2%, 38%);
+}
+
+QGroupBox::title {
+  subcontrol-origin: margin;
+  left: 12px;
+  padding: 0 4px;
+  color: hsl(216, 5.2%, 38%);
+}
+
+QToolTip {
+  background-color: hsl(0, 0%, 91%);
+  color: hsl(216, 4.9%, 40%);
+  border: 1px solid hsl(0, 0%, 88.2%);
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+QProgressBar {
+  background-color: hsl(0, 0%, 94%);
+  border: none;
+  border-radius: 4px;
+  text-align: center;
+  color: hsl(216, 5.2%, 38%);
+}
+
+QProgressBar::chunk {
+  background-color: hsl(20.1, 90.3%, 32.4%);
+  border-radius: 4px;
+}
+
+QSplitter::handle {
+  background-color: hsl(0, 0%, 88.2%);
+}
+
+QSplitter::handle:horizontal {
+  width: 1px;
+}
+
+QSplitter::handle:vertical {
+  height: 1px;
+}

@@ -1,5 +1,7 @@
 # Delightful Qt Web Shell
 
+*Made for agents, by agents.* 🏴‍☠️
+
 A template for building apps with **Qt + React** — two deployment targets from one codebase:
 
 - **Desktop** — native Qt window with menus, tabs, system tray, dialogs, file access, drag & drop, URL protocol
@@ -69,15 +71,20 @@ You're an AI agent building a desktop app. These docs are written for you — co
 
 | Doc | What it covers |
 |-----|---------------|
-| [01 — Getting Started](docs/for-agents/01-getting-started.md) | Project layout, prerequisites, build & run, dev mode |
-| [02 — Architecture](docs/for-agents/02-architecture.md) | How pieces fit, proxy pattern, type system, return value wrapping |
-| [03 — Adding Features](docs/for-agents/03-adding-features.md) | Add a method, add a bridge, signals, xmake setup, full checklist |
-| [04 — Testing](docs/for-agents/04-testing.md) | All 5 layers, what to test when, debugging, adding tests |
-| [05 — Tools](docs/for-agents/05-tools.md) | playwright-cdp + pywinauto — seeing and driving the app |
-| [06 — Gotchas](docs/for-agents/06-gotchas.md) | Quick reference for silent failures and traps |
-| [07 — Desktop Capabilities](docs/for-agents/07-desktop-capabilities.md) | SystemBridge API, tabs, windows, tray, menus |
+| [01 — Getting Started](docs/DelightfulQtWebShell/for-agents/01-getting-started.md) | Project layout, prerequisites, build & run, dev mode |
+| [02 — Architecture](docs/DelightfulQtWebShell/for-agents/02-architecture.md) | How pieces fit, proxy pattern, type system, return value wrapping |
+| [03 — Adding Features](docs/DelightfulQtWebShell/for-agents/03-adding-features.md) | Add a method, add a bridge, signals, xmake setup, full checklist |
+| [04 — Testing](docs/DelightfulQtWebShell/for-agents/04-testing.md) | All 5 layers, what to test when, debugging, adding tests |
+| [05 — Tools](docs/DelightfulQtWebShell/for-agents/05-tools.md) | playwright-cdp + pywinauto — seeing and driving the app |
+| [06 — Gotchas](docs/DelightfulQtWebShell/for-agents/06-gotchas.md) | Quick reference for silent failures and traps |
+| [07 — Desktop Capabilities](docs/DelightfulQtWebShell/for-agents/07-desktop-capabilities.md) | SystemBridge API, tabs, windows, tray, menus |
+| [08 — Theming](docs/DelightfulQtWebShell/for-agents/08-theming.md) | QSS themes, StyleManager, live reload, Qt↔React sync, theme editor |
 
 Start with **01**, read through **03**, and keep **06** open while you work.
+
+> 💡 **Tip for Humans** 👤
+>
+> Have your agents read ALL of the docs in `docs/DelightfulQtWebShell/for-agents/`. The agent docs teach them how to build, test, and drive the entire application autonomously — launching it on your desktop, using playwright-cdp to see and interact with the UI, running all five test layers, and live-editing themes. They can dev solo or pair with you, with hot reloading and everything.
 
 ### For Humans
 
@@ -85,10 +92,14 @@ You're a developer who wants to understand the template and start building.
 
 | Doc | What it covers |
 |-----|---------------|
-| [01 — Getting Started](docs/for-humans/01-getting-started.md) | What is this, why Qt+React, setup, project structure |
-| [02 — Architecture](docs/for-humans/02-architecture.md) | How the pieces fit together, the proxy pattern, signals |
-| [03 — Tutorial](docs/for-humans/03-tutorial.md) | Add your first feature in 5 minutes |
-| [04 — Testing](docs/for-humans/04-testing.md) | Five test layers, debugging, adding tests |
+| [01 — Getting Started](docs/DelightfulQtWebShell/for-humans/01-getting-started.md) | What is this, why Qt+React, setup, project structure |
+| [02 — Architecture](docs/DelightfulQtWebShell/for-humans/02-architecture.md) | How the pieces fit together, the proxy pattern, signals |
+| [03 — Tutorial](docs/DelightfulQtWebShell/for-humans/03-tutorial.md) | Add your first feature in 5 minutes |
+| [04 — Testing](docs/DelightfulQtWebShell/for-humans/04-testing.md) | Five test layers, debugging, adding tests |
+| [05 — Tools](docs/DelightfulQtWebShell/for-humans/05-tools.md) | DevTools, pywinauto, screenshots |
+| [06 — Gotchas](docs/DelightfulQtWebShell/for-humans/06-gotchas.md) | Silent failures, build traps, port conflicts |
+| [07 — Desktop Capabilities](docs/DelightfulQtWebShell/for-humans/07-desktop-capabilities.md) | File access, drag & drop, tabs, tray, menus |
+| [08 — Theming](docs/DelightfulQtWebShell/for-humans/08-theming.md) | 1000+ themes, live editor, dark/light, custom themes |
 
 Start with **01**, then jump to **03** to get your hands dirty.
 
@@ -107,7 +118,11 @@ xmake run setup                                   # one-time setup
 xmake run test-all                                # all layers: Catch2 + Bun + Playwright + pywinauto
 ```
 
-Five layers: C++ unit (Catch2), bridge protocol (Bun), browser e2e (Playwright), desktop e2e (Playwright + CDP), native Qt (pywinauto). See [testing docs](docs/for-humans/04-testing.md) for details.
+Five layers: C++ unit (Catch2), bridge protocol (Bun), browser e2e (Playwright), desktop e2e (Playwright + CDP), native Qt (pywinauto). See [testing docs](docs/DelightfulQtWebShell/for-humans/04-testing.md) for details.
+
+## Acknowledgements
+
+- **Themes** — 1000+ color themes from [ui.jln.dev](https://github.com/jln13x/ui.jln.dev) by Julian (MIT License)
 
 ## License
 

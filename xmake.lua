@@ -19,6 +19,7 @@ if is_plat("windows") then
 end
 
 add_requires("catch2 3.x")
+add_requires("libsass")
 
 
 -- ── For qlementine-icons ─────────────────────────────────────────────────

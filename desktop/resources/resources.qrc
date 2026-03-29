@@ -2,5 +2,6 @@
     <qresource prefix="/">
         <file alias="icon.ico">icon.ico</file>
         <file alias="icon.png">icon.png</file>
+        <file alias="down-arrow.svg">down-arrow.svg</file>
     </qresource>
 </RCC>
