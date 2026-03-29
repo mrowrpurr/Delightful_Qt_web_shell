@@ -71,6 +71,9 @@ public:
     // Whether we're using a live-reloaded source (dev path or AppData).
     bool isLiveReload() const { return !watchedDir_.isEmpty(); }
 
+    // Get the filesystem path of the current theme file (empty if QRC embedded).
+    QString currentThemeFilePath() const { return findThemeFile(currentTheme_); }
+
 signals:
     // Emitted when the stylesheet changes (live reload or explicit apply).
     // Parameterless — callers use getters to read current state.

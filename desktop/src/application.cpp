@@ -123,6 +123,13 @@ Application::Application(int& argc, char** argv)
     connect(styleManager_, &StyleManager::themeChanged, this, [this, systemBridge]() {
         systemBridge->updateQtThemeState(
             styleManager_->currentDisplayName(), styleManager_->isDarkMode());
+        // Update theme file path for the editor
+        QString filePath = styleManager_->currentThemeFilePath();
+        if (filePath.startsWith(":/")) {
+            systemBridge->setQtThemeFilePath({{"embedded", true}});
+        } else {
+            systemBridge->setQtThemeFilePath({{"path", filePath}});
+        }
     });
     // When React requests a theme change via bridge → apply to StyleManager
     connect(systemBridge, &SystemBridge::qtThemeRequested,

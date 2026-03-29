@@ -129,6 +129,15 @@ public:
         return {{"data", QString::fromLatin1(file.readAll().toBase64())}};
     }
 
+    // Write a UTF-8 string to a file. Creates the file if it doesn't exist.
+    Q_INVOKABLE QJsonObject writeTextFile(const QString& path, const QString& text) {
+        QFile file(path);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+            return {{"error", "Cannot write file: " + path}};
+        file.write(text.toUtf8());
+        return {{"ok", true}};
+    }
+
     // ── File handles (streaming) ─────────────────────────────
     // For large files: open a handle on the C++ side, read chunks from JS.
     // The file stays open until you close the handle. No 1GB JSON payloads.
@@ -230,6 +239,17 @@ public:
         emit qtThemeChanged();
     }
 
+    // Get the filesystem path of the current Qt theme file.
+    // Returns { path } if a local file is being used, { embedded: true } if QRC.
+    Q_INVOKABLE QJsonObject getQtThemeFilePath() {
+        return qtThemeFilePath_;
+    }
+
+    // Called by Application when theme changes to update the file path info.
+    void setQtThemeFilePath(const QJsonObject& info) {
+        qtThemeFilePath_ = info;
+    }
+
     // ── Native dialogs ─────────────────────────────────────
 
     // Request the Qt host to open a dialog. The bridge doesn't know about
@@ -267,4 +287,5 @@ private:
     QMap<QString, QFile*> openFiles_;  // handle ID → open QFile
     QString qtDisplayName_;            // current React display name (e.g. "Mrowr Purr - Synthwave '84")
     bool qtIsDark_ = true;             // current Qt dark/light state
+    QJsonObject qtThemeFilePath_;      // { "path": "..." } or { "embedded": true }
 };
