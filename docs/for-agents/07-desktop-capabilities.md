@@ -13,6 +13,7 @@ Registered as `"system"`. Access from React: `const system = await getBridge<Sys
 Three tiers, pick the right one:
 
 - **`readTextFile(path)`** — returns the whole file as a UTF-8 string. Great for config, JSON, small text. Don't use on large files.
+- **`writeTextFile(path, text)`** — writes a UTF-8 string to a file. Creates it if it doesn't exist.
 - **`readFileBytes(path)`** — returns the whole file as base64. For images and small binaries.
 - **`openFileHandle` / `readFileChunk` / `closeFileHandle`** — streaming. Opens a handle on the C++ side, reads chunks on demand. The file never loads into memory all at once. Use this for anything large.
 
@@ -31,6 +32,21 @@ The app registers itself as a URL protocol handler on first launch (Windows regi
 ### Clipboard
 
 `system.copyToClipboard(text)` and `system.readClipboard()`.
+
+### Qt Theme Control
+
+React can change the Qt-side QSS theme and dark/light mode via the bridge:
+
+- **`setQtTheme(displayName, isDark)`** — React tells Qt to switch theme
+- **`getQtTheme()`** — returns `{displayName, isDark}` for current Qt state
+- **`getQtThemeFilePath()`** — returns `{path}` for local files or `{embedded: true}` for QRC
+- **`qtThemeChanged`** (signal) — emitted when Qt theme changes (toolbar, dark/light toggle)
+
+See [08-theming.md](08-theming.md) for the full theming architecture.
+
+### Save Signal
+
+`system.saveRequested` is emitted when the user triggers Save from the Qt toolbar or File menu. React can intercept this for context-aware saving — e.g., the Editor tab catches it to save the current QSS theme file instead of opening a file dialog. When the Editor tab is not active, the signal is unsubscribed.
 
 ### Native Dialogs
 
@@ -62,7 +78,7 @@ The app ships a full theming and editor customization system. All settings are p
 
 ### Themes
 
-1000+ shadcn themes live in `themes.json`, loaded via **Vite JSON import** (not `fetch` — `fetch` cannot load `app://` URLs). `setThemeData()` registers a theme, `applyTheme(theme, dark)` applies it. The apply function maps `--background` to both `--background` and `--color-background` for Tailwind v4 compatibility.
+1000+ shadcn themes live in `themes.json`, applied to both React (CSS variables) and Qt (QSS stylesheets). Both sides stay in sync via the bridge. See [08-theming.md](08-theming.md) for the full architecture — StyleManager, QSS generator, live reload, dark/light switching, and the live theme editor.
 
 Custom theme effects go beyond CSS variables: wallpaper backgrounds (Dragon), animated SVG overlays (Tron), canvas-drawn grids (Tron Moving), and glow CSS (Synthwave). These are managed in `apps/main/src/theme-effects.ts`.
 

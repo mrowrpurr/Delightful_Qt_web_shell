@@ -1,71 +1,76 @@
-# Session Handoff (2026-03-27)
+# Session Handoff (2026-03-29)
 
 ## What Was Built This Session
 
-### Desktop Features
-- **File I/O bridge** — openFileChooser, openFolderChooser, listFolder, globFolder, readTextFile, readFileBytes, streaming handles (openFileHandle/readFileChunk/closeFileHandle)
-- **Drag & drop** — event filter on QWebEngineView's focusProxy() intercepts drag events
-- **Tabs** — QTabWidget, Ctrl+T/W, middle-click, reactive titles via document.title
-- **Multiple windows** — Ctrl+N, shared bridges, close-to-tray on last window only
-- **CLI arg passing** — single-instance pipe sends all args, parser.parse() not process()
-- **URL protocol** — cross-platform registration, prompt on first launch, Tools menu toggle
-- **Close-to-tray** — last window hides, secondary windows close normally
+### QSS Theming System
+- **StyleManager** — 3-source theme loading (STYLES_DEV_PATH → AppData/Local → QRC embedded), QFileSystemWatcher live reload, libsass runtime SCSS compilation, dark/light smart switching with mode memory
+- **QSS generator** (`tools/generate-qss-themes.ts`) — reads themes.json + widgets.qss.template → 2060 QSS files + theme-names.json slug↔displayName mapping
+- **Widget template** (`desktop/styles/shared/widgets.qss.template`) — full Qt widget coverage: menus, tabs, toolbar, buttons (primary/secondary/ghost/destructive via class property), scrollbars, inputs, combos, checkboxes, radios, dialogs, tooltips, progress bars, splitters
+- **Searchable theme dropdown** in toolbar — QComboBox with QCompleter, base theme names (no -dark/-light suffixes), applies on selection
+- **🌙/☀️ dark/light toggle** in toolbar — calls setColorScheme() for platform chrome
 
-### UI Framework
-- **Tailwind v4** + **shadcn/ui** (Button, Tabs, Card, Radix Select)
-- **Storybook** at web/ level with stories alongside components
-- **Monaco editor** with vim mode (monaco-vim)
-- **1000+ shadcn themes** with searchable picker, dark/light toggle
-- **1900+ Google Fonts** with searchable picker
-- **Custom theme effects** — Dragon wallpapers, Tron SVG/canvas grid, Synthwave glow
-- **Separate app vs editor settings** — theme, font, page transparency, editor transparency
+### Qt ↔ React Theme Sync
+- **Bidirectional sync** — change theme or dark/light in Qt toolbar → React updates. Change in React settings → Qt updates. Sync guard prevents infinite loops.
+- **Bridge methods** — setQtTheme(displayName, isDark), getQtTheme(), qtThemeChanged signal, getQtThemeFilePath()
+- **Slug↔displayName mapping** — theme-names.json loaded by StyleManager for translating between Qt slug names and React display names
+- **Startup sync** — React sends persisted theme state to Qt on load (main.tsx)
 
-### App Layout
-Full-width tabbed app (no more splitter/docs side panel):
-- 📖 Docs — live markdown viewer with doc picker
-- ✏️ Editor — Monaco + vim
-- ✅ Todos — bridge CRUD demo
-- 📂 Files — file I/O demo (3 tiers)
-- ⚙️ System — clipboard, drag & drop, CLI args
-- 🎨 Settings — theme/font/transparency for app + editor
+### Live Theme Editor
+- **Editor tab** loads current QSS file into Monaco with CSS syntax highlighting
+- **Three save paths**: Ctrl+S (page-level capture), :w (vim), toolbar/menu Save (bridge saveRequested signal)
+- **Context-aware Save** — toolbar Save button emits saveRequested signal via bridge. Editor tab subscribes when editing, unsubscribes on tab switch. Other tabs get normal Save behavior.
+- **QFileSystemWatcher** picks up the save → theme updates instantly around you
 
-### Build System
-- Killed web build stamp files — always rebuild Vite (~3s), stamps were a multi-team footgun
-- assetsInlineLimit: 0 — small SVGs were getting inlined as data URIs that broke in QWebEngine
-- JSON data (themes, fonts) imported via Vite, NOT fetch (fetch can't use app:// scheme)
-- body uses var(--color-background) so light themes work through transparency
+### SystemBridge Additions
+- `writeTextFile(path, text)` — write files from React
+- `setQtTheme(displayName, isDark)` — React → Qt theme control
+- `getQtTheme()` — query current Qt theme state
+- `getQtThemeFilePath()` — get filesystem path of current theme file
+- `qtThemeChanged` signal — Qt → React theme notification
+- `saveRequested` signal — Qt Save action → React intercept
 
-### Docs
-- Agent docs: 07-desktop-capabilities.md (new), paths fixed across 01-06, new gotchas
-- Human docs: paths fixed, "What's in the Box" section, multi-app architecture
-- README: two targets (desktop + WASM), full feature list
+### CI/CD
+- **ci.yml** — push/PR to main, Windows + macOS, Catch2 + Bun + Playwright browser e2e
+- **release.yml** — tag push (v*), tests + windeployqt/macdeployqt + GitHub Release
+- **nightly.yml** — daily 6AM UTC, skips if no commits in 24h, rolling pre-release
+- GitHub Actions bumped to node24 where available (checkout v6, cache v5, upload-artifact v7, download-artifact v8, setup-bun v2.2)
+- Playwright runs directly (`npx playwright test`) not through xmake (os.execv can't resolve .cmd on Windows)
 
 ### Tests
-- Playwright browser e2e: fixed for tabbed app (goToTodos fixture), all 6 pass
-- Bridge validator: fixed path (web/src/api → web/shared/api)
-- Playwright config: bun run dev → dev:main
-- Catch2 + Bun: pass (unchanged)
-- **Pywinauto: had issues during this session.** The conftest close_dialogs fixture needs to also close the URL protocol registration prompt ("Delightful Qt Web Shell" QMessageBox) and the "Save" QMessageBox that appears after the file picker. Approach with caution — test on real desktop, don't assume.
+- **12 SystemBridge file I/O tests** — readTextFile, readFileBytes, listFolder, globFolder, file handle streaming, error cases, getter methods. All hit real C++ dev-server over WebSocket.
+
+### Other Fixes
+- Sticky tab bar (won't scroll out of view)
+- Tron (Moving) double grid fix (removed SVG wallpaper, canvas only)
+- writeTextFile binary mode (no doubled \r\n on Windows)
+- Demo Widget changed from QDialog to QWidget (can preview themes while open)
+- libsass integrated via xmake (forked to mrowrpurr/libsass, C++23 compatible)
+- README: acknowledgement of ui.jln.dev as theme source (MIT)
+
+### Docs
+- **08-theming.md** (new) — full QSS theming architecture, StyleManager API, generator, sync, live editor
+- **07-desktop-capabilities.md** — updated with writeTextFile, Qt theme control, saveRequested signal
+- **README** — doc table updated with 08, acknowledgements section added
 
 ## Git State
 - Branch: `qt-delightfulness`
 - Clean working tree
-- Deleted leftover vitest.config.ts and vitest.shims.d.ts (Storybook init artifacts, referenced uninstalled packages)
+- All compiled QSS themes committed (2060 files, ~17MB)
 
 ## Key Gotchas Discovered
-- `fetch()` doesn't work with `app://` custom URL scheme — use Vite JSON imports
-- Vite inlines assets < 4KB as data URIs — set `assetsInlineLimit: 0`
-- Theme CSS vars need both `--background` AND `--color-background` for Tailwind v4
-- Theme overrides must use `<style>` injection, not inline styles (QWebEngine inconsistency)
-- `oklch(from var(...) l c h / alpha)` for page transparency
-- Default theme has empty light/dark objects — needs fallback colors
-- Native `<select>` has white box bug in QWebEngine — use custom dropdown
-- QWebEngineView's focusProxy() swallows drag events — need event filter
-- Stack-allocated MainWindow in main() — never deleteLater() on it
-- QCommandLineParser.process() shows error dialog on unknown flags — use parse()
+- QSS doesn't support CSS border-triangle hack — use SVG images for dropdown arrows
+- `QIODevice::Text` flag doubles `\r\n` on Windows when content already has `\r\n` — use binary mode for writeTextFile
+- `os.execv("npx", ...)` fails on Windows CI — npx is a .cmd shim, not a real executable
+- xmake `@default` version means the repo's default branch, not the version name in add_versions
+- libsass repo's default branch must be set correctly on GitHub or xmake clones the wrong branch
+- Dart Sass chokes on QSS pseudo-selectors (`:!selected`, `::pane`, etc.) — use direct variable substitution instead
+- `QComboBox::currentTextChanged` fires on every keystroke — use `activated` for dropdown selections
+- Qt theme listener must be in App.tsx (always mounted), not SettingsTab (unmounts on tab switch)
+- TabsContent unmounts inactive tabs (`if (value !== context.value) return null`) — useEffect cleanup is reliable
 
 ## What's NOT Done
-- Dark/light theme on Qt side (View > Theme, QActionGroup, QSS) — user has strong opinions, deferred
-- WASM bridge doesn't have file I/O or openDialog (desktop-only features)
+- WASM SystemBridge (no file I/O, clipboard, drag & drop — user uses OPFS extensively, viable future work)
+- Pywinauto tests need attention (conftest close_dialogs fixture issues from prior session)
 - Human docs 03-tutorial and 04-testing not updated for tabbed layout
-- Pywinauto tests need careful attention (see note above)
+- Qt toolbar Save button doesn't fall back to file dialog when not editing a theme (it just does nothing)
+- Theme dropdown in Qt toolbar doesn't update when React changes theme (cosmetic — QSS still applies)

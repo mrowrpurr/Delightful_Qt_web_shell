@@ -76,6 +76,7 @@ You're an AI agent building a desktop app. These docs are written for you — co
 | [05 — Tools](docs/for-agents/05-tools.md) | playwright-cdp + pywinauto — seeing and driving the app |
 | [06 — Gotchas](docs/for-agents/06-gotchas.md) | Quick reference for silent failures and traps |
 | [07 — Desktop Capabilities](docs/for-agents/07-desktop-capabilities.md) | SystemBridge API, tabs, windows, tray, menus |
+| [08 — Theming](docs/for-agents/08-theming.md) | QSS themes, StyleManager, live reload, Qt↔React sync, theme editor |
 
 Start with **01**, read through **03**, and keep **06** open while you work.
 
