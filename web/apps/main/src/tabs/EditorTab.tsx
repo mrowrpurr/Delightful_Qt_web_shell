@@ -190,6 +190,22 @@ export default function EditorTab() {
     return () => window.removeEventListener('editor-save', handler)
   }, [saveThemeFile])
 
+  // Page-level Ctrl+S capture — catches it even when Monaco doesn't have focus.
+  // preventDefault stops it from bubbling to Qt's Save action.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        e.stopPropagation()
+        if (editingTheme) {
+          window.dispatchEvent(new CustomEvent('editor-save'))
+        }
+      }
+    }
+    window.addEventListener('keydown', handler, true) // capture phase
+    return () => window.removeEventListener('keydown', handler, true)
+  }, [editingTheme])
+
   // Listen for theme/font changes from Settings tab
   useEffect(() => {
     const onThemeChanged = () => applyEditorTheme()
