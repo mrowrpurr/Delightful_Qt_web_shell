@@ -35,10 +35,7 @@ const WALLPAPER_THEMES: Record<string, { bg: string; bgColor: string }> = {
     bg: `url('${tronAnimatedBg}') center / cover no-repeat fixed`,
     bgColor: 'hsl(220 80% 4%)',
   },
-  'Mrowr Purr - Tron (Moving)': {
-    bg: `url('${tronMovingBg}') center / cover no-repeat fixed`,
-    bgColor: 'hsl(220 80% 4%)',
-  },
+  // Tron (Moving) uses the animated canvas grid (startTronGrid) — no SVG wallpaper.
 }
 
 function clearEffects() {
@@ -79,8 +76,12 @@ export function applyThemeEffects(themeName: string) {
     applyWallpaper(wallpaper.bg, wallpaper.bgColor)
   }
 
-  // Animated tron grid canvas
+  // Animated tron grid canvas (no SVG wallpaper — canvas IS the background)
   if (themeName === 'Mrowr Purr - Tron (Moving)') {
+    document.documentElement.style.setProperty('background-color', 'hsl(220 80% 4%)')
+    document.body.style.setProperty('background', 'transparent', 'important')
+    const appDiv = document.getElementById('root')?.firstElementChild as HTMLElement | null
+    if (appDiv) appDiv.style.setProperty('background', 'transparent', 'important')
     const canvas = startTronGrid()
     if (!canvas.parentElement) document.body.prepend(canvas)
   }
