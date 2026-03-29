@@ -116,6 +116,18 @@ Application::Application(int& argc, char** argv)
     auto* systemBridge = new SystemBridge;
     shell_->addBridge("system", systemBridge);
 
+    // ── Wire StyleManager ↔ SystemBridge ──────────────────────
+    // When StyleManager changes theme (toolbar, live reload) → update bridge state → React gets signal
+    connect(styleManager_, &StyleManager::themeChanged, this, [this, systemBridge]() {
+        systemBridge->updateQtThemeState(
+            styleManager_->currentBaseName(), styleManager_->isDarkMode());
+    });
+    // When React requests a theme change via bridge → apply to StyleManager
+    connect(systemBridge, &SystemBridge::qtThemeRequested,
+            this, [this](const QString& baseName, bool isDark) {
+        styleManager_->applyTheme(baseName, isDark);
+    });
+
     // ── URL protocol registration ────────────────────────────
     // Prompt the user to register if not already done.
     // Also accessible via Tools > Register/Unregister URL Protocol in the menu.

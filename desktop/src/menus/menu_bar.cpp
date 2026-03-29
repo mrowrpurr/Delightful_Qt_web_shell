@@ -36,6 +36,7 @@
 #include <QPainter>
 #include <QPixmap>
 #include <QToolBar>
+#include <QToolButton>
 
 #include <oclero/qlementine/icons/QlementineIcons.hpp>
 #include <oclero/qlementine/icons/Icons16.hpp>
@@ -204,8 +205,8 @@ void buildToolBar(QMainWindow* window, const MenuActions& actions) {
     toolBar->addAction(actions.openFolder);
 
     // ── Theme selector ────────────────────────────────────────
-    // Searchable dropdown with all available QSS themes.
-    // Type to filter, pick to apply instantly.
+    // Searchable dropdown with base theme names (without -dark/-light suffix).
+    // Combined with a dark/light toggle button.
     auto* app = qobject_cast<Application*>(qApp);
     if (app && app->styleManager()) {
         toolBar->addSeparator();
@@ -219,28 +220,60 @@ void buildToolBar(QMainWindow* window, const MenuActions& actions) {
         themeCombo->setMinimumWidth(250);
         themeCombo->setMaxVisibleItems(20);
 
-        // Populate with available themes
-        QStringList themes = app->styleManager()->availableThemes();
-        themeCombo->addItems(themes);
+        // Populate with base theme names (deduplicated, no -dark/-light)
+        QStringList baseThemes = app->styleManager()->availableBaseThemes();
+        themeCombo->addItems(baseThemes);
 
-        // Set current theme
-        QString current = app->styleManager()->currentTheme();
-        int idx = themes.indexOf(current);
+        // Set current base theme
+        QString currentBase = app->styleManager()->currentBaseName();
+        int idx = baseThemes.indexOf(currentBase);
         if (idx >= 0) themeCombo->setCurrentIndex(idx);
 
         // Type-to-search via QCompleter
-        auto* completer = new QCompleter(themes, themeCombo);
+        auto* completer = new QCompleter(baseThemes, themeCombo);
         completer->setCaseSensitivity(Qt::CaseInsensitive);
         completer->setFilterMode(Qt::MatchContains);
         themeCombo->setCompleter(completer);
 
-        // Apply theme when selected
+        // Apply theme (with current dark/light mode) when selected
         QObject::connect(themeCombo, &QComboBox::currentTextChanged,
-                         window, [app](const QString& themeName) {
-            if (!themeName.isEmpty())
-                app->styleManager()->applyTheme(themeName);
+                         window, [app](const QString& baseName) {
+            if (!baseName.isEmpty())
+                app->styleManager()->applyTheme(baseName, app->styleManager()->isDarkMode());
         });
 
         toolBar->addWidget(themeCombo);
+
+        // ── Dark/Light toggle ─────────────────────────────────
+        auto* darkToggle = new QToolButton;
+        darkToggle->setCheckable(true);
+        darkToggle->setChecked(app->styleManager()->isDarkMode());
+        darkToggle->setText(app->styleManager()->isDarkMode() ? "🌙" : "☀️");
+        darkToggle->setToolTip("Toggle dark/light mode");
+
+        QObject::connect(darkToggle, &QToolButton::clicked,
+                         window, [app, darkToggle]() {
+            app->styleManager()->toggleDarkMode();
+            // Update button text after toggle
+            darkToggle->setChecked(app->styleManager()->isDarkMode());
+            darkToggle->setText(app->styleManager()->isDarkMode() ? "🌙" : "☀️");
+        });
+
+        // Keep toggle in sync if theme changes from elsewhere (bridge, etc.)
+        QObject::connect(app->styleManager(), &StyleManager::themeChanged,
+                         darkToggle, [app, darkToggle, themeCombo]() {
+            darkToggle->setChecked(app->styleManager()->isDarkMode());
+            darkToggle->setText(app->styleManager()->isDarkMode() ? "🌙" : "☀️");
+            // Update combo to match current base name
+            QString base = app->styleManager()->currentBaseName();
+            if (themeCombo->currentText() != base) {
+                // Block signals to avoid re-triggering applyTheme
+                themeCombo->blockSignals(true);
+                themeCombo->setCurrentText(base);
+                themeCombo->blockSignals(false);
+            }
+        });
+
+        toolBar->addWidget(darkToggle);
     }
 }

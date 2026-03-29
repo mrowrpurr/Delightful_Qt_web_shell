@@ -1,8 +1,5 @@
-// StyleManager — theme loading with three-source fallback and live reload.
-//
-// Priority: STYLES_DEV_PATH → AppData/Local → QRC embedded.
-// SCSS files are compiled to CSS at runtime via libsass.
-// QSS files are loaded directly.
+// StyleManager — theme loading with three-source fallback, live reload,
+// dark/light mode tracking, and smart theme switching.
 
 #include "style_manager.hpp"
 
@@ -12,7 +9,9 @@
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
+#include <QSet>
 #include <QStandardPaths>
+#include <QStyleHints>
 #include <QTextStream>
 
 #include <sass.h>
@@ -22,7 +21,6 @@ StyleManager::StyleManager(QObject* parent)
 {
     // ── Determine active source ──────────────────────────────
 
-    // Source 1: compile-time dev path (only set during local development)
 #ifdef STYLES_DEV_PATH
     devPath_ = QString(STYLES_DEV_PATH);
     if (QDir(devPath_).exists()) {
@@ -33,23 +31,19 @@ StyleManager::StyleManager(QObject* parent)
     }
 #endif
 
-    // Source 2: user override folder in AppData
     userPath_ = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
                 + "/styles";
 
-    // Pick the active live-reload source (if any)
     if (!devPath_.isEmpty()) {
         setupWatcher(devPath_);
     } else if (QDir(userPath_).exists() && !QDir(userPath_).isEmpty()) {
         setupWatcher(userPath_);
     }
-    // Otherwise: QRC mode (no watcher)
 
     connect(&watcher_, &QFileSystemWatcher::fileChanged,
             this, &StyleManager::onFileChanged);
     connect(&watcher_, &QFileSystemWatcher::directoryChanged,
             this, [this](const QString&) {
-        // A file was added/removed — re-apply current theme in case it changed
         if (!currentTheme_.isEmpty())
             applyTheme(currentTheme_);
     });
@@ -59,7 +53,6 @@ void StyleManager::setupWatcher(const QString& dir) {
     watchedDir_ = dir;
     watcher_.addPath(dir);
 
-    // Watch all files in the directory (and compiled/ subdirectory)
     QDirIterator it(dir, {"*.scss", "*.qss", "*.css"},
                     QDir::Files, QDirIterator::Subdirectories);
     while (it.hasNext())
@@ -71,12 +64,9 @@ void StyleManager::setupWatcher(const QString& dir) {
 void StyleManager::onFileChanged(const QString& path) {
     qDebug() << "[StyleManager] File changed:" << path;
 
-    // Re-add the path — QFileSystemWatcher drops watched files on some platforms
-    // after they're modified (the OS deletes + recreates the file).
     if (QFile::exists(path) && !watcher_.files().contains(path))
         watcher_.addPath(path);
 
-    // If the changed file is related to the current theme, re-apply
     if (!currentTheme_.isEmpty())
         applyTheme(currentTheme_);
 }
@@ -91,20 +81,84 @@ void StyleManager::applyTheme(const QString& themeName) {
 
     qApp->setStyleSheet(qss);
     currentTheme_ = themeName;
-    emit themeChanged(themeName);
+
+    // Track dark/light mode from the theme name
+    if (themeName.endsWith("-dark")) {
+        isDark_ = true;
+        lastDarkTheme_ = themeName;
+    } else if (themeName.endsWith("-light")) {
+        isDark_ = false;
+        lastLightTheme_ = themeName;
+    }
+
+    // Update platform color scheme to match
+    if (auto* hints = qApp->styleHints()) {
+        hints->setColorScheme(isDark_ ? Qt::ColorScheme::Dark : Qt::ColorScheme::Light);
+    }
+
+    emit themeChanged();
     qDebug() << "[StyleManager] Applied theme:" << themeName
+             << (isDark_ ? "(dark)" : "(light)")
              << (isLiveReload() ? "(live)" : "(QRC)");
+}
+
+void StyleManager::applyTheme(const QString& baseName, bool dark) {
+    QString fullName = baseName + (dark ? "-dark" : "-light");
+    if (themeExists(fullName)) {
+        applyTheme(fullName);
+    } else {
+        // Fallback to default for this mode
+        applyTheme(dark ? "default-dark" : "default-light");
+    }
+}
+
+void StyleManager::toggleDarkMode() {
+    setDarkMode(!isDark_);
+}
+
+void StyleManager::setDarkMode(bool dark) {
+    if (dark == isDark_) return;
+
+    QString baseName = currentBaseName();
+
+    // Try to switch to the same theme in the other mode
+    QString target = baseName + (dark ? "-dark" : "-light");
+
+    if (themeExists(target)) {
+        applyTheme(target);
+    } else {
+        // No matching theme in the other mode — try the last remembered theme for that mode
+        QString& lastForMode = dark ? lastDarkTheme_ : lastLightTheme_;
+        if (!lastForMode.isEmpty() && themeExists(lastForMode)) {
+            applyTheme(lastForMode);
+        } else {
+            // Ultimate fallback
+            applyTheme(dark ? "default-dark" : "default-light");
+        }
+    }
+}
+
+QString StyleManager::currentBaseName() const {
+    return stripModeSuffix(currentTheme_);
+}
+
+QString StyleManager::stripModeSuffix(const QString& name) {
+    if (name.endsWith("-dark")) return name.left(name.length() - 5);
+    if (name.endsWith("-light")) return name.left(name.length() - 6);
+    return name;
+}
+
+bool StyleManager::themeExists(const QString& name) const {
+    return !findThemeFile(name).isEmpty();
 }
 
 QString StyleManager::loadQss(const QString& themeName) const {
     QString filePath = findThemeFile(themeName);
     if (filePath.isEmpty()) return {};
 
-    // SCSS → compile at runtime
     if (filePath.endsWith(".scss"))
         return compileScssToCss(filePath);
 
-    // QSS/CSS → load directly
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
         return {};
@@ -112,22 +166,17 @@ QString StyleManager::loadQss(const QString& themeName) const {
 }
 
 QString StyleManager::findThemeFile(const QString& themeName) const {
-    // Check live-reload source first
     if (!watchedDir_.isEmpty()) {
-        // Look for SCSS in themes/ subdirectory (dev layout)
         QString scssPath = watchedDir_ + "/themes/" + themeName + ".scss";
         if (QFile::exists(scssPath)) return scssPath;
 
-        // Look for compiled QSS in compiled/ subdirectory
         QString compiledPath = watchedDir_ + "/compiled/" + themeName + ".qss";
         if (QFile::exists(compiledPath)) return compiledPath;
 
-        // Look for QSS directly in the directory
         QString qssPath = watchedDir_ + "/" + themeName + ".qss";
         if (QFile::exists(qssPath)) return qssPath;
     }
 
-    // Fall back to QRC
     QString qrcPath = ":/styles/" + themeName + ".qss";
     if (QFile::exists(qrcPath)) return qrcPath;
 
@@ -137,11 +186,9 @@ QString StyleManager::findThemeFile(const QString& themeName) const {
 QString StyleManager::compileScssToCss(const QString& scssPath) const {
     QByteArray pathUtf8 = scssPath.toUtf8();
 
-    // Create a file context for libsass
     struct Sass_File_Context* ctx = sass_make_file_context(pathUtf8.constData());
     struct Sass_Options* opts = sass_file_context_get_options(ctx);
 
-    // Set include path so @import "../shared/widgets" resolves
     QString includeDir = QFileInfo(scssPath).absolutePath();
     sass_option_set_include_path(opts, includeDir.toUtf8().constData());
     sass_option_set_output_style(opts, SASS_STYLE_EXPANDED);
@@ -149,7 +196,6 @@ QString StyleManager::compileScssToCss(const QString& scssPath) const {
 
     sass_file_context_set_options(ctx, opts);
 
-    // Compile
     int status = sass_compile_file_context(ctx);
     QString result;
 
@@ -169,19 +215,27 @@ QString StyleManager::compileScssToCss(const QString& scssPath) const {
 QStringList StyleManager::availableThemes() const {
     QStringList themes;
 
-    // From live-reload source
     if (!watchedDir_.isEmpty()) {
         themes += listThemesInDir(watchedDir_ + "/themes");
         themes += listThemesInDir(watchedDir_ + "/compiled");
         themes += listThemesInDir(watchedDir_);
     }
 
-    // From QRC
     themes += listThemesInDir(":/styles");
 
     themes.removeDuplicates();
     themes.sort();
     return themes;
+}
+
+QStringList StyleManager::availableBaseThemes() const {
+    QSet<QString> bases;
+    for (const auto& theme : availableThemes())
+        bases.insert(stripModeSuffix(theme));
+
+    QStringList result(bases.begin(), bases.end());
+    result.sort();
+    return result;
 }
 
 QStringList StyleManager::listThemesInDir(const QString& dir) const {

@@ -8,6 +8,11 @@
 // Sources 1 and 2 activate QFileSystemWatcher for live reload.
 // Source 1 compiles SCSS via libsass if the file is .scss.
 // Source 3 is pre-compiled QSS embedded at build time.
+//
+// Dark/light mode:
+//   Themes are named <slug>-dark and <slug>-light. Toggling mode switches
+//   between them. If the opposite mode doesn't exist, falls back to default.
+//   Last-used theme per mode is remembered so toggling back restores it.
 
 #pragma once
 
@@ -24,22 +29,44 @@ class StyleManager : public QObject {
 public:
     explicit StyleManager(QObject* parent = nullptr);
 
-    // Apply a theme by name (e.g. "synthwave-84-dark", "zinc-light").
+    // Apply a theme by full name (e.g. "synthwave-84-dark", "zinc-light").
     // Searches sources in priority order.
     void applyTheme(const QString& themeName);
 
-    // Get the currently applied theme name.
+    // Apply a theme by base name + mode (e.g. "synthwave-84", dark=true → "synthwave-84-dark").
+    void applyTheme(const QString& baseName, bool dark);
+
+    // Toggle between dark and light mode for the current theme.
+    // If current is "synthwave-84-dark", switches to "synthwave-84-light" (if it exists).
+    // Falls back to "default-light"/"default-dark" if the opposite doesn't exist.
+    // Remembers last theme per mode so toggling back restores it.
+    void toggleDarkMode();
+
+    // Set dark mode explicitly.
+    void setDarkMode(bool dark);
+
+    // Get the currently applied full theme name (e.g. "synthwave-84-dark").
     QString currentTheme() const { return currentTheme_; }
+
+    // Get the base theme name without -dark/-light suffix.
+    QString currentBaseName() const;
+
+    // Whether we're currently in dark mode.
+    bool isDarkMode() const { return isDark_; }
 
     // List available theme names from the active source.
     QStringList availableThemes() const;
+
+    // List available base theme names (without -dark/-light, deduplicated).
+    QStringList availableBaseThemes() const;
 
     // Whether we're using a live-reloaded source (dev path or AppData).
     bool isLiveReload() const { return !watchedDir_.isEmpty(); }
 
 signals:
     // Emitted when the stylesheet changes (live reload or explicit apply).
-    void themeChanged(const QString& themeName);
+    // Parameterless — callers use getters to read current state.
+    void themeChanged();
 
 private:
     void setupWatcher(const QString& dir);
@@ -49,9 +76,17 @@ private:
     QString findThemeFile(const QString& themeName) const;
     QStringList listThemesInDir(const QString& dir) const;
 
+    // Strips -dark or -light suffix from a theme name.
+    static QString stripModeSuffix(const QString& name);
+    // Whether a given theme exists in our sources.
+    bool themeExists(const QString& name) const;
+
     QString currentTheme_;
-    QString watchedDir_;        // active live-reload directory (empty = QRC mode)
-    QString devPath_;           // compile-time STYLES_DEV_PATH (empty in release)
-    QString userPath_;          // AppData/Local/<app>/styles/
+    bool isDark_ = true;
+    QString lastDarkTheme_;    // remember last dark theme for toggle-back
+    QString lastLightTheme_;   // remember last light theme for toggle-back
+    QString watchedDir_;
+    QString devPath_;
+    QString userPath_;
     QFileSystemWatcher watcher_;
 };

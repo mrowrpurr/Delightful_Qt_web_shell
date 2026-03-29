@@ -3,6 +3,14 @@ import { cn } from '@shared/lib/utils'
 import { applyTheme, loadThemes, getThemesSync, isDarkMode, setDarkMode, extractPreviewColor, extractBgColor, type ThemeEntry } from '@shared/lib/themes'
 import { loadGoogleFonts, getGoogleFontsSync, applyFont, type GoogleFont } from '@shared/lib/fonts'
 import { applyThemeEffects } from '../theme-effects'
+import { getSystemBridge } from '@shared/api/system-bridge'
+
+// Lazy-init the system bridge (may not be available in WASM/browser mode)
+let systemBridge: Awaited<ReturnType<typeof getSystemBridge>> | null = null
+getSystemBridge().then(b => { systemBridge = b }).catch(() => {})
+
+// Guard against infinite sync loops (React → Qt → React → ...)
+let syncGuard = false
 
 // ── Toggle switch ─────────────────────────────────────────
 
@@ -326,6 +334,11 @@ export default function SettingsTab() {
     if (theme) applyTheme(theme, newDark)
     applyThemeEffects(appTheme)
     notifyEditor()
+    // Sync to Qt
+    if (systemBridge && !syncGuard) {
+      syncGuard = true
+      systemBridge.setQtTheme(appTheme, newDark).finally(() => { syncGuard = false })
+    }
   }, [dark, themes, appTheme])
 
   const onAppTheme = useCallback((name: string) => {
@@ -338,7 +351,42 @@ export default function SettingsTab() {
       localStorage.setItem('editor-theme-name', name)
     }
     notifyEditor()
+    // Sync to Qt
+    if (systemBridge && !syncGuard) {
+      syncGuard = true
+      systemBridge.setQtTheme(name, dark).finally(() => { syncGuard = false })
+    }
   }, [themes, dark, editorUseAppTheme])
+
+  // ── Listen for Qt theme changes (toolbar dropdown / dark toggle) ──
+  useEffect(() => {
+    if (!systemBridge) return
+    const cleanup = systemBridge.qtThemeChanged(async () => {
+      if (syncGuard) return
+      syncGuard = true
+      try {
+        const state = await systemBridge!.getQtTheme()
+        // Update React to match Qt's theme
+        setDark(state.isDark)
+        setDarkMode(state.isDark)
+        // Try to find a matching React theme by base name
+        const theme = themes.find(t => t.name === state.baseName)
+        if (theme) {
+          setAppTheme(theme.name)
+          applyTheme(theme, state.isDark)
+          applyThemeEffects(theme.name)
+          if (editorUseAppTheme) {
+            setEditorTheme(theme.name)
+            localStorage.setItem('editor-theme-name', theme.name)
+          }
+          notifyEditor()
+        }
+      } finally {
+        syncGuard = false
+      }
+    })
+    return cleanup
+  }, [themes, editorUseAppTheme])
 
   const onAppFont = useCallback((family: string | null) => {
     setAppFont(family)

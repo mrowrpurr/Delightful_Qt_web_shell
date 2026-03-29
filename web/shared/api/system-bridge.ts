@@ -35,6 +35,11 @@ export interface SystemBridge {
   getDroppedFiles(): Promise<string[]>
   filesDropped(callback: () => void): () => void
 
+  // ── Qt theme control ──────────────────────────────────────
+  setQtTheme(baseName: string, isDark: boolean): Promise<{ ok: boolean }>
+  getQtTheme(): Promise<{ baseName: string; isDark: boolean }>
+  qtThemeChanged(callback: () => void): () => void
+
   // ── Native dialogs ─────────────────────────────────────
   openDialog(): Promise<{ ok: boolean }>
   openDialogRequested(callback: () => void): () => void
