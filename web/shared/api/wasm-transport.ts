@@ -46,7 +46,21 @@ export async function createWasmConnection(): Promise<BridgeConnection> {
 
   function makeBridgeProxy<T extends object>(bridgeName: string): T {
     const raw = bridges[bridgeName]
-    if (!raw) throw new Error(`Unknown WASM bridge: ${bridgeName}`)
+
+    // Stub proxy for bridges not implemented in WASM (e.g. SystemBridge).
+    // Every method returns a resolved Promise so the app doesn't crash.
+    if (!raw) {
+      console.warn(`WASM: bridge "${bridgeName}" not available — using no-op stub`)
+      return new Proxy({} as T, {
+        get(_, prop) {
+          if (typeof prop === 'symbol' || prop === 'then' || prop === 'toJSON') return undefined
+          // Signal subscriptions return a no-op cleanup
+          return (..._args: any[]) => {
+            return Promise.resolve({})
+          }
+        },
+      })
+    }
 
     return new Proxy({} as T, {
       get(_, prop) {
