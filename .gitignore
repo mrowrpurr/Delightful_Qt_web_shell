@@ -13,6 +13,10 @@ build/.desktop-binary.txt
 
 # WASM build artifacts copied by dev-wasm
 web/public/wasm-app.*
+web/apps/main/public/wasm-app.*
+
+# Desktop screenshots (tools/screenshot.py default output)
+screenshot.png
 
 # Dependencies
 node_modules/
