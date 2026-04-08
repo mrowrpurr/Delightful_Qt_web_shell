@@ -99,7 +99,19 @@ xmake build desktop
 xmake run desktop
 ```
 
-The first build takes ~30s (Vite + C++ compile). Subsequent builds skip Vite if web code hasn't changed.
+The first build takes ~30s (Vite + C++ compile). Subsequent builds always run Vite (~3s) then only recompile changed C++.
+
+### Skip Vite (C++ iteration)
+
+When you're only changing C++, skip the entire Vite build with `SKIP_VITE=1`:
+
+```bash
+SKIP_VITE=1 xmake build desktop       # ~2s instead of ~30s
+SKIP_VITE=1 xmake run desktop         # build + run, no Vite
+SKIP_VITE=1 xmake run start-desktop   # background launch, no Vite
+```
+
+Requires a previous Vite build — if `web_dist_resources.cpp` doesn't exist, it warns and builds anyway. This skips `bun install`, both Vite builds, qrc generation, and rcc.
 
 ## Dev Mode
 

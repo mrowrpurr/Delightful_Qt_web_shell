@@ -49,55 +49,67 @@ target("desktop")
         local base = os.scriptdir()
         local project_root = os.projectdir()
         local web_dir = path.join(project_root, "web")
-
-        -- Pass APP_NAME to Vite so index.html and React can use it
-        os.setenv("VITE_APP_NAME", _APP_NAME)
-
-        -- ── Build each web app ───────────────────────────────────
-        -- Each app lives in web/apps/<name>/ with its own vite.config.ts.
-        -- Always rebuild — Vite is fast (~3s) and stamp files are a footgun.
-        -- Vite can import files from anywhere (?raw imports from root, docs/, etc.)
-        -- so there's no reliable way to detect "nothing changed" without Vite itself.
-        local all_qrc_lines = {'<RCC>'}
-
-        os.execv("bun", {"install"}, {curdir = web_dir})
-
-        for _, app_name in ipairs(WEB_APPS) do
-            local app_dir = path.join(web_dir, "apps", app_name)
-            local dist_dir = path.join(app_dir, "dist")
-
-            os.execv("bun", {"run", "build:" .. app_name}, {curdir = web_dir})
-
-            -- Add this app's dist files to the qrc with prefix /web-<name>
-            table.insert(all_qrc_lines, '    <qresource prefix="/web-' .. app_name .. '">')
-            for _, f in ipairs(os.files(path.join(dist_dir, "**"))) do
-                local rel = path.relative(f, dist_dir):gsub("\\", "/")
-                local abs = path.absolute(f):gsub("\\", "/")
-                table.insert(all_qrc_lines, '        <file alias="' .. rel .. '">' .. abs .. '</file>')
-            end
-            table.insert(all_qrc_lines, '    </qresource>')
-        end
-
-        table.insert(all_qrc_lines, '</RCC>')
-
-        -- Write a single qrc containing all web apps
         local qrc_path = path.join(base, "web_dist.qrc")
-        io.writefile(qrc_path, table.concat(all_qrc_lines, "\n") .. "\n")
-
-        -- Compile the .qrc into a .cpp via rcc
-        --    Windows: bin/rcc.exe    macOS/Linux: libexec/rcc (since Qt 6.1)
-        local qt_dir = target:data("qt.dir") or get_config("qt")
-        local rcc
-        if is_host("windows") then
-            rcc = path.join(qt_dir, "bin", "rcc.exe")
-        else
-            rcc = path.join(qt_dir, "libexec", "rcc")
-            if not os.isfile(rcc) then
-                rcc = path.join(qt_dir, "bin", "rcc")
-            end
-        end
         local cpp_path = path.join(base, "web_dist_resources.cpp")
-        os.runv(rcc, {"-o", cpp_path, qrc_path})
+
+        -- ── Skip Vite build when SKIP_VITE=1 ──────────────────────
+        -- Use this when iterating on C++ only — saves ~25s per build.
+        -- Requires a previous Vite build (web_dist_resources.cpp must exist).
+        local skip_vite = os.getenv("SKIP_VITE") == "1" and os.isfile(cpp_path)
+        if skip_vite then
+            print("⚡ SKIP_VITE=1 — skipping Vite build (using existing web bundle)")
+        else
+            if os.getenv("SKIP_VITE") == "1" then
+                print("⚠️  SKIP_VITE=1 but no previous web build found — building anyway")
+            end
+
+            -- Pass APP_NAME to Vite so index.html and React can use it
+            os.setenv("VITE_APP_NAME", _APP_NAME)
+
+            -- ── Build each web app ───────────────────────────────────
+            -- Each app lives in web/apps/<name>/ with its own vite.config.ts.
+            -- Always rebuild — Vite is fast (~3s) and stamp files are a footgun.
+            -- Vite can import files from anywhere (?raw imports from root, docs/, etc.)
+            -- so there's no reliable way to detect "nothing changed" without Vite itself.
+            local all_qrc_lines = {'<RCC>'}
+
+            os.execv("bun", {"install"}, {curdir = web_dir})
+
+            for _, app_name in ipairs(WEB_APPS) do
+                local app_dir = path.join(web_dir, "apps", app_name)
+                local dist_dir = path.join(app_dir, "dist")
+
+                os.execv("bun", {"run", "build:" .. app_name}, {curdir = web_dir})
+
+                -- Add this app's dist files to the qrc with prefix /web-<name>
+                table.insert(all_qrc_lines, '    <qresource prefix="/web-' .. app_name .. '">')
+                for _, f in ipairs(os.files(path.join(dist_dir, "**"))) do
+                    local rel = path.relative(f, dist_dir):gsub("\\", "/")
+                    local abs = path.absolute(f):gsub("\\", "/")
+                    table.insert(all_qrc_lines, '        <file alias="' .. rel .. '">' .. abs .. '</file>')
+                end
+                table.insert(all_qrc_lines, '    </qresource>')
+            end
+
+            table.insert(all_qrc_lines, '</RCC>')
+
+            -- Write a single qrc containing all web apps
+            io.writefile(qrc_path, table.concat(all_qrc_lines, "\n") .. "\n")
+
+            -- Compile the .qrc into a .cpp via rcc
+            --    Windows: bin/rcc.exe    macOS/Linux: libexec/rcc (since Qt 6.1)
+            local qt_dir = target:data("qt.dir") or get_config("qt")
+            local rcc
+            if is_host("windows") then
+                rcc = path.join(qt_dir, "bin", "rcc.exe")
+            else
+                rcc = path.join(qt_dir, "libexec", "rcc")
+                if not os.isfile(rcc) then
+                    rcc = path.join(qt_dir, "bin", "rcc")
+                end
+            end
+            os.runv(rcc, {"-o", cpp_path, qrc_path})
+        end
 
         -- Generate Windows resource file (app.rc) from APP_NAME/APP_SLUG
         if is_plat("windows") then
