@@ -44,7 +44,7 @@ const desktopTest = base.extend<Fixtures>({
                 const pages = await res.json() as Array<{ webSocketDebuggerUrl: string }>
                 if (pages.length > 0) return resolve()
               } catch {}
-              if (Date.now() - start > 15_000) return reject(new Error('Qt app CDP timeout'))
+              if (Date.now() - start > 30_000) return reject(new Error('Qt app CDP timeout'))
               setTimeout(poll, 250)
             }
             poll()

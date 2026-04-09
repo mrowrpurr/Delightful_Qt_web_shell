@@ -1,5 +1,6 @@
 -- Capture at parse time — globals aren't available inside before_build closures
 local _APP_NAME    = APP_NAME
+local _TEMPLATE_ROOT = TEMPLATE_ROOT
 local _APP_SLUG    = APP_SLUG
 local _APP_ORG     = APP_ORG
 local _APP_VERSION = APP_VERSION
@@ -41,14 +42,13 @@ target("desktop")
     -- Point at the repo's styles folder for live SCSS reload during development.
     -- Not set in CI (no STYLES_DEV_PATH define → falls back to QRC embedded themes).
     if not os.getenv("CI") then
-        local styles_path = path.join(os.projectdir(), "desktop", "styles"):gsub("\\", "/")
+        local styles_path = path.join(TEMPLATE_ROOT, "desktop", "styles"):gsub("\\", "/")
         add_defines('STYLES_DEV_PATH="' .. styles_path .. '"')
     end
 
     before_build(function(target)
         local base = os.scriptdir()
-        local project_root = os.projectdir()
-        local web_dir = path.join(project_root, "web")
+        local web_dir = path.join(_TEMPLATE_ROOT, "web")
         local qrc_path = path.join(base, "web_dist.qrc")
         local cpp_path = path.join(base, "web_dist_resources.cpp")
 
@@ -154,5 +154,8 @@ target("desktop")
 
     -- Write the binary path so Playwright desktop tests can find and launch it.
     after_build(function(target)
-        io.writefile(path.join(os.projectdir(), "build", ".desktop-binary.txt"), target:targetfile())
+        local abs_exe = path.absolute(target:targetfile())
+        -- Write to template root so tests (which run from there) can find it
+        os.mkdir(path.join(_TEMPLATE_ROOT, "build"))
+        io.writefile(path.join(_TEMPLATE_ROOT, "build", ".desktop-binary.txt"), abs_exe)
     end)

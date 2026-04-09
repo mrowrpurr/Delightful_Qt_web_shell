@@ -1,3 +1,6 @@
+-- Capture at parse time — globals aren't available inside on_run closures
+local _TEMPLATE_ROOT = TEMPLATE_ROOT
+
 -- ── Scaffold a new bridge ────────────────────────────────────────────
 --
 -- xmake run scaffold-bridge settings
@@ -28,7 +31,7 @@ target("scaffold-bridge")
         local class_name = slug:gsub("(%a)([%w]*)",             -- SettingsBridge
             function(a, b) return a:upper() .. b end):gsub("-", "") .. "Bridge"
 
-        local root = os.projectdir()
+        local root = _TEMPLATE_ROOT
         local hpp_path = path.join(root, "lib", "bridges", "qt", "include", file_name .. ".hpp")
 
         -- ── Guard against overwrite ─────────────────────────────

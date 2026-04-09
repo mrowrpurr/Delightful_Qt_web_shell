@@ -263,6 +263,9 @@ public:
         return {{"ok", true}};
     }
 
+    // Returns true if anything is connected to saveRequested (i.e. React is listening).
+    bool hasSaveHandler() const { return receivers(SIGNAL(saveRequested())) > 0; }
+
 signals:
     // Emitted when the Qt QSS theme changes (from toolbar or bridge call).
     // Parameterless — React calls getQtTheme() to read the new state.

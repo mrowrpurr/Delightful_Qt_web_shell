@@ -1,3 +1,6 @@
+-- Capture at parse time — globals aren't available inside on_run closures
+local _TEMPLATE_ROOT = TEMPLATE_ROOT
+
 -- ── Setup (install all dependencies) ──────────────────────────────────
 
 target("setup")
@@ -5,7 +8,7 @@ target("setup")
     set_default(false)
     on_run(function()
         import("lib.detect.find_tool")
-        local root = os.projectdir()
+        local root = _TEMPLATE_ROOT
 
         print("── uv sync ──")
         os.execv("uv", {"sync"}, {curdir = root})

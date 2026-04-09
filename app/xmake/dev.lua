@@ -1,5 +1,6 @@
 -- Capture at parse time — globals aren't available inside on_run closures
 local _APP_NAME = APP_NAME
+local _TEMPLATE_ROOT = TEMPLATE_ROOT
 
 -- ── Vite dev servers ────────────────────────────────────────────────
 -- One target per web app. Each runs Vite on its own port.
@@ -9,7 +10,7 @@ target("dev-web")
     set_default(false)
     on_run(function()
         -- Default: start the main app's dev server
-        local web_dir = path.join(os.projectdir(), "web")
+        local web_dir = path.join(_TEMPLATE_ROOT, "web")
         local envs = os.getenvs()
         envs["VITE_APP_NAME"] = _APP_NAME
         os.execv("bun", {"run", "dev:main"}, {curdir = web_dir, envs = envs})
@@ -19,7 +20,7 @@ target("dev-web-main")
     set_kind("phony")
     set_default(false)
     on_run(function()
-        local web_dir = path.join(os.projectdir(), "web")
+        local web_dir = path.join(_TEMPLATE_ROOT, "web")
         local envs = os.getenvs()
         envs["VITE_APP_NAME"] = _APP_NAME
         os.execv("bun", {"run", "dev:main"}, {curdir = web_dir, envs = envs})
@@ -29,7 +30,7 @@ target("dev-web-docs")
     set_kind("phony")
     set_default(false)
     on_run(function()
-        local web_dir = path.join(os.projectdir(), "web")
+        local web_dir = path.join(_TEMPLATE_ROOT, "web")
         local envs = os.getenvs()
         envs["VITE_APP_NAME"] = _APP_NAME
         os.execv("bun", {"run", "dev:docs"}, {curdir = web_dir, envs = envs})
@@ -41,7 +42,7 @@ target("storybook")
     set_kind("phony")
     set_default(false)
     on_run(function()
-        local web_dir = path.join(os.projectdir(), "web")
+        local web_dir = path.join(_TEMPLATE_ROOT, "web")
         os.execv("bun", {"run", "storybook"}, {curdir = web_dir})
     end)
 

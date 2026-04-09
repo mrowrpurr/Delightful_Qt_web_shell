@@ -1,5 +1,6 @@
 -- Capture at parse time — globals aren't available inside on_run closures
 local _APP_NAME = APP_NAME
+local _TEMPLATE_ROOT = TEMPLATE_ROOT
 
 -- ── C++ unit tests (Catch2, no Qt) ──────────────────────────────────
 
@@ -7,7 +8,7 @@ target("test-todo-store")
     set_kind("binary")
     set_default(false)
     add_deps("todos")
-    add_files("$(projectdir)/lib/todos/tests/unit/todo_store_test.cpp")
+    add_files(path.join(TEMPLATE_ROOT, "lib", "todos", "tests", "unit", "todo_store_test.cpp"))
     add_packages("catch2")
 
 -- ── pywinauto tests (native Qt window) ─────────────────────────────
@@ -17,7 +18,7 @@ target("test-pywinauto")
     set_default(false)
     on_run(function()
         print(">>> uv run pytest tests/pywinauto/ (requires running desktop app)")
-        local base = os.projectdir()
+        local base = _TEMPLATE_ROOT
         os.execv("uv", {"run", "pytest", "tests/pywinauto/", "-v"}, {curdir = base})
     end)
 
@@ -28,7 +29,7 @@ target("test-browser")
     set_default(false)
     on_run(function()
         print(">>> npx playwright test (browser)")
-        local base = os.projectdir()
+        local base = _TEMPLATE_ROOT
         os.execv("npx", {"playwright", "test"}, {curdir = base, envs = {VITE_APP_NAME = _APP_NAME}})
     end)
 
@@ -39,7 +40,7 @@ target("test-desktop")
     set_default(false)
     on_run(function()
         print(">>> npx playwright test (desktop)")
-        local base = os.projectdir()
+        local base = _TEMPLATE_ROOT
         os.execv("npx", {"playwright", "test"}, {curdir = base, envs = {DESKTOP = "1"}})
     end)
 
@@ -52,7 +53,7 @@ target("validate-bridges")
     set_default(false)
     add_deps("dev-server")
     on_run(function(target)
-        local base = os.projectdir()
+        local base = _TEMPLATE_ROOT
         local port = 19876  -- use a different port to avoid conflicts
 
         -- Start dev-server in background
@@ -94,7 +95,7 @@ target("test-bun")
     set_default(false)
     on_run(function()
         print(">>> bun test")
-        local base = os.projectdir()
+        local base = _TEMPLATE_ROOT
         os.execv("bun", {"test"}, {curdir = base})
     end)
 

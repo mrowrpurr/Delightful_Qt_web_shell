@@ -22,6 +22,7 @@
 #include "dialogs/web_dialog.hpp"
 #include "style_manager.hpp"
 #include "web_shell.hpp"
+#include "system_bridge.hpp"
 
 #include <QAction>
 #include <QApplication>
@@ -73,12 +74,15 @@ MenuActions buildMenuBar(QMainWindow* window) {
     out.save->setToolTip("Save file (Ctrl+S)");
     {
         auto* appInstance = qobject_cast<Application*>(qApp);
-        QObject* bridge = appInstance ? appInstance->shell()->bridges().value("system") : nullptr;
-        QObject::connect(out.save, &QAction::triggered, window, [window, bridge]() {
-            if (bridge) {
-                // Emit saveRequested — React intercepts if editing a theme
-                QMetaObject::invokeMethod(bridge, "saveRequested");
+        auto* sysBridge = appInstance
+            ? qobject_cast<SystemBridge*>(appInstance->shell()->bridges().value("system"))
+            : nullptr;
+        QObject::connect(out.save, &QAction::triggered, window, [window, sysBridge]() {
+            if (sysBridge && sysBridge->hasSaveHandler()) {
+                // React is listening — let it handle the save
+                emit sysBridge->saveRequested();
             } else {
+                // No listener — fall back to native file picker
                 QString path = QFileDialog::getSaveFileName(
                     window, "Save File", "", "JSON Files (*.json);;All Files (*)");
                 if (!path.isEmpty())

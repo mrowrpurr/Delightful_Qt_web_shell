@@ -16,7 +16,7 @@ from win32_helpers import close_windows_by_title
 
 
 APP_TITLE = "Delightful Qt Web Shell"
-APP_CLASS = "QMainWindow"
+APP_CLASS = "MainWindow"
 
 
 @pytest.fixture

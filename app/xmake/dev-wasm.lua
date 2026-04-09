@@ -8,14 +8,14 @@
 --   xmake run dev-wasm
 
 local _APP_NAME = APP_NAME
+local _TEMPLATE_ROOT = TEMPLATE_ROOT
 
 target("dev-wasm")
     set_kind("phony")
     set_default(false)
     on_run(function()
-        local root = os.projectdir()
-        local wasm_build = path.join(root, "build", "wasm", "wasm32", "release")
-        local public_dir = path.join(root, "web", "apps", "main", "public")
+        local wasm_build = path.join(os.projectdir(), "build", "wasm", "wasm32", "release")
+        local public_dir = path.join(_TEMPLATE_ROOT, "web", "apps", "main", "public")
 
         -- Verify WASM was built
         local js_file = path.join(wasm_build, "wasm-app.js")
@@ -31,7 +31,7 @@ target("dev-wasm")
         print("Copied WASM artifacts to web/apps/main/public/")
 
         -- Start Vite with WASM transport
-        local web_dir = path.join(root, "web")
+        local web_dir = path.join(_TEMPLATE_ROOT, "web")
         local envs = os.getenvs()
         envs["VITE_APP_NAME"] = _APP_NAME
         envs["VITE_TRANSPORT"] = "wasm"

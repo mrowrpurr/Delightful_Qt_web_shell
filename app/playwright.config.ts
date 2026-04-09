@@ -16,7 +16,7 @@ const isDesktop = process.env.DESKTOP === '1'
 function getDevServerCommand(): string {
   try {
     const exe = fs.readFileSync('build/.dev-server-binary.txt', 'utf8').trim()
-    if (fs.existsSync(exe)) return exe
+    if (fs.existsSync(exe)) return `"${exe}"`
   } catch {}
   // Fallback for first run (before any build). Works but leaks on Windows.
   return 'xmake run dev-server'
@@ -30,8 +30,8 @@ export default defineConfig({
   // In desktop mode, the Qt app is the server — no Vite or backend needed.
   webServer: isDesktop ? [] : [
     {
-      command: 'bun run dev:main',
-      cwd: './web',
+      command: 'npx vite',
+      cwd: './web/apps/main',
       port: 5173,
       reuseExistingServer: !process.env.CI,
       env: { VITE_APP_NAME: process.env.VITE_APP_NAME || 'Test App' },
