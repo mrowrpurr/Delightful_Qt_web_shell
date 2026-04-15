@@ -52,8 +52,25 @@ async function setupQtThemeListener() {
 }
 setupQtThemeListener()
 
+const TAB_TITLES: Record<string, string> = {
+  docs: '📖 Docs',
+  editor: '✏️ Editor',
+  todos: '✅ Todos',
+  files: '📂 Files',
+  system: '⚙️ System',
+  settings: '🎨 Settings',
+}
+
 export default function App() {
   useEffect(() => { signalReady() }, [])
+
+  const [currentTab, setCurrentTab] = useState('docs')
+
+  // Update document.title when the active tab changes — this drives
+  // the dock widget tab label on the Qt side via titleChanged signal.
+  useEffect(() => {
+    document.title = TAB_TITLES[currentTab] ?? import.meta.env.VITE_APP_NAME ?? 'App'
+  }, [currentTab])
 
   const [pageTransparency, setPageTransparency] = useState(
     () => parseInt(localStorage.getItem('page-transparency') ?? '0', 10) || 0
@@ -75,7 +92,7 @@ export default function App() {
         backgroundColor: `oklch(from var(--color-background) l c h / ${(100 - pageTransparency) / 100})`,
       } : undefined}
     >
-      <Tabs defaultValue="docs" className="w-full">
+      <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
         <div className="border-b border-border flex justify-center py-2 sticky top-0 z-50 bg-background/95 backdrop-blur-sm">
           <TabsList className="h-10">
             <TabsTrigger value="docs">📖 Docs</TabsTrigger>
