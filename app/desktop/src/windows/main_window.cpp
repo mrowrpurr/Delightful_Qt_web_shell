@@ -11,6 +11,7 @@
 #include "application.hpp"
 #include "dock_manager.hpp"
 #include "menus/menu_bar.hpp"
+#include "widgets/dock_tab_manager.hpp"
 #include "widgets/status_bar.hpp"
 #include "widgets/web_shell_widget.hpp"
 
@@ -71,6 +72,7 @@ MainWindow::MainWindow(const QString& windowId, QWidget* parent)
 
     setDockNestingEnabled(true);
     setTabPosition(Qt::TopDockWidgetArea, QTabWidget::North);
+    tabManager_ = new DockTabManager(this);
 
     // ── Docks ─────────────────────────────────────────────────
     auto* app = qobject_cast<Application*>(qApp);
@@ -151,6 +153,7 @@ void MainWindow::addDock(QDockWidget* dock) {
 
     // Event filter for floating dock activation and close detection.
     dock->installEventFilter(this);
+    tabManager_->manage(dock);
 
     // ── Track active dock ────────────────────────────────────
     connect(dock, &QDockWidget::topLevelChanged, this, [this, dock](bool) {
@@ -181,6 +184,7 @@ void MainWindow::addDock(QDockWidget* dock) {
 }
 
 void MainWindow::removeDock(QDockWidget* dock) {
+    tabManager_->unmanage(dock);
     docks_.removeOne(dock);
 
     if (activeDock_ == dock) {
@@ -199,30 +203,27 @@ void MainWindow::wireTabBar() {
             tabBar->setProperty("dockWired", true);
             tabBar->setTabsClosable(true);
             tabBar->installEventFilter(this);
+            tabManager_->manageTabBar(tabBar);
 
-            connect(tabBar, &QTabBar::tabCloseRequested, this, [this, dm](int index) {
-                if (docks_.isEmpty()) return;
-                auto tabified = tabifiedDockWidgets(docks_.first());
-                QList<QDockWidget*> allTabbed;
-                allTabbed.append(docks_.first());
-                allTabbed.append(tabified);
-
-                if (index >= 0 && index < allTabbed.size() && docks_.size() > 1)
-                    dm->closeDock(allTabbed[index]);
+            connect(tabBar, &QTabBar::tabCloseRequested, this, [this, tabBar, dm](int index) {
+                if (docks_.size() <= 1 || index < 0 || index >= tabBar->count()) return;
+                QString title = tabBar->tabText(index);
+                for (auto* dock : docks_) {
+                    if (dock->windowTitle() == title) {
+                        dm->closeDock(dock);
+                        break;
+                    }
+                }
             });
 
-            connect(tabBar, &QTabBar::currentChanged, this, [this](int index) {
-                if (docks_.isEmpty() || index < 0) return;
-                auto tabified = tabifiedDockWidgets(docks_.first());
-                QList<QDockWidget*> allTabbed;
-                allTabbed.append(docks_.first());
-                allTabbed.append(tabified);
-
-                if (index < allTabbed.size()) {
-                    auto* dock = allTabbed[index];
-                    if (activeDock_ != dock) {
+            connect(tabBar, &QTabBar::currentChanged, this, [this, tabBar](int index) {
+                if (docks_.isEmpty() || index < 0 || index >= tabBar->count()) return;
+                QString title = tabBar->tabText(index);
+                for (auto* dock : docks_) {
+                    if (dock->windowTitle() == title && activeDock_ != dock) {
                         activeDock_ = dock;
                         wireToActiveDock();
+                        break;
                     }
                 }
             });
@@ -301,14 +302,16 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
             auto* me = static_cast<QMouseEvent*>(event);
             if (me->button() == Qt::MiddleButton) {
                 int index = tabBar->tabAt(me->pos());
-                if (index >= 0 && !docks_.isEmpty() && docks_.size() > 1) {
-                    auto tabified = tabifiedDockWidgets(docks_.first());
-                    QList<QDockWidget*> allTabbed;
-                    allTabbed.append(docks_.first());
-                    allTabbed.append(tabified);
-                    if (index < allTabbed.size()) {
-                        auto* dm = qobject_cast<Application*>(qApp)->dockManager();
-                        dm->closeDock(allTabbed[index]);
+                if (index >= 0 && docks_.size() > 1) {
+                    // Resolve by tab title — index-based lookup is unreliable
+                    // because tabifiedDockWidgets() order != visual tab order.
+                    QString title = tabBar->tabText(index);
+                    for (auto* dock : docks_) {
+                        if (dock->windowTitle() == title) {
+                            auto* dm = qobject_cast<Application*>(qApp)->dockManager();
+                            dm->closeDock(dock);
+                            break;
+                        }
                     }
                     return true;
                 }

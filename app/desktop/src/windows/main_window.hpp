@@ -16,6 +16,7 @@
 #include <QList>
 #include <QUrl>
 
+class DockTabManager;
 class QDockWidget;
 class StatusBar;
 class WebShellWidget;
@@ -55,5 +56,6 @@ private:
     QDockWidget* activeDock_ = nullptr;
     StatusBar* statusBar_ = nullptr;
     MenuActions* actions_ = nullptr;
+    DockTabManager* tabManager_ = nullptr;
     bool closed_ = false;
 };
