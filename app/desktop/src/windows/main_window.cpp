@@ -22,6 +22,7 @@
 #include <QSystemTrayIcon>
 #include <QTabBar>
 #include <QTimer>
+#include <QUuid>
 #include <QWebEnginePage>
 #include <QWebEngineView>
 
@@ -29,15 +30,22 @@
 #include "system_bridge.hpp"
 #include "web_shell.hpp"
 
-MainWindow::MainWindow(bool shouldRestoreDocks, QWidget* parent)
+MainWindow::MainWindow(const QString& windowId, QWidget* parent)
     : QMainWindow(parent)
 {
+    // Assign or generate a UUID for this window.
+    if (windowId.isEmpty())
+        setObjectName(QUuid::createUuid().toString(QUuid::WithoutBraces));
+    else
+        setObjectName(windowId);
+
     setWindowTitle(APP_NAME);
 
     // ── Restore geometry or default to 900×640 centered ──────
     QSettings settings(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
-    if (settings.contains("window/geometry")) {
-        restoreGeometry(settings.value("window/geometry").toByteArray());
+    QString geoKey = "window/" + objectName() + "/geometry";
+    if (settings.contains(geoKey)) {
+        restoreGeometry(settings.value(geoKey).toByteArray());
     } else {
         resize(900, 640);
         if (auto* screen = QApplication::primaryScreen()) {
@@ -68,7 +76,7 @@ MainWindow::MainWindow(bool shouldRestoreDocks, QWidget* parent)
     auto* app = qobject_cast<Application*>(qApp);
     auto* dm = app->dockManager();
 
-    if (shouldRestoreDocks)
+    if (!windowId.isEmpty())
         dm->restoreDocks(this);
 
     // If no docks were restored (or this is a fresh window), create a default one.
@@ -81,7 +89,7 @@ MainWindow::MainWindow(bool shouldRestoreDocks, QWidget* parent)
 
     // ── Wire window + dock actions ───────────────────────────
     connect(actions_->newWindow, &QAction::triggered, this, []() {
-        auto* win = new MainWindow(false);
+        auto* win = new MainWindow();
         win->show();
     });
 
@@ -115,15 +123,20 @@ MainWindow::MainWindow(bool shouldRestoreDocks, QWidget* parent)
     // Dock persistence is handled by DockManager. MainWindow only
     // saves its own geometry and zoom level.
     connect(qApp, &QApplication::aboutToQuit, this, [this]() {
+        // Don't re-save a window that was already closed.
+        if (closed_) return;
         QSettings s(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
-        s.setValue("window/geometry", saveGeometry());
+        QString key = "window/" + objectName();
+        s.setValue(key + "/geometry", saveGeometry());
         if (auto* tab = activeTab())
-            s.setValue("window/zoomFactor", tab->view()->zoomFactor());
+            s.setValue(key + "/zoomFactor", tab->view()->zoomFactor());
     });
 
     // ── Restore zoom on first dock ───────────────────────────
-    if (auto* tab = activeTab())
-        tab->view()->setZoomFactor(settings.value("window/zoomFactor", 1.0).toReal());
+    if (auto* tab = activeTab()) {
+        QString zoomKey = "window/" + objectName() + "/zoomFactor";
+        tab->view()->setZoomFactor(settings.value(zoomKey, 1.0).toReal());
+    }
 }
 
 // ── Dock hosting ─────────────────────────────────────────────
@@ -343,6 +356,11 @@ void MainWindow::closeEvent(QCloseEvent* event) {
         auto docksToClose = docks_;
         for (auto* dock : docksToClose)
             dm->closeDock(dock);
+
+        // Remove this window's state from settings.
+        closed_ = true;
+        QSettings s(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
+        s.remove("window/" + objectName());
 
         QMainWindow::closeEvent(event);
     }

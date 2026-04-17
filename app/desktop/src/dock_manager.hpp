@@ -35,8 +35,12 @@ public:
     // Close and unregister a dock. Persists the removal immediately.
     void closeDock(QDockWidget* dock);
 
-    // Restore docks from QSettings. Called once during startup.
+    // Restore docks for a specific window from QSettings.
     void restoreDocks(MainWindow* host);
+
+    // Restore all saved windows and their docks. Returns the list of
+    // created MainWindows. If no windows were saved, returns empty.
+    QList<MainWindow*> restoreWindows();
 
     // Close all top-level windows. Called from aboutToQuit.
     void shutdownAll();

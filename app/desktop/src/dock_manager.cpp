@@ -130,26 +130,32 @@ void DockManager::restoreDocks(MainWindow* host) {
     s.remove("window/dockUrls");
     s.remove("window/dockNames");
     s.remove("window/state");
+    // Migration: remove old global window geometry (now per-window).
+    s.remove("window/geometry");
+    s.remove("window/zoomFactor");
 
     // dock/<uuid>/url, dock/<uuid>/floating, etc.
-    // Enter the "dock" group, then enumerate UUIDs.
     s.beginGroup("dock");
     QStringList dockIds = s.childGroups();
     s.endGroup();
 
     if (dockIds.isEmpty()) {
-        log("restoreDocks: no saved docks found");
+        log(QString("restoreDocks: no saved docks for window %1").arg(host->windowId()));
         return;
     }
 
-    log(QString("restoreDocks: found %1 saved docks").arg(dockIds.size()));
-
-    // Collect saved state, then clear old records.
-    // createDock() writes fresh records with new UUIDs.
+    // Collect docks that belong to this window (or have no window — migration).
     struct DockState { QUrl url; bool floating; QByteArray geometry; int order; };
     QList<DockState> saved;
     for (const auto& id : dockIds) {
         QString key = "dock/" + id;
+        QString dockWindow = s.value(key + "/window").toString();
+
+        // Only restore docks belonging to this window.
+        // Empty window field = legacy data, assign to this window.
+        if (!dockWindow.isEmpty() && dockWindow != host->windowId())
+            continue;
+
         saved.append({
             QUrl(s.value(key + "/url").toString()),
             s.value(key + "/floating", false).toBool(),
@@ -158,6 +164,14 @@ void DockManager::restoreDocks(MainWindow* host) {
         });
         s.remove("dock/" + id);  // clean up old record
     }
+
+    if (saved.isEmpty()) {
+        log(QString("restoreDocks: no docks for window %1").arg(host->windowId()));
+        return;
+    }
+
+    log(QString("restoreDocks: found %1 docks for window %2")
+        .arg(saved.size()).arg(host->windowId()));
 
     // Sort by saved order so tabs restore in the right sequence.
     std::sort(saved.begin(), saved.end(),
@@ -180,6 +194,26 @@ void DockManager::restoreDocks(MainWindow* host) {
     // Save the correct state now that all docks are in their final positions.
     for (auto* dock : docks_)
         saveDock(dock);
+}
+
+QList<MainWindow*> DockManager::restoreWindows() {
+    QSettings s(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
+
+    // Find all saved window IDs.
+    s.beginGroup("window");
+    QStringList windowIds = s.childGroups();
+    s.endGroup();
+
+    log(QString("restoreWindows: found %1 saved windows").arg(windowIds.size()));
+
+    QList<MainWindow*> windows;
+    for (const auto& id : windowIds) {
+        auto* win = new MainWindow(id);
+        windows.append(win);
+        log(QString("  created MainWindow: %1").arg(id));
+    }
+
+    return windows;
 }
 
 // ── Shutdown ─────────────────────────────────────────────────
@@ -238,12 +272,24 @@ void DockManager::saveDock(QDockWidget* dock) {
     bool floating = dock->isFloating();
     int order = docks_.indexOf(dock);
 
-    log(QString("saveDock: %1 floating=%2 order=%3 url=%4")
-        .arg(dock->objectName()).arg(floating).arg(order).arg(url));
+    // Find the host MainWindow for this dock.
+    QString windowId;
+    for (auto* w : QApplication::topLevelWidgets()) {
+        if (auto* mw = qobject_cast<MainWindow*>(w)) {
+            if (mw->docks().contains(dock)) {
+                windowId = mw->windowId();
+                break;
+            }
+        }
+    }
+
+    log(QString("saveDock: %1 floating=%2 order=%3 window=%4 url=%5")
+        .arg(dock->objectName()).arg(floating).arg(order).arg(windowId, url));
 
     s.setValue(key + "/url", url);
     s.setValue(key + "/floating", floating);
     s.setValue(key + "/order", order);
+    s.setValue(key + "/window", windowId);
     if (floating)
         s.setValue(key + "/geometry", dock->saveGeometry());
 }

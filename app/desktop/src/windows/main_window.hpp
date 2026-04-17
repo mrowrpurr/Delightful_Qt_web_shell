@@ -25,9 +25,9 @@ class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    // restoreDocks: if true, restore saved docks from settings.
-    // Pass false for Ctrl+N windows — they get one fresh dock.
-    explicit MainWindow(bool restoreDocks = true, QWidget* parent = nullptr);
+    // windowId: if non-empty, restore this window's geometry from settings.
+    // Empty = fresh window with default geometry.
+    explicit MainWindow(const QString& windowId = {}, QWidget* parent = nullptr);
 
     // Add a dock to this window's UI. Called by DockManager after creating the dock.
     void addDock(QDockWidget* dock);
@@ -37,6 +37,9 @@ public:
 
     // Docks currently hosted in this window.
     const QList<QDockWidget*>& docks() const { return docks_; }
+
+    // This window's unique ID (used as key in settings).
+    QString windowId() const { return objectName(); }
 
 protected:
     void closeEvent(QCloseEvent* event) override;
@@ -52,4 +55,5 @@ private:
     QDockWidget* activeDock_ = nullptr;
     StatusBar* statusBar_ = nullptr;
     MenuActions* actions_ = nullptr;
+    bool closed_ = false;
 };

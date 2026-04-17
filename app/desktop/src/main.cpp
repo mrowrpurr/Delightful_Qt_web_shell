@@ -2,6 +2,7 @@
 // Everything interesting lives in the classes this file wires together.
 
 #include "application.hpp"
+#include "dock_manager.hpp"
 #include "system_bridge.hpp"
 #include "web_shell.hpp"
 #include "widgets/scheme_handler.hpp"
@@ -20,11 +21,13 @@ int main(int argc, char* argv[]) {
     // This process exits cleanly — the user sees the existing window raise.
     if (!app.isPrimaryInstance()) return 0;
 
-    MainWindow window;
+    // Restore saved windows, or create one default window.
+    auto windows = app.dockManager()->restoreWindows();
+    if (windows.isEmpty())
+        windows.append(new MainWindow());
 
     // When another instance tries to launch, raise any visible MainWindow.
-    // Falls back to the original window if none are visible (e.g. all hidden to tray).
-    QObject::connect(&app, &Application::activationRequested, &window, [&window]() {
+    QObject::connect(&app, &Application::activationRequested, windows.first(), [&windows]() {
         for (auto* w : QApplication::topLevelWidgets()) {
             if (auto* mw = qobject_cast<MainWindow*>(w); mw && mw->isVisible()) {
                 mw->raise();
@@ -32,10 +35,12 @@ int main(int argc, char* argv[]) {
                 return;
             }
         }
-        // No visible windows — show the original
-        window.show();
-        window.raise();
-        window.activateWindow();
+        // No visible windows — show the first one
+        if (!windows.isEmpty()) {
+            windows.first()->show();
+            windows.first()->raise();
+            windows.first()->activateWindow();
+        }
     });
 
     // Forward args to the SystemBridge so React can see them.
@@ -52,11 +57,17 @@ int main(int argc, char* argv[]) {
             systemBridge->handleArgs(args);
     }
 
-    // Show invisible, let Qt paint the dark background, then reveal.
-    // This prevents a white flash on the first frame.
-    window.setWindowOpacity(0.0);
-    window.show();
-    QTimer::singleShot(0, [&window]() { window.setWindowOpacity(1.0); });
+    // Show all windows. First one gets the anti-flash treatment.
+    for (int i = 0; i < windows.size(); ++i) {
+        auto* win = windows[i];
+        if (i == 0) {
+            win->setWindowOpacity(0.0);
+            win->show();
+            QTimer::singleShot(0, [win]() { win->setWindowOpacity(1.0); });
+        } else {
+            win->show();
+        }
+    }
 
     return app.exec();
 }
