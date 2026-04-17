@@ -30,7 +30,9 @@ public:
 
     // Create a new dock and register it. If host is provided, the dock
     // is added to that MainWindow; otherwise it floats independently.
-    QDockWidget* createDock(const QUrl& contentUrl = {}, MainWindow* host = nullptr);
+    // If dockId is provided, reuse it as the objectName (for restore).
+    QDockWidget* createDock(const QUrl& contentUrl = {}, MainWindow* host = nullptr,
+                            const QString& dockId = {});
 
     // Close and unregister a dock. Persists the removal immediately.
     void closeDock(QDockWidget* dock);

@@ -52,7 +52,8 @@ DockManager::DockManager(QObject* parent)
 
 // ── Create ───────────────────────────────────────────────────
 
-QDockWidget* DockManager::createDock(const QUrl& contentUrl, MainWindow* host) {
+QDockWidget* DockManager::createDock(const QUrl& contentUrl, MainWindow* host,
+                                     const QString& dockId) {
     auto* app = qobject_cast<Application*>(qApp);
     QUrl url = contentUrl.isEmpty() ? app->appUrl("main") : contentUrl;
 
@@ -61,7 +62,9 @@ QDockWidget* DockManager::createDock(const QUrl& contentUrl, MainWindow* host) {
         WebShellWidget::FullOverlay);
 
     auto* dock = new QDockWidget(APP_NAME);
-    QString id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    QString id = dockId.isEmpty()
+        ? QUuid::createUuid().toString(QUuid::WithoutBraces)
+        : dockId;
     dock->setObjectName(id);
     dock->setWidget(widget);
     dock->setAllowedAreas(Qt::AllDockWidgetAreas);
@@ -145,7 +148,7 @@ void DockManager::restoreDocks(MainWindow* host) {
     }
 
     // Collect docks that belong to this window (or have no window — migration).
-    struct DockState { QUrl url; bool floating; QByteArray geometry; int order; };
+    struct DockState { QString id; QUrl url; bool floating; QByteArray geometry; int order; };
     QList<DockState> saved;
     for (const auto& id : dockIds) {
         QString key = "dock/" + id;
@@ -157,12 +160,12 @@ void DockManager::restoreDocks(MainWindow* host) {
             continue;
 
         saved.append({
+            id,
             QUrl(s.value(key + "/url").toString()),
             s.value(key + "/floating", false).toBool(),
             s.value(key + "/geometry").toByteArray(),
             s.value(key + "/order", 999).toInt()
         });
-        s.remove("dock/" + id);  // clean up old record
     }
 
     if (saved.isEmpty()) {
@@ -177,23 +180,38 @@ void DockManager::restoreDocks(MainWindow* host) {
     std::sort(saved.begin(), saved.end(),
               [](const DockState& a, const DockState& b) { return a.order < b.order; });
 
+    // Phase 1: Create all docks with their original IDs (for restoreState matching).
     restoring_ = true;
     for (const auto& state : saved) {
-        auto* dock = createDock(state.url, host);
+        createDock(state.url, host, state.id);
+        log(QString("  created dock: id=%1 url=%2").arg(state.id, state.url.toString()));
+    }
 
+    // Phase 2: Restore the grid layout via QMainWindow::restoreState().
+    // This puts docks back into their exact positions — tabified groups,
+    // side-by-side splits, splitter ratios — the whole grid.
+    QString stateKey = "window/" + host->windowId() + "/dockState";
+    QByteArray dockState = s.value(stateKey).toByteArray();
+    if (!dockState.isEmpty()) {
+        host->restoreState(dockState);
+        log(QString("  restored dock layout for window %1").arg(host->windowId()));
+    }
+
+    // Phase 3: Restore floating dock geometries (restoreState doesn't handle these).
+    for (const auto& state : saved) {
         if (state.floating && !state.geometry.isEmpty()) {
-            dock->setFloating(true);
-            dock->restoreGeometry(state.geometry);
-            log(QString("  restored floating: id=%1 url=%2").arg(dock->objectName(), state.url.toString()));
-        } else {
-            log(QString("  restored docked: id=%1 url=%2").arg(dock->objectName(), state.url.toString()));
+            // Find the dock by its stable ID.
+            for (auto* dock : docks_) {
+                if (dock->objectName() == state.id) {
+                    dock->setFloating(true);
+                    dock->restoreGeometry(state.geometry);
+                    log(QString("  restored floating: id=%1").arg(state.id));
+                    break;
+                }
+            }
         }
     }
     restoring_ = false;
-
-    // Save the correct state now that all docks are in their final positions.
-    for (auto* dock : docks_)
-        saveDock(dock);
 }
 
 QList<MainWindow*> DockManager::restoreWindows() {

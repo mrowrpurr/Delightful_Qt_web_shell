@@ -128,6 +128,7 @@ MainWindow::MainWindow(const QString& windowId, QWidget* parent)
         QSettings s(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
         QString key = "window/" + objectName();
         s.setValue(key + "/geometry", saveGeometry());
+        s.setValue(key + "/dockState", saveState());
         if (auto* tab = activeTab())
             s.setValue(key + "/zoomFactor", tab->view()->zoomFactor());
     });
