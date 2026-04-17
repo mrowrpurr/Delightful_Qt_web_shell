@@ -100,6 +100,12 @@ void DockManager::closeDock(QDockWidget* dock) {
     docks_.removeOne(dock);
     removeDockState(id);
 
+    // Cancel any pending debounced save.
+    if (auto* timer = saveTimers_.take(dock)) {
+        timer->stop();
+        timer->deleteLater();
+    }
+
     // Notify the host MainWindow so it can update its local tracking.
     for (auto* w : QApplication::topLevelWidgets()) {
         if (auto* mw = qobject_cast<MainWindow*>(w)) {
@@ -275,10 +281,26 @@ void DockManager::wirePersistence(QDockWidget* dock) {
         saveDock(dock);
     });
 
-    // Geometry committed (drag ended) → save.
-    // We use an event filter to catch NonClientAreaMouseButtonRelease,
-    // which fires when the user finishes dragging the title bar.
+    // Geometry changes (move/resize) → debounced save via event filter.
     dock->installEventFilter(this);
+}
+
+void DockManager::debounceSave(QDockWidget* dock) {
+    auto*& timer = saveTimers_[dock];
+    if (!timer) {
+        timer = new QTimer(this);
+        timer->setSingleShot(true);
+        timer->setInterval(500);
+        connect(timer, &QTimer::timeout, this, [this, dock]() {
+            if (docks_.contains(dock) && dock->isFloating()) {
+                log(QString("debounced save: %1").arg(dock->objectName()));
+                saveDock(dock);
+            }
+            saveTimers_.remove(dock);
+            sender()->deleteLater();
+        });
+    }
+    timer->start();  // restart the 500ms window
 }
 
 bool DockManager::eventFilter(QObject* obj, QEvent* event) {
@@ -293,13 +315,11 @@ bool DockManager::eventFilter(QObject* obj, QEvent* event) {
         }
     }
 
-    // Save geometry after a floating dock is resized.
-    if (event->type() == QEvent::Resize) {
+    // Debounce geometry saves for floating dock move/resize.
+    if (event->type() == QEvent::Resize || event->type() == QEvent::Move) {
         auto* dock = qobject_cast<QDockWidget*>(obj);
-        if (dock && dock->isFloating() && docks_.contains(dock)) {
-            log(QString("resize: %1 saving geometry").arg(dock->objectName()));
-            saveDock(dock);
-        }
+        if (dock && dock->isFloating() && docks_.contains(dock))
+            debounceSave(dock);
     }
 
     return QObject::eventFilter(obj, event);

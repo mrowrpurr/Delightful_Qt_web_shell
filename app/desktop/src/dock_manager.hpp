@@ -13,9 +13,12 @@
 
 #include <QDockWidget>
 #include <QEvent>
+#include <QHash>
 #include <QList>
 #include <QObject>
 #include <QUrl>
+
+class QTimer;
 
 class MainWindow;
 
@@ -64,10 +67,14 @@ private:
     // Wire signals on a dock so state changes trigger persistence.
     void wirePersistence(QDockWidget* dock);
 
+    // Schedule a debounced geometry save for a dock.
+    void debounceSave(QDockWidget* dock);
+
     // Debug log helper.
     static void log(const QString& msg);
 
     QList<QDockWidget*> docks_;
+    QHash<QDockWidget*, QTimer*> saveTimers_;  // debounce timers per dock
     bool quitting_ = false;
     bool restoring_ = false;  // suppress persistence during restore
 };
