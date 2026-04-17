@@ -61,7 +61,7 @@ Application::Application(int& argc, char** argv)
     parser.addHelpOption();
     parser.addVersionOption();
     QCommandLineOption devOption("dev",
-        "Dev mode: load from Vite dev servers (main=5173, docs=5174) with hot reload");
+        "Dev mode: load from Vite dev servers (main=5173) with hot reload");
     parser.addOption(devOption);
     // parse() instead of process() — unknown args pass through to the app
     // instead of showing an error dialog. Template users add their own options here.
@@ -419,10 +419,9 @@ void Application::setupSystemTray() {
 QUrl Application::appUrl(const QString& appName) const {
     if (devMode_) {
         // Each web app runs its own Vite dev server.
-        // Convention: main=5173, docs=5174, additional apps=5175+
+        // Convention: main=5173, additional apps=5174+
         static const QHash<QString, int> devPorts = {
             {"main", 5173},
-            {"docs", 5174},
         };
         int port = devPorts.value(appName, 5175);
         return QUrl(QString("http://localhost:%1").arg(port));

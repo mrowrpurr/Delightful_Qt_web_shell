@@ -4,11 +4,9 @@
   "type": "module",
   "scripts": {
     "dev:main": "cd apps/main && vite",
-    "dev:docs": "cd apps/docs && vite",
     "build:main": "cd apps/main && tsc -b && vite build",
-    "build:docs": "cd apps/docs && tsc -b && vite build",
-    "build": "npm run build:main && npm run build:docs",
-    "typecheck": "cd apps/main && tsc -b --noEmit && cd ../docs && tsc -b --noEmit",
+    "build": "npm run build:main",
+    "typecheck": "cd apps/main && tsc -b --noEmit",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

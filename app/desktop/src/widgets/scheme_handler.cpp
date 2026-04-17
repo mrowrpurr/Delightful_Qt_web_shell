@@ -1,6 +1,6 @@
 // SchemeHandler — serves embedded Qt resources via app:// URLs.
 //
-// Routes by host: app://main/ serves from :/web-main/, app://docs/ from :/web-docs/.
+// Routes by host: app://main/ serves from :/web-main/.
 // This lets each web app have its own origin, localStorage, IndexedDB, etc.
 
 #include "scheme_handler.hpp"
@@ -25,7 +25,7 @@ void SchemeHandler::registerUrlScheme() {
 }
 
 void SchemeHandler::requestStarted(QWebEngineUrlRequestJob* job) {
-    // Route by host: app://main/ → :/web-main/, app://docs/ → :/web-docs/
+    // Route by host: app://main/ → :/web-main/
     QString appName = job->requestUrl().host();
     QString urlPath = job->requestUrl().path();
     if (urlPath.isEmpty() || urlPath == "/") urlPath = "/index.html";

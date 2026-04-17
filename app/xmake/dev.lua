@@ -26,16 +26,6 @@ target("dev-web-main")
         os.execv("bun", {"run", "dev:main"}, {curdir = web_dir, envs = envs})
     end)
 
-target("dev-web-docs")
-    set_kind("phony")
-    set_default(false)
-    on_run(function()
-        local web_dir = path.join(_TEMPLATE_ROOT, "web")
-        local envs = os.getenvs()
-        envs["VITE_APP_NAME"] = _APP_NAME
-        os.execv("bun", {"run", "dev:docs"}, {curdir = web_dir, envs = envs})
-    end)
-
 -- ── Storybook ──────────────────────────────────────────────────────────
 
 target("storybook")

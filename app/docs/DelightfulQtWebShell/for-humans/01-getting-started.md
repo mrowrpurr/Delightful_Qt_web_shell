@@ -152,7 +152,7 @@ Story files live in `web/shared/components/ui/*.stories.tsx`. Add a `.stories.ts
 ├── web/                      # React apps (Vite)
 │   ├── shared/api/           #   Bridge interfaces + transport (shared by all apps)
 │   ├── apps/main/            #   Main app (todo demo, file browser, bridge demos)
-│   ├── apps/docs/            #   Docs app (architecture guide, side panel)
+│   ├── apps/                 #   Additional web apps go here
 │   └── package.json          #   Single deps, per-app scripts
 ├── lib/
 │   ├── todos/                #   Domain logic (pure C++, no Qt, no Emscripten)

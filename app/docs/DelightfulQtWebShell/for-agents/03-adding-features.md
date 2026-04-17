@@ -222,7 +222,7 @@ useEffect(() => {
 
 The web layer supports multiple Vite apps under `web/apps/`. Each shares code from `web/shared/` via the `@shared` alias.
 
-1. Copy `web/apps/docs/` to `web/apps/yourapp/`
+1. Copy `web/apps/main/` to `web/apps/yourapp/`
 2. Edit its `vite.config.ts` — set a unique dev port, keep the `@shared` alias
 3. Add scripts to `web/package.json`: `"build:yourapp": "cd apps/yourapp && vite build"`, `"dev:yourapp": "cd apps/yourapp && vite --port 5175"`
 4. Register in `desktop/src/widgets/scheme_handler.cpp` — add host routing so `app://yourapp/` serves from `:/web-yourapp/`

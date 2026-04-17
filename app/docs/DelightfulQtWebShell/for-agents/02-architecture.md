@@ -48,13 +48,12 @@ The web layer isn't a single Vite app — it's N apps sharing common code:
 web/
   shared/api/     ← bridge interfaces + transport (shared by all apps)
   apps/main/      ← main app (todo demo, file browser, all bridge demos)
-  apps/docs/      ← docs app (architecture guide, runs in a side panel)
   package.json    ← single deps, per-app scripts (build:main, dev:main, etc.)
 ```
 
-Each app has its own `vite.config.ts` with a `@shared` alias pointing to `../../shared`. The SchemeHandler routes by host — `app://main/` serves the main app, `app://docs/` serves docs. `Application::appUrl("main")` returns the right URL for dev or production.
+Each app has its own `vite.config.ts` with a `@shared` alias pointing to `../../shared`. The SchemeHandler routes by host — `app://main/` serves the main app. `Application::appUrl("main")` returns the right URL for dev or production.
 
-To add a new app, copy `web/apps/docs/`, register it in the SchemeHandler, and add build scripts. See [Adding Features](03-adding-features.md) for the recipe.
+To add a new app, copy `web/apps/main/`, register it in the SchemeHandler, and add build scripts. See [Adding Features](03-adding-features.md) for the recipe.
 
 ## The Proxy Pattern
 

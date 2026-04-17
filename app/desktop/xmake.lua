@@ -8,7 +8,7 @@ local _APP_VERSION = APP_VERSION
 -- ── Web apps to build and embed ──────────────────────────────────────
 -- Each entry becomes a separate Vite build + Qt resource bundle.
 -- Add/remove entries here to control which web apps ship in the binary.
-local WEB_APPS = {"main", "docs"}
+local WEB_APPS = {"main"}
 
 target("desktop")
     set_kind("binary")

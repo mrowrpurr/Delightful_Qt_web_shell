@@ -86,13 +86,12 @@ The web layer isn't one Vite app — it's several, sharing common code:
 web/
   shared/api/     ← bridge interfaces + transport (used by all apps)
   apps/main/      ← main app (todo demo, file browser, bridge demos)
-  apps/docs/      ← docs app (standalone multi-app example)
   package.json    ← single deps, per-app scripts (build:main, dev:main, etc.)
 ```
 
-Each app has its own `vite.config.ts` and dev server port. They share bridge code via a `@shared` import alias. The Qt side routes between them using a custom URL scheme — `app://main/` loads the main app, `app://docs/` loads docs.
+Each app has its own `vite.config.ts` and dev server port. They share bridge code via a `@shared` import alias. The Qt side routes between them using a custom URL scheme — `app://main/` loads the main app.
 
-To add a new app, copy `web/apps/docs/`, give it a name, register it in the scheme handler, and point a `WebShellWidget` at it. The [agent docs](../for-agents/03-adding-features.md) have the step-by-step recipe.
+To add a new app, copy `web/apps/main/`, give it a name, register it in the scheme handler, and point a `WebShellWidget` at it. The [agent docs](../for-agents/03-adding-features.md) have the step-by-step recipe.
 
 ## Cross-Platform
 
