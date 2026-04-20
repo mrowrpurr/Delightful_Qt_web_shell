@@ -4,24 +4,25 @@
 
 ## Status: VERIFIED WORKING (2026-04-20)
 
-**Branch:** `def-type-migration` (12 commits) — **NOT merged to main yet**
+**Branch:** `def-type-migration` (15 commits) — **NOT merged to main yet**
 
-**Tests:** 44 pass, 0 fail (`xmake run test-bun`)
+**Tests:** 44 pass, 0 fail (`xmake run test-bun`) | Catch2: 46 assertions, 17 tests
 
 **QA Results:**
 - ✅ Desktop production (`xmake run desktop`) — Todos CRUD works, signals fire, UI refreshes
 - ✅ Dev mode WebSocket (`xmake run dev-server` + `xmake run dev-web` at localhost:5173) — works
 - ✅ Bun bridge tests — 44 pass, 0 fail
+- ✅ WASM (`xmake run dev-wasm` at localhost:5173) — Todos CRUD works, Purr QA'd
 
 ### What is def_type?
 
-Purr's C++ library — a Pydantic-style type definition framework. Define a struct with `field<T>` members, get reflection, JSON serialization (`to_json`/`from_json`), validation, and schema queries for free. No macros, no codegen, just C++23. Lives at `C:\Code\mrowr\BuildWithCollab\type_def\`, published to the BuildWithCollab package registry.
+Purr's C++ library — a Pydantic-style type definition framework. Plain C++ structs get reflection, JSON serialization (`to_json`/`from_json`), validation, and schema queries for free via PFR. No macros, no codegen, no `field<T>` wrappers needed (as of 1.1.0). Just C++23. Lives at `C:\Code\mrowr\BuildWithCollab\type_def\`, published to the BuildWithCollab package registry.
 
 README: `C:\Code\mrowr\BuildWithCollab\type_def\README.md`
 
 ### What's left for the next agent
 
-1. **WASM compilation** — code is written but needs `xmake f -p wasm` to compile and test. The `WasmBridgeWrapper` and rewritten `wasm-transport.ts` haven't been tested under Emscripten. Potential issues: def_type C++23/PFR under Emscripten's clang, nlohmann::json round-trip via `JSON.parse`/`JSON.stringify`.
+1. ~~**WASM compilation**~~ — ✅ DONE. Compiles and runs. Purr QA'd Todo CRUD via `dev-wasm`. Pure C++ bridge headers moved to `lib/todos/include/` so both platforms can see them.
 
 2. **`scaffold-bridge` tool** — still generates old-style QObject bridges. Needs rewriting to generate bridge classes with def_type DTOs.
 
@@ -167,17 +168,13 @@ No WASM-specific bridge needed. The generic `WasmBridgeWrapper` handles it.
 
 ## Known Issues / Follow-ups
 
-### MSVC `field<T>` operator==
+### ~~MSVC `field<T>` operator==~~ — RESOLVED
 
-`field<T>` implicit conversion doesn't satisfy MSVC's `std::ranges` concept checking for predicates. Workaround in `todo_store.hpp`: free `operator==` templates. Should be fixed in def_type itself by adding comparison operators to `field<T>`.
+No longer applies. `field<T>` removed entirely — all DTOs and domain structs are plain C++ structs. def_type 1.1.0 handles PFR on plain structs natively.
 
-### WASM compilation not tested
+### ~~WASM compilation not tested~~ — RESOLVED
 
-The WASM path (`wasm_bridge_wrapper.hpp`, rewritten `wasm_bindings.cpp`, rewritten `wasm-transport.ts`) has not been compiled under Emscripten. The code is written but needs `xmake f -p wasm` to test. Potential issues:
-- def_type C++23 features under Emscripten's clang
-- PFR under Emscripten
-- nlohmann::json under Emscripten (should be fine)
-- `JSON.parse`/`JSON.stringify` round-trip in `wasm_bridge_wrapper.hpp`
+WASM compiles and runs. def_type + PFR work fine under Emscripten. Pure C++ bridge headers (`bridge.hpp`, `todo_bridge.hpp`) moved to `lib/todos/include/` so both desktop and WASM targets can include them.
 
 ### QWebChannel production path not tested
 
@@ -237,6 +234,9 @@ Currently: `app->shell()->bridges().value("system")`. Could be nicer with `opera
 10. `🔧 Fix QWebChannel — route through BridgeChannelAdapter.dispatch()`
 11. `🐛 Fix QWebChannel dispatch — return QString not QJsonValue` (QJsonValue hangs callbacks)
 12. `🐛 Fix QWebChannel signals — BridgeChannelAdapter re-emits bridge signals as Qt signals`
+13. `🔥 Replace field<T> with plain structs` — def_type 1.1.0, PFR handles plain structs natively
+14. `🏷️ Rename typed_bridge → bridge` — file + all references
+15. `🔧 Move pure C++ bridge headers to shared lib` — WASM builds
 
 ---
 
@@ -247,7 +247,7 @@ Currently: `app->shell()->bridges().value("system")`. Could be nicer with `opera
 3. **nlohmann::json as the internal serialization format.** Qt JSON and emscripten::val are transport-edge concerns.
 4. **One bridge class per domain area.** Not one for Qt and one for WASM.
 5. **Signals carry data.** The parameterless-signal-plus-getter pattern is dead.
-6. **Domain structs use `field<T>` (typed path).** PFR auto-discovers fields. `to_json()` works with no registration.
+6. **Domain structs are plain C++ structs.** PFR auto-discovers fields. `to_json()` works with no registration. `field<T>` removed in def_type 1.1.0 upgrade.
 7. **QWebChannel adapter pattern.** A thin QObject with one `Q_INVOKABLE dispatch()` method wraps typed bridges for the production desktop path.
 
 ---
