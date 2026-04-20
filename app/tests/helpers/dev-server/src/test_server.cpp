@@ -10,7 +10,6 @@
 #include "system_bridge.hpp"
 #include "todo_bridge.hpp"
 #include "expose_as_ws.hpp"
-#include "type_test_bridge.hpp"
 #include "web_shell.hpp"
 
 int main(int argc, char* argv[]) {
@@ -29,11 +28,9 @@ int main(int argc, char* argv[]) {
     WebShell shell;
     // @scaffold:bridge
     auto* todoBridge = new TodoBridge;
-    shell.addBridge("todos", static_cast<web_shell::typed_bridge*>(todoBridge));
+    shell.addBridge("todos", todoBridge);
     auto* systemBridge = new SystemBridge;
-    shell.addBridge("system", static_cast<web_shell::typed_bridge*>(systemBridge));
-    auto* typeTest = new TypeTestBridge;
-    shell.addBridge("typeTest", typeTest);
+    shell.addBridge("system", systemBridge);
     auto* server = expose_as_ws(&shell, port);
     if (!server) return 1;
 

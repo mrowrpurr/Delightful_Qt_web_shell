@@ -75,7 +75,7 @@ MenuActions buildMenuBar(QMainWindow* window) {
     {
         auto* appInstance = qobject_cast<Application*>(qApp);
         auto* sysBridge = appInstance
-            ? static_cast<SystemBridge*>(appInstance->shell()->typedBridges().value("system"))
+            ? static_cast<SystemBridge*>(appInstance->shell()->bridges().value("system"))
             : nullptr;
         QObject::connect(out.save, &QAction::triggered, window, [window, sysBridge]() {
             if (sysBridge && sysBridge->has_listeners("saveRequested")) {

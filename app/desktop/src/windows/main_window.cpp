@@ -113,7 +113,7 @@ MainWindow::MainWindow(const QString& windowId, QWidget* parent)
 
     // ── Wire React → native dialog ──────────────────────────
     auto* systemBridge = static_cast<SystemBridge*>(
-        app->shell()->typedBridges().value("system"));
+        app->shell()->bridges().value("system"));
     if (systemBridge) {
         systemBridge->on_signal("openDialogRequested", [this](const nlohmann::json&) {
             QTimer::singleShot(0, this, [this]() {

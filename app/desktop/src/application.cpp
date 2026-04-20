@@ -119,9 +119,9 @@ Application::Application(int& argc, char** argv)
     shell_ = new WebShell(this);
     // @scaffold:bridge
     auto* todoBridge = new TodoBridge;
-    shell_->addBridge("todos", static_cast<web_shell::typed_bridge*>(todoBridge));
+    shell_->addBridge("todos", todoBridge);
     auto* systemBridge = new SystemBridge;
-    shell_->addBridge("system", static_cast<web_shell::typed_bridge*>(systemBridge));
+    shell_->addBridge("system", systemBridge);
 
     // ── Wire StyleManager ↔ SystemBridge ──────────────────────
     // When StyleManager changes theme (toolbar, live reload) → update bridge state → React gets signal
