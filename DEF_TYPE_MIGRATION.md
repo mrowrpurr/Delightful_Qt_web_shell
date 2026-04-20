@@ -4,11 +4,35 @@
 
 ## Status: All 7 phases complete (2026-04-20)
 
-**Branch:** `def-type-migration` (6 commits)
+**Branch:** `def-type-migration` (7 commits) — **NOT merged to main yet**
 
-**Tests:** 44 pass, 0 fail (Bun bridge tests)
+**Tests:** 44 pass, 0 fail (`xmake run test-bun`)
 
-**Builds:** Desktop app + dev-server both compile clean
+**Builds:** Desktop app (`SKIP_VITE=1 xmake build desktop`) + dev-server (`xmake build dev-server`) both compile clean
+
+### What is def_type?
+
+Purr's C++ library — a Pydantic-style type definition framework. Define a struct with `field<T>` members, get reflection, JSON serialization (`to_json`/`from_json`), validation, and schema queries for free. No macros, no codegen, just C++23. Lives at `C:\Code\mrowr\BuildWithCollab\type_def\`, published to the BuildWithCollab package registry.
+
+README: `C:\Code\mrowr\BuildWithCollab\type_def\README.md`
+
+### ⚠️ Critical: What's NOT tested yet
+
+1. **Running the desktop app** — the QWebChannel production path has a `BridgeChannelAdapter` that compiles but has NOT been tested with actual React ↔ Qt communication. The TS QWebChannel transport in `bridge-transport.ts` currently calls methods directly on QObject properties (e.g., `channel.objects.todos.addList("Groceries")`). With the adapter, it needs to call `channel.objects.todos.dispatch("addList", {name: "Groceries"})`. **This WILL break when you launch the desktop app.** Fix the QWebChannel path in `bridge-transport.ts` before testing the desktop app.
+
+2. **WASM compilation** — code is written but needs `xmake f -p wasm` to compile. See known issues below.
+
+3. **`scaffold-bridge` tool** — still generates old-style QObject bridges. Needs rewriting.
+
+4. **`for-agents/` documentation** — all 8 docs describe the OLD architecture (Q_INVOKABLE, QMetaObject dispatch, separate Qt + WASM bridges). Needs a full rewrite.
+
+### How to run tests
+
+```bash
+xmake build dev-server          # build the test server
+xmake run test-bun              # 44 tests: bridge_proxy + system_bridge + type_conversion
+SKIP_VITE=1 xmake build desktop # build desktop (skip React rebuild)
+```
 
 ---
 
