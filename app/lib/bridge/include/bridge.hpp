@@ -80,6 +80,7 @@ public:
     // ── Signals ──────────────────────────────────────────────────────
 
     void signal(const std::string& name) {
+        std::lock_guard lock(signal_mutex_);
         signals_[name];
     }
 
