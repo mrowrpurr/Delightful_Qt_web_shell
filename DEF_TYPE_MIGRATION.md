@@ -2,9 +2,9 @@
 
 > Replaced the Qt-centric bridge layer with def_type DTOs. One bridge per domain area, zero hand-written serialization, typed signals with data.
 
-## Status: All 7 phases complete (2026-04-20)
+## Status: All 7 phases + React UI fix complete (2026-04-20)
 
-**Branch:** `def-type-migration` (7 commits) — **NOT merged to main yet**
+**Branch:** `def-type-migration` (9 commits) — **NOT merged to main yet**
 
 **Tests:** 44 pass, 0 fail (`xmake run test-bun`)
 
@@ -18,13 +18,17 @@ README: `C:\Code\mrowr\BuildWithCollab\type_def\README.md`
 
 ### ⚠️ Critical: What's NOT tested yet
 
-1. **Running the desktop app** — the QWebChannel production path has a `BridgeChannelAdapter` that compiles but has NOT been tested with actual React ↔ Qt communication. The TS QWebChannel transport in `bridge-transport.ts` currently calls methods directly on QObject properties (e.g., `channel.objects.todos.addList("Groceries")`). With the adapter, it needs to call `channel.objects.todos.dispatch("addList", {name: "Groceries"})`. **This WILL break when you launch the desktop app.** Fix the QWebChannel path in `bridge-transport.ts` before testing the desktop app.
+1. **QWebChannel production path** — `BridgeChannelAdapter` wraps typed bridges for QWebChannel but the TS `bridge-transport.ts` QWebChannel transport still calls methods directly on QObject properties (e.g., `channel.objects.todos.addList({name: "Groceries"})`). With the adapter, it needs to call `channel.objects.todos.dispatch("addList", {name: "Groceries"})`. **`xmake run desktop` (production mode) WILL break.** Dev mode (`xmake run dev-server` + `xmake run dev-web`) uses WebSocket and works.
 
 2. **WASM compilation** — code is written but needs `xmake f -p wasm` to compile. See known issues below.
 
 3. **`scaffold-bridge` tool** — still generates old-style QObject bridges. Needs rewriting.
 
 4. **`for-agents/` documentation** — all 8 docs describe the OLD architecture (Q_INVOKABLE, QMetaObject dispatch, separate Qt + WASM bridges). Needs a full rewrite.
+
+### React UI updated ✅
+
+All bridge calls in the React app now use request objects instead of positional args. Files updated: `bridge.ts`, `system-bridge.ts`, `TodosTab.tsx`, `DialogView.tsx`, `FileBrowserTab.tsx`, `SystemTab.tsx`, `SettingsTab.tsx`, `EditorTab.tsx`, `main.tsx`. Vite builds clean.
 
 ### How to run tests
 
@@ -207,7 +211,10 @@ Currently: `app->shell()->bridges().value("system")`. Could be nicer with `opera
 3. `💀 Phase 5 — Kill WASM bridge duplication` — Delete `todo_wasm_bridge.hpp`, generic Embind wrapper
 4. `🔥 Phase 6 — SystemBridge migrated to typed_bridge` — All 6 desktop callsites updated
 5. `🧹 Phase 7 — Cleanup: delete all legacy dispatch code` — Remove QObject map, coerce_arg, SignalForwarder, TypeTestBridge
-6. `📝 Update migration doc with final status` — This commit
+6. `📝 Update migration doc with final status`
+7. `📝 Add critical context for next agent`
+8. `📝 Add Phase 8 — documentation rewrite spec`
+9. `🔧 Fix React UI — update all bridge calls to use request objects`
 
 ---
 
