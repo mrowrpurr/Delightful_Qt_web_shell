@@ -176,47 +176,27 @@ No longer applies. `field<T>` removed entirely — all DTOs and domain structs a
 
 WASM compiles and runs. def_type + PFR work fine under Emscripten. Pure C++ bridge headers (`bridge.hpp`, `todo_bridge.hpp`) moved to `lib/todos/include/` so both desktop and WASM targets can include them.
 
-### QWebChannel production path not tested
+### ~~QWebChannel production path not tested~~ — RESOLVED
 
-`BridgeChannelAdapter` wraps typed bridges for QWebChannel. It compiles but hasn't been tested with actual QWebChannel communication (requires running the desktop app and verifying React can call bridge methods). The TS `bridge-transport.ts` QWebChannel path may need updates to call `dispatch(method, args)` on the adapter instead of calling methods directly.
+QWebChannel tested and QA'd. Desktop production works.
 
-### TypeTestBridge removed
+### ~~Signal naming~~ — RESOLVED
 
-The old `TypeTestBridge` (QObject, QVariant-based type tests) was removed. It tested the now-deleted QVariant dispatch system. The replacement tests in `type_conversion_test.ts` exercise TodoBridge through the bridge dispatch, covering:
-- CRUD operations (addList, getList, addItem, toggleItem, deleteList, deleteItem, renameList, search)
-- Error handling (nonexistent list/item)
-- Signal data flow (emit with payload → TS receives data)
-- Unknown method error
+Signals renamed: `listAdded`, `listRenamed`, `listDeleted`, `itemAdded`, `itemToggled`, `itemDeleted`.
 
-A more comprehensive def_type type test bridge (exercising every field type — vectors, maps, optionals, nested structs, enums) should be written later.
+### ~~Documentation rewrite (Phase 8)~~ — RESOLVED (for-agents)
 
-### Signal naming
+All 8 `for-agents/` docs rewritten. `for-humans/` docs still reference the old architecture.
 
-The example TodoBridge uses `dataChanged` which is a terrible signal name that sometimes carries a `TodoList` and sometimes a `TodoItem`. Real bridges should use specific signal names with specific payload types (e.g., `listAdded` always carries a `TodoList`). This is a documentation/example issue, not an architecture issue.
+### Remaining
 
-### Documentation rewrite needed (Phase 8)
+1. **`for-humans/` docs** — `02-architecture.md` and `03-tutorial.md` still reference `dataChanged` and the old bridge patterns. Need the same rewrite as `for-agents/`.
 
-The entire `docs/DelightfulQtWebShell/for-agents/` and `for-humans/` doc sets describe the OLD architecture. Every doc that mentions bridges is wrong now. The key changes a rewrite must cover:
+2. **`getList` hand-builds JSON** — `todo_bridge.hpp` line 34-44: `getList` manually calls `def_type::to_json()` and constructs a `nlohmann::json` instead of returning a proper DTO like every other method. Should return a `ListDetail` response struct.
 
-**02-architecture.md** — The proxy pattern section describes `Q_INVOKABLE` + `QMetaObject` dispatch + `QVariant` coercion. All dead. Replace with `bridge` + `method()` registration + def_type dispatch. The "Four Layers You Touch" section still says "Qt bridge" and "WASM bridge" as separate layers — now it's one bridge. Return value wrapping (`{value: ...}` for scalars) is gone — everything goes through `serialize_response`. The type system section about QVariant is irrelevant.
+3. **`bridge.hpp` location** — lives in `lib/todos/include/` which works but is semantically wrong. It's the framework base class, not a todos thing. A second domain lib would have to depend on `todos` to get it.
 
-**03-adding-features.md** — The entire "Adding a Method" recipe (4 files: domain logic, Qt bridge with `Q_INVOKABLE` + `to_json()`, WASM bridge with `to_val()`, TS interface) is replaced by: define a request DTO, write the method, register it. One bridge, not two. The `scaffold-bridge` tool still generates old-style bridges.
-
-**04-testing.md** — `validate-bridges` tool is gone (compile-time safety replaces it). TypeTestBridge is gone. The "What Changed → What to Test" table needs updating.
-
-**06-gotchas.md** — "Return `QJsonObject` but got `{value: ...}`" is gone. "Register bridge in `application.cpp` and `test_server.cpp`" still applies but the pattern changed. The scalar wrapping gotcha is irrelevant.
-
-**07-desktop-capabilities.md** — SystemBridge API section describes `Q_INVOKABLE` methods with `QString` params. All signatures changed to def_type DTOs with request objects.
-
-**08-theming.md** — Qt ↔ React sync section describes `setQtTheme(displayName, isDark)` with positional args. Now takes a `SetQtThemeRequest` object. Signal names same but mechanism changed.
-
-**README.md** — References "five test layers" and `validate-bridges`. TypeTestBridge layer gone, validate-bridges gone.
-
-The `for-humans/` docs mirror the same structure and need the same updates.
-
-### `bridges["system"]` syntax
-
-Currently: `app->shell()->bridges().value("system")`. Could be nicer with `operator[]` on the bridge map. Minor API polish.
+4. **Comprehensive type test bridge** — current tests cover Todo CRUD. No test exercises every def_type field type (vectors, maps, optionals, nested structs, enums) through the bridge dispatch.
 
 ---
 
