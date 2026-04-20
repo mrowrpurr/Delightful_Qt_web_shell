@@ -24,13 +24,13 @@ README: `C:\Code\mrowr\BuildWithCollab\type_def\README.md`
 
 1. ~~**WASM compilation**~~ — ✅ DONE. Compiles and runs. Purr QA'd Todo CRUD via `dev-wasm`. Pure C++ bridge headers moved to `lib/todos/include/` so both platforms can see them.
 
-2. **`scaffold-bridge` tool** — still generates old-style QObject bridges. Needs rewriting to generate bridge classes with def_type DTOs.
+2. ~~**`scaffold-bridge` tool**~~ — ✅ DONE. Generates def_type bridge classes with DTOs, idiomatic signal examples.
 
-3. **`for-agents/` documentation** — all 8 docs describe the OLD architecture. Full rewrite needed (see Phase 8 below).
+3. ~~**`for-agents/` documentation**~~ — ✅ DONE. All 8 docs rewritten for the new architecture.
 
-4. **Signal naming cleanup** — TodoBridge uses `dataChanged` which is a terrible signal name carrying mixed types. Should be `listAdded`, `itemAdded`, `listDeleted`, etc. with specific payload types.
+4. ~~**Signal naming cleanup**~~ — ✅ DONE. `dataChanged` replaced with `listAdded`, `listRenamed`, `listDeleted`, `itemAdded`, `itemToggled`, `itemDeleted`. Each signal carries a consistent typed payload.
 
-5. **Remove debug logging** — `bridge_channel_adapter.hpp` has `qDebug()` calls and `bridge-transport.ts` has `console.log` calls from debugging. Remove before merge.
+5. ~~**Remove debug logging**~~ — ✅ Already clean. No `qDebug()` in `bridge_channel_adapter.hpp`, no `console.log` in `bridge-transport.ts`.
 
 ### How to run/test
 

@@ -25,10 +25,19 @@ export default function TodosTab() {
 
   useEffect(() => {
     loadLists()
-    return todos.dataChanged(() => {
+    const refresh = () => {
       loadLists()
       if (selectedListId) loadDetail(selectedListId)
-    })
+    }
+    const cleanups = [
+      todos.listAdded(refresh),
+      todos.listRenamed(refresh),
+      todos.listDeleted(refresh),
+      todos.itemAdded(refresh),
+      todos.itemToggled(refresh),
+      todos.itemDeleted(refresh),
+    ]
+    return () => cleanups.forEach(c => c())
   }, [loadLists, loadDetail, selectedListId])
 
   const selectList = useCallback((listId: string) => {

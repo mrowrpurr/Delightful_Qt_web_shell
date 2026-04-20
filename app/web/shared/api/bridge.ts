@@ -39,7 +39,12 @@ export interface TodoBridge {
   deleteItem(req: { item_id: string }): Promise<{ ok: boolean }>
   renameList(req: { list_id: string; new_name: string }): Promise<TodoList>
   search(req: { query: string }): Promise<TodoItem[]>
-  dataChanged(callback: (data?: any) => void): () => void
+  listAdded(callback: (data: TodoList) => void): () => void
+  listRenamed(callback: (data: TodoList) => void): () => void
+  listDeleted(callback: (data: { list_id: string }) => void): () => void
+  itemAdded(callback: (data: TodoItem) => void): () => void
+  itemToggled(callback: (data: TodoItem) => void): () => void
+  itemDeleted(callback: (data: { item_id: string }) => void): () => void
 }
 
 // ── Connection singleton ────────────────────────────────────────────

@@ -20,7 +20,12 @@ interface TodoBridgeForTest {
   deleteItem(req: { item_id: string }): Promise<{ ok: boolean }>
   renameList(req: { list_id: string; new_name: string }): Promise<{ id: string; name: string }>
   search(req: { query: string }): Promise<Array<{ id: string; text: string }>>
-  dataChanged: (cb: (data: any) => void) => () => void
+  listAdded: (cb: (data: any) => void) => () => void
+  listRenamed: (cb: (data: any) => void) => () => void
+  listDeleted: (cb: (data: any) => void) => () => void
+  itemAdded: (cb: (data: any) => void) => () => void
+  itemToggled: (cb: (data: any) => void) => () => void
+  itemDeleted: (cb: (data: any) => void) => () => void
 }
 
 beforeAll(async () => {
@@ -146,7 +151,7 @@ test('unknown method returns error', async () => {
 
 test('signal carries payload data when addList is called', async () => {
   let signalData: any = null
-  todos().dataChanged((data: any) => { signalData = data })
+  todos().listAdded((data: any) => { signalData = data })
 
   const list = await todos().addList({ name: 'Signal Test' })
 

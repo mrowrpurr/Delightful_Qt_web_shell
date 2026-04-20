@@ -24,7 +24,12 @@ public:
         method("renameList", &TodoBridge::renameList);
         method("search",     &TodoBridge::search);
 
-        signal("dataChanged");
+        signal("listAdded");
+        signal("listRenamed");
+        signal("listDeleted");
+        signal("itemAdded");
+        signal("itemToggled");
+        signal("itemDeleted");
     }
 
     std::vector<TodoList> listLists() const {
@@ -46,13 +51,13 @@ public:
 
     TodoList addList(AddListRequest req) {
         auto list = store_.add_list(req.name);
-        emit_signal("dataChanged", list);
+        emit_signal("listAdded", list);
         return list;
     }
 
     TodoItem addItem(AddItemRequest req) {
         auto item = store_.add_item(req.list_id, req.text);
-        emit_signal("dataChanged", item);
+        emit_signal("itemAdded", item);
         return item;
     }
 
@@ -60,21 +65,21 @@ public:
         auto item = store_.toggle_item(req.item_id);
         if (item.id.empty())
             throw std::runtime_error("Item not found: " + req.item_id);
-        emit_signal("dataChanged", item);
+        emit_signal("itemToggled", item);
         return item;
     }
 
     OkResponse deleteList(DeleteListRequest req) {
         bool ok = store_.delete_list(req.list_id);
         if (!ok) throw std::runtime_error("List not found: " + req.list_id);
-        emit_signal("dataChanged");
+        emit_signal("listDeleted", req);
         return {};
     }
 
     OkResponse deleteItem(DeleteItemRequest req) {
         bool ok = store_.delete_item(req.item_id);
         if (!ok) throw std::runtime_error("Item not found: " + req.item_id);
-        emit_signal("dataChanged");
+        emit_signal("itemDeleted", req);
         return {};
     }
 
@@ -82,7 +87,7 @@ public:
         auto list = store_.rename_list(req.list_id, req.new_name);
         if (list.id.empty())
             throw std::runtime_error("List not found: " + req.list_id);
-        emit_signal("dataChanged", list);
+        emit_signal("listRenamed", list);
         return list;
     }
 
