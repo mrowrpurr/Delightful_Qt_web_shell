@@ -16,7 +16,7 @@
 
 // Generic response for void-like operations. Shared by all bridges.
 struct OkResponse {
-    def_type::field<bool> ok{.value = true};
+    bool ok = true;
 };
 
 namespace web_shell {

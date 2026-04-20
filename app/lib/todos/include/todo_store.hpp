@@ -10,37 +10,20 @@
 
 #include <def_type.hpp>
 
-using def_type::field;
-
-// MSVC std::ranges concept checking can't resolve == via implicit conversion on field<T>.
-// This should move into def_type itself — temporary workaround.
-template <typename T, typename W, typename U>
-constexpr bool operator==(const def_type::field<T, W>& f, const U& other) { return f.value == other; }
-template <typename T, typename W, typename U>
-constexpr bool operator==(const U& other, const def_type::field<T, W>& f) { return other == f.value; }
-
 struct TodoList {
-    field<std::string> id;
-    field<std::string> name;
-    field<int>         item_count{.value = 0};
-    field<std::string> created_at;
+    std::string id;
+    std::string name;
+    int         item_count = 0;
+    std::string created_at;
 };
-
-template <> constexpr auto def_type::struct_info<TodoList>() {
-    return def_type::field_info<TodoList>("id", "name", "item_count", "created_at");
-}
 
 struct TodoItem {
-    field<std::string> id;
-    field<std::string> list_id;
-    field<std::string> text;
-    field<bool>        done{.value = false};
-    field<std::string> created_at;
+    std::string id;
+    std::string list_id;
+    std::string text;
+    bool        done = false;
+    std::string created_at;
 };
-
-template <> constexpr auto def_type::struct_info<TodoItem>() {
-    return def_type::field_info<TodoItem>("id", "list_id", "text", "done", "created_at");
-}
 
 struct ListDetail {
     TodoList              list;

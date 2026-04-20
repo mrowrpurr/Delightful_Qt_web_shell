@@ -121,7 +121,7 @@ public:
 
         auto matches = nlohmann::json::array();
         auto qPattern = QString::fromStdString(req.pattern);
-        if (req.pattern.value.empty()) qPattern = "*";
+        if (req.pattern.empty()) qPattern = "*";
 
         if (req.recursive) {
             QDirIterator it(QString::fromStdString(req.path), {qPattern},
@@ -237,7 +237,7 @@ public:
     // ── Theme control ────────────────────────────────────────
 
     OkResponse setQtTheme(SetQtThemeRequest req) {
-        nlohmann::json payload = {{"displayName", req.displayName.value}, {"isDark", req.isDark.value}};
+        nlohmann::json payload = {{"displayName", req.displayName}, {"isDark", req.isDark}};
         emit_signal("qtThemeRequested", payload);
         return {};
     }

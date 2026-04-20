@@ -5,38 +5,36 @@
 
 #include <def_type.hpp>
 
-using def_type::field;
-
 struct AddListRequest {
-    field<std::string> name;
+    std::string name;
 };
 
 struct GetListRequest {
-    field<std::string> list_id;
+    std::string list_id;
 };
 
 struct AddItemRequest {
-    field<std::string> list_id;
-    field<std::string> text;
+    std::string list_id;
+    std::string text;
 };
 
 struct ToggleItemRequest {
-    field<std::string> item_id;
+    std::string item_id;
 };
 
 struct DeleteListRequest {
-    field<std::string> list_id;
+    std::string list_id;
 };
 
 struct DeleteItemRequest {
-    field<std::string> item_id;
+    std::string item_id;
 };
 
 struct RenameListRequest {
-    field<std::string> list_id;
-    field<std::string> new_name;
+    std::string list_id;
+    std::string new_name;
 };
 
 struct SearchRequest {
-    field<std::string> query;
+    std::string query;
 };

@@ -33,8 +33,8 @@ public:
 
     nlohmann::json getList(GetListRequest req) const {
         auto detail = store_.get_list(req.list_id);
-        if (detail.list.id->empty())
-            throw std::runtime_error("List not found: " + std::string(req.list_id));
+        if (detail.list.id.empty())
+            throw std::runtime_error("List not found: " + req.list_id);
         auto items_json = nlohmann::json::array();
         for (const auto& item : detail.items)
             items_json.push_back(def_type::to_json(item));
@@ -58,30 +58,30 @@ public:
 
     TodoItem toggleItem(ToggleItemRequest req) {
         auto item = store_.toggle_item(req.item_id);
-        if (item.id->empty())
-            throw std::runtime_error("Item not found: " + std::string(req.item_id));
+        if (item.id.empty())
+            throw std::runtime_error("Item not found: " + req.item_id);
         emit_signal("dataChanged", item);
         return item;
     }
 
     OkResponse deleteList(DeleteListRequest req) {
         bool ok = store_.delete_list(req.list_id);
-        if (!ok) throw std::runtime_error("List not found: " + std::string(req.list_id));
+        if (!ok) throw std::runtime_error("List not found: " + req.list_id);
         emit_signal("dataChanged");
         return {};
     }
 
     OkResponse deleteItem(DeleteItemRequest req) {
         bool ok = store_.delete_item(req.item_id);
-        if (!ok) throw std::runtime_error("Item not found: " + std::string(req.item_id));
+        if (!ok) throw std::runtime_error("Item not found: " + req.item_id);
         emit_signal("dataChanged");
         return {};
     }
 
     TodoList renameList(RenameListRequest req) {
         auto list = store_.rename_list(req.list_id, req.new_name);
-        if (list.id->empty())
-            throw std::runtime_error("List not found: " + std::string(req.list_id));
+        if (list.id.empty())
+            throw std::runtime_error("List not found: " + req.list_id);
         emit_signal("dataChanged", list);
         return list;
     }
