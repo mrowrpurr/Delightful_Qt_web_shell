@@ -6,6 +6,7 @@
 #pragma once
 
 #include <functional>
+#include <mutex>
 #include <string>
 #include <type_traits>
 #include <unordered_map>
@@ -82,14 +83,19 @@ public:
         signals_[name];
     }
 
-    bool has_signal(const std::string& name) const { return signals_.contains(name); }
+    bool has_signal(const std::string& name) const {
+        std::lock_guard lock(signal_mutex_);
+        return signals_.contains(name);
+    }
 
     bool has_listeners(const std::string& name) const {
+        std::lock_guard lock(signal_mutex_);
         auto it = signals_.find(name);
         return it != signals_.end() && !it->second.empty();
     }
 
     std::vector<std::string> signal_names() const {
+        std::lock_guard lock(signal_mutex_);
         std::vector<std::string> names;
         names.reserve(signals_.size());
         for (const auto& [name, _] : signals_)
@@ -98,10 +104,12 @@ public:
     }
 
     std::function<void()> on_signal(const std::string& name, signal_callback cb) {
+        std::lock_guard lock(signal_mutex_);
         auto& listeners = signals_[name];
         auto id = next_listener_id_++;
         listeners.push_back({id, std::move(cb)});
         return [this, name, id]() {
+            std::lock_guard lock(signal_mutex_);
             auto it = signals_.find(name);
             if (it == signals_.end()) return;
             auto& vec = it->second;
@@ -174,10 +182,17 @@ protected:
     // ── Signal emission ──────────────────────────────────────────────
 
     void emit_signal(const std::string& name, const nlohmann::json& data = nullptr) {
-        auto it = signals_.find(name);
-        if (it == signals_.end()) return;
-        for (const auto& listener : it->second)
-            listener.cb(data);
+        std::vector<signal_callback> callbacks;
+        {
+            std::lock_guard lock(signal_mutex_);
+            auto it = signals_.find(name);
+            if (it == signals_.end()) return;
+            callbacks.reserve(it->second.size());
+            for (const auto& l : it->second)
+                callbacks.push_back(l.cb);
+        }
+        for (const auto& cb : callbacks)
+            cb(data);
     }
 
     template <typename T>
@@ -193,6 +208,7 @@ private:
 
     std::unordered_map<std::string, dispatch_fn>           methods_;
     std::unordered_map<std::string, std::vector<listener>> signals_;
+    mutable std::mutex                                     signal_mutex_;
     uint64_t next_listener_id_ = 0;
 };
 

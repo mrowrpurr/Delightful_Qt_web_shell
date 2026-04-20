@@ -132,11 +132,14 @@ Application::Application(int& argc, char** argv)
         systemBridge->setQtThemeFilePath(
             filePath.toStdString(), filePath.startsWith(":/"));
     });
-    // When React requests a theme change via bridge → apply to StyleManager
+    // When React requests a theme change via bridge → apply to StyleManager.
+    // Posted via QueuedConnection so emit_signal is safe from any thread.
     systemBridge->on_signal("qtThemeRequested", [this](const nlohmann::json& data) {
         auto displayName = QString::fromStdString(data["displayName"].get<std::string>());
         bool isDark = data["isDark"].get<bool>();
-        styleManager_->applyThemeByDisplayName(displayName, isDark);
+        QMetaObject::invokeMethod(this, [this, displayName, isDark]() {
+            styleManager_->applyThemeByDisplayName(displayName, isDark);
+        }, Qt::QueuedConnection);
     });
 
     // ── URL protocol registration ────────────────────────────

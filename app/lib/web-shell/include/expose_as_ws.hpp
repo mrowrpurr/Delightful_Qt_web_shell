@@ -60,14 +60,16 @@ inline QJsonObject collect_bridge_meta(const web_shell::bridge* bridge) {
 inline void forward_signals(web_shell::bridge* bridge, const QString& bridgeName, QWebSocket* socket) {
     for (const auto& signal_name : bridge->signal_names()) {
         bridge->on_signal(signal_name, [socket, bridgeName, sig = QString::fromStdString(signal_name)](const nlohmann::json& data) {
-            if (!socket || !socket->isValid()) return;
             QJsonObject msg;
             msg["bridge"] = bridgeName;
             msg["event"] = sig;
             if (!data.is_null())
                 msg["args"] = web_shell::to_qt_json_value(data);
-            socket->sendTextMessage(
-                QString::fromUtf8(QJsonDocument(msg).toJson(QJsonDocument::Compact)));
+            auto text = QString::fromUtf8(QJsonDocument(msg).toJson(QJsonDocument::Compact));
+            QMetaObject::invokeMethod(socket, [socket, text]() {
+                if (socket->isValid())
+                    socket->sendTextMessage(text);
+            }, Qt::QueuedConnection);
         });
     }
 }

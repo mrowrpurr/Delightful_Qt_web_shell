@@ -24,9 +24,14 @@ public:
     {
         // Subscribe to all bridge signals and re-emit as Qt signals.
         // QWebChannel forwards Qt signals to the JS side automatically.
+        // Callbacks post to the event loop via QueuedConnection so emit_signal
+        // is safe to call from any thread.
         for (const auto& name : bridge_->signal_names()) {
             bridge_->on_signal(name, [this, sig = QString::fromStdString(name)](const nlohmann::json& data) {
-                emit bridgeSignal(sig, QString::fromStdString(data.is_null() ? "{}" : data.dump()));
+                auto payload = QString::fromStdString(data.is_null() ? "{}" : data.dump());
+                QMetaObject::invokeMethod(this, [this, sig, payload]() {
+                    emit bridgeSignal(sig, payload);
+                }, Qt::QueuedConnection);
             });
         }
     }
