@@ -138,11 +138,18 @@ export async function createQtConnection(): Promise<BridgeConnection> {
     const adapter = channel[bridgeName]
     if (!adapter) throw new Error(`Unknown bridge: ${bridgeName}`)
 
-    // BridgeChannelAdapter exposes signals as Qt signal properties
-    const signals = new Set<string>()
-    for (const key of Object.keys(adapter)) {
-      if (adapter[key]?.connect && adapter[key]?.disconnect)
-        signals.add(key)
+    // Signal listeners keyed by signal name
+    const signalListeners: Record<string, Array<(...args: any[]) => void>> = {}
+
+    // Subscribe to the generic bridgeSignal from BridgeChannelAdapter
+    // and route to per-signal listeners
+    if (adapter.bridgeSignal?.connect) {
+      adapter.bridgeSignal.connect((signalName: string, data: string) => {
+        const listeners = signalListeners[signalName]
+        if (!listeners) return
+        const parsed = data ? JSON.parse(data) : undefined
+        listeners.forEach(cb => cb(parsed))
+      })
     }
 
     return new Proxy({} as T, {
@@ -150,16 +157,26 @@ export async function createQtConnection(): Promise<BridgeConnection> {
         if (typeof prop === 'symbol' || prop === 'then' || prop === 'toJSON') return undefined
         const name = prop as string
 
-        if (signals.has(name)) {
-          return (callback: (...args: any[]) => void) => {
-            adapter[name].connect(callback)
-            return () => { adapter[name].disconnect(callback) }
-          }
-        }
+        // Check if this is a known signal (registered via on first subscribe)
+        // We can't detect signals from the adapter anymore (it has one generic signal),
+        // so we use a heuristic: if the caller passes a function as the first arg, it's a signal subscription.
+        // OR: we hardcode nothing and let the proxy decide at call time.
 
-        // Route all method calls through BridgeChannelAdapter.dispatch(method, args)
-        return (...args: any[]) =>
-          new Promise((resolve, reject) => {
+        // Method call — route through dispatch
+        return (...args: any[]) => {
+          // Signal subscription: if first arg is a function, treat as signal
+          if (args.length === 1 && typeof args[0] === 'function') {
+            const callback = args[0]
+            const listeners = signalListeners[name] ??= []
+            listeners.push(callback)
+            return () => {
+              const idx = listeners.indexOf(callback)
+              if (idx >= 0) listeners.splice(idx, 1)
+            }
+          }
+
+          // Method call
+          return new Promise((resolve, reject) => {
             const requestArg = args.length === 1 && typeof args[0] === 'object' ? args[0] : (args.length === 0 ? {} : args[0])
             adapter.dispatch(name, requestArg, (result: any) => {
               try {
@@ -171,6 +188,7 @@ export async function createQtConnection(): Promise<BridgeConnection> {
               }
             })
           })
+        }
       },
     })
   }

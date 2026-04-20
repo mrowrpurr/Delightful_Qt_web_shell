@@ -2,13 +2,16 @@
 
 > Replaced the Qt-centric bridge layer with def_type DTOs. One bridge per domain area, zero hand-written serialization, typed signals with data.
 
-## Status: All 7 phases + React UI fix complete (2026-04-20)
+## Status: VERIFIED WORKING (2026-04-20)
 
-**Branch:** `def-type-migration` (9 commits) — **NOT merged to main yet**
+**Branch:** `def-type-migration` (12 commits) — **NOT merged to main yet**
 
 **Tests:** 44 pass, 0 fail (`xmake run test-bun`)
 
-**Builds:** Desktop app (`SKIP_VITE=1 xmake build desktop`) + dev-server (`xmake build dev-server`) both compile clean
+**QA Results:**
+- ✅ Desktop production (`xmake run desktop`) — Todos CRUD works, signals fire, UI refreshes
+- ✅ Dev mode WebSocket (`xmake run dev-server` + `xmake run dev-web` at localhost:5173) — works
+- ✅ Bun bridge tests — 44 pass, 0 fail
 
 ### What is def_type?
 
@@ -16,27 +19,43 @@ Purr's C++ library — a Pydantic-style type definition framework. Define a stru
 
 README: `C:\Code\mrowr\BuildWithCollab\type_def\README.md`
 
-### ⚠️ Critical: What's NOT tested yet
+### What's left for the next agent
 
-1. **QWebChannel production path** — `BridgeChannelAdapter` wraps typed bridges for QWebChannel but the TS `bridge-transport.ts` QWebChannel transport still calls methods directly on QObject properties (e.g., `channel.objects.todos.addList({name: "Groceries"})`). With the adapter, it needs to call `channel.objects.todos.dispatch("addList", {name: "Groceries"})`. **`xmake run desktop` (production mode) WILL break.** Dev mode (`xmake run dev-server` + `xmake run dev-web`) uses WebSocket and works.
+1. **WASM compilation** — code is written but needs `xmake f -p wasm` to compile and test. The `WasmBridgeWrapper` and rewritten `wasm-transport.ts` haven't been tested under Emscripten. Potential issues: def_type C++23/PFR under Emscripten's clang, nlohmann::json round-trip via `JSON.parse`/`JSON.stringify`.
 
-2. **WASM compilation** — code is written but needs `xmake f -p wasm` to compile. See known issues below.
+2. **`scaffold-bridge` tool** — still generates old-style QObject bridges. Needs rewriting to generate typed_bridge classes with def_type DTOs.
 
-3. **`scaffold-bridge` tool** — still generates old-style QObject bridges. Needs rewriting.
+3. **`for-agents/` documentation** — all 8 docs describe the OLD architecture. Full rewrite needed (see Phase 8 below).
 
-4. **`for-agents/` documentation** — all 8 docs describe the OLD architecture (Q_INVOKABLE, QMetaObject dispatch, separate Qt + WASM bridges). Needs a full rewrite.
+4. **Signal naming cleanup** — TodoBridge uses `dataChanged` which is a terrible signal name carrying mixed types. Should be `listAdded`, `itemAdded`, `listDeleted`, etc. with specific payload types.
 
-### React UI updated ✅
+5. **Remove debug logging** — `bridge_channel_adapter.hpp` has `qDebug()` calls and `bridge-transport.ts` has `console.log` calls from debugging. Remove before merge.
 
-All bridge calls in the React app now use request objects instead of positional args. Files updated: `bridge.ts`, `system-bridge.ts`, `TodosTab.tsx`, `DialogView.tsx`, `FileBrowserTab.tsx`, `SystemTab.tsx`, `SettingsTab.tsx`, `EditorTab.tsx`, `main.tsx`. Vite builds clean.
-
-### How to run tests
+### How to run/test
 
 ```bash
-xmake build dev-server          # build the test server
+# Build
+xmake build dev-server          # test server (WebSocket path)
+xmake build desktop             # full desktop build (includes Vite)
+SKIP_VITE=1 xmake build desktop # C++ only (after first Vite build)
+
+# Test
 xmake run test-bun              # 44 tests: bridge_proxy + system_bridge + type_conversion
-SKIP_VITE=1 xmake build desktop # build desktop (skip React rebuild)
+
+# Run
+xmake run desktop               # production desktop (QWebChannel)
+xmake run dev-server            # WebSocket backend (terminal 1)
+xmake run dev-web               # Vite dev server (terminal 2, open localhost:5173)
 ```
+
+### QWebChannel architecture notes (for next agent)
+
+The production desktop path uses `BridgeChannelAdapter` (a QObject) that wraps each typed_bridge for QWebChannel:
+
+- **Method calls:** TS calls `adapter.dispatch("addList", {name: "..."})` → C++ routes through typed_bridge dispatch → returns JSON string → TS parses it
+- **Signals:** typed_bridge `emit_signal("dataChanged", payload)` → adapter re-emits as Qt signal `bridgeSignal(name, jsonString)` → QWebChannel forwards to JS → TS routes to per-signal listeners
+- **Signal detection:** TS uses a heuristic — if the first argument to a bridge property call is a function, it's treated as a signal subscription. This works because method calls always pass objects, never functions.
+- **Return type:** `dispatch()` returns `QString` (JSON string). `QJsonObject` and `QJsonValue` returns silently break QWebChannel callbacks. Always use strings.
 
 ---
 
@@ -215,6 +234,9 @@ Currently: `app->shell()->bridges().value("system")`. Could be nicer with `opera
 7. `📝 Add critical context for next agent`
 8. `📝 Add Phase 8 — documentation rewrite spec`
 9. `🔧 Fix React UI — update all bridge calls to use request objects`
+10. `🔧 Fix QWebChannel — route through BridgeChannelAdapter.dispatch()`
+11. `🐛 Fix QWebChannel dispatch — return QString not QJsonValue` (QJsonValue hangs callbacks)
+12. `🐛 Fix QWebChannel signals — BridgeChannelAdapter re-emits typed_bridge signals as Qt signals`
 
 ---
 
