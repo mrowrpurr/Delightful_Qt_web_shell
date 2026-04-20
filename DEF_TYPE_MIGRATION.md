@@ -174,6 +174,26 @@ A more comprehensive def_type type test bridge (exercising every field type — 
 
 The example TodoBridge uses `dataChanged` which is a terrible signal name that sometimes carries a `TodoList` and sometimes a `TodoItem`. Real bridges should use specific signal names with specific payload types (e.g., `listAdded` always carries a `TodoList`). This is a documentation/example issue, not an architecture issue.
 
+### Documentation rewrite needed (Phase 8)
+
+The entire `docs/DelightfulQtWebShell/for-agents/` and `for-humans/` doc sets describe the OLD architecture. Every doc that mentions bridges is wrong now. The key changes a rewrite must cover:
+
+**02-architecture.md** — The proxy pattern section describes `Q_INVOKABLE` + `QMetaObject` dispatch + `QVariant` coercion. All dead. Replace with `typed_bridge` + `method()` registration + def_type dispatch. The "Four Layers You Touch" section still says "Qt bridge" and "WASM bridge" as separate layers — now it's one bridge. Return value wrapping (`{value: ...}` for scalars) is gone — everything goes through `serialize_response`. The type system section about QVariant is irrelevant.
+
+**03-adding-features.md** — The entire "Adding a Method" recipe (4 files: domain logic, Qt bridge with `Q_INVOKABLE` + `to_json()`, WASM bridge with `to_val()`, TS interface) is replaced by: define a request DTO, write the method, register it. One bridge, not two. The `scaffold-bridge` tool still generates old-style bridges.
+
+**04-testing.md** — `validate-bridges` tool is gone (compile-time safety replaces it). TypeTestBridge is gone. The "What Changed → What to Test" table needs updating.
+
+**06-gotchas.md** — "Return `QJsonObject` but got `{value: ...}`" is gone. "Register bridge in `application.cpp` and `test_server.cpp`" still applies but the pattern changed. The scalar wrapping gotcha is irrelevant.
+
+**07-desktop-capabilities.md** — SystemBridge API section describes `Q_INVOKABLE` methods with `QString` params. All signatures changed to def_type DTOs with request objects.
+
+**08-theming.md** — Qt ↔ React sync section describes `setQtTheme(displayName, isDark)` with positional args. Now takes a `SetQtThemeRequest` object. Signal names same but mechanism changed.
+
+**README.md** — References "five test layers" and `validate-bridges`. TypeTestBridge layer gone, validate-bridges gone.
+
+The `for-humans/` docs mirror the same structure and need the same updates.
+
 ### `bridges["system"]` syntax
 
 Currently: `app->shell()->bridges().value("system")`. Could be nicer with `operator[]` on the bridge map. Minor API polish.
