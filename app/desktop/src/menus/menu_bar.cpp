@@ -277,11 +277,23 @@ void buildToolBar(QMainWindow* window, const MenuActions& actions) {
             darkToggle->setText(app->styleManager()->isDarkMode() ? "🌙" : "☀️");
         });
 
-        // Keep toggle in sync if theme changes from elsewhere (bridge, etc.)
+        // Retint all icon-bearing actions to match the current theme mode.
+        auto retintIcons = [actions, app]() {
+            QColor color = app->styleManager()->isDarkMode() ? Qt::white : QColor(40, 40, 40);
+            actions.save->setIcon(tintedIcon(Icons16::Action_Save, color));
+            actions.openFolder->setIcon(tintedIcon(Icons16::File_FolderOpen, color));
+            actions.zoomIn->setIcon(tintedIcon(Icons16::Action_ZoomIn, color));
+            actions.zoomOut->setIcon(tintedIcon(Icons16::Action_ZoomOut, color));
+            actions.zoomReset->setIcon(tintedIcon(Icons16::Action_ZoomOriginal, color));
+            actions.devTools->setIcon(tintedIcon(Icons16::Navigation_Settings, color));
+        };
+
+        // Keep toggle and icons in sync if theme changes from elsewhere (bridge, etc.)
         QObject::connect(app->styleManager(), &StyleManager::themeChanged,
-                         darkToggle, [app, darkToggle, themeCombo]() {
+                         darkToggle, [app, darkToggle, themeCombo, retintIcons]() {
             darkToggle->setChecked(app->styleManager()->isDarkMode());
             darkToggle->setText(app->styleManager()->isDarkMode() ? "🌙" : "☀️");
+            retintIcons();
             // Update combo to match current base name
             QString base = app->styleManager()->currentBaseName();
             if (themeCombo->currentText() != base) {
