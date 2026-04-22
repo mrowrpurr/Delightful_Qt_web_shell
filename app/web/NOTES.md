@@ -17,7 +17,6 @@ Pairs with `COMPONENT_AUDIT.md` and `THEME_AUDIT.md` in this folder.
 
 ## Open questions
 
-- [ ] **Custom `Tabs` in `shared/components/ui/tabs.tsx` — keep or migrate to Radix?** Once the Sidebar replaces the top bar, Tabs only survives if we use it *inside* pages (e.g. grouped sections in Settings). If we keep Tabs at all, it should be the Radix version.
 - [ ] **Chart demo placement.** Does the Chart live in its own new tab (e.g. "Stats") or inside TodosTab (completion-over-time)? A dedicated tab is cleaner for a template; embedded is more realistic.
 - [ ] **`--radius` per-theme.** Easy to move into `themes.json`, but does it actually vary per theme we've imported? Worth a spot-check before adding a field to 1030 entries.
 
@@ -38,7 +37,7 @@ The swaps below are the ones that actually replace hand-rolled code *today* — 
 - [ ] `sonner` (toast) — replaces the `setState + setTimeout` pattern in `EditorTab`, `TodosTab`, `SystemTab`, `DialogView` (4 copies of the same toast pattern).
 - [ ] `button` (already present) — but use `variant="ghost" size="icon"` with a `lucide-react` Trash icon for the delete-list / delete-item buttons. Kills the broken `opacity-0 group-hover` bug in `TodosTab` as a side effect.
 - [ ] `chart` — new install, needs a home (see open question).
-- [ ] **Decide** `tabs` — Radix vs keep custom (see open question). If Radix, migrate any remaining in-page tab usage.
+- [ ] `tabs` — delete custom `shared/components/ui/tabs.tsx`, use the Radix `tabs` that lands via the full-catalog install. Migrate any remaining in-page tab usage (e.g. future grouped sections inside Settings).
 
 ## TODO — Bucket 2: light up the theme vocabulary
 
