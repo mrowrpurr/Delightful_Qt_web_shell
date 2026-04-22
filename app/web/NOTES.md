@@ -22,6 +22,45 @@ Pairs with `COMPONENT_AUDIT.md` and `THEME_AUDIT.md` in this folder.
 
 ---
 
+## Phases
+
+Execution order. Each phase ends in a testable outcome. Kickoff docs (e.g. `PHASE_1.md`) give the new-agent handoff for each.
+
+### Phase 1 — Install & theme activation *(foundation, no visible change)*
+- Install the full shadcn catalog → `shared/components/ui/` grows from 4 files to ~50.
+- Extend `applyTheme()` in `shared/lib/themes.ts` to emit all 31 vars (currently 19).
+- **Exit:** catalog present on disk; `:root` carries `--sidebar-*` + `--chart-*` after a theme switch; no regressions.
+- **Kickoff:** `PHASE_1.md`
+
+### Phase 2 — Shell restructure *(visible shape change)*
+- Replace top `TabsList` with `Sidebar` in `App.tsx`. Preserve URL hash routing + `document.title` behavior.
+- Delete custom `shared/components/ui/tabs.tsx`; any in-page tab usage → Radix `tabs`.
+- Add the `🧩 Components` sidebar item with a skeleton page (Phase 3 fills it).
+- **Exit:** left sidebar renders; all existing tabs still work; `--sidebar-*` vars visibly drive chrome.
+
+### Phase 3 — Primitive swaps + bridge helpers *(biggest phase)*
+- Swap every hand-rolled primitive to shadcn: `Combobox` (ThemePicker + FontPicker), `Switch` (3 toggles), `Input`, `Checkbox`, `ScrollArea`, `Sonner`.
+- Delete-list button bug resolves via `Button variant="ghost" size="icon"` + `lucide-react` Trash icon.
+- Add `getSystemBridge()` / `getTodoBridge()` typed helpers; kill every `getBridge<T>('name')` in feature code.
+- Fix module-scope `await getBridge(...)` no-catch crashes.
+- Each swap seeds a demo on the Components page.
+- **Exit:** zero hand-rolled primitives outside `shared/components/ui/`; zero magic-string bridge access; Components page demonstrates every swap.
+
+### Phase 4 — Chart demo & vocabulary completion
+- Build the chart demo (placement per open question — likely a `📊 Stats` sidebar item).
+- Wire `--chart-*` vars; make sure all 5 chart vars land somewhere (currently Monaco skips `chart-3`).
+- **Exit:** all 31 theme vars have a real consumer.
+
+### Phase 5 — Leak cleanup & agent docs
+- Swap `App.css` hardcoded `#1a1a1a` → theme vars.
+- Consolidate duplicate `DEFAULT_DARK`/`DEFAULT_LIGHT` palettes or fill `Default` in `themes.json`.
+- Merge `theme.css` + `App.css` `@theme` blocks.
+- Decide `--radius` per-theme (open question — spot-check first).
+- Update `docs/DelightfulQtWebShell/for-agents/` with a "Component patterns" doc matching the new reality.
+- **Exit:** no hardcoded hex escaping the theme system; one `@theme` block; agent docs describe the current code.
+
+---
+
 ## TODO — Bucket 1: shadcn install + swaps
 
 **Step 0 — install the full catalog**, not just what the demo uses today. `npx shadcn@latest add <every component>` — or batch-install via CLI arg list. See the "install them all" decision above.
