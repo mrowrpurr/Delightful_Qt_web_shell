@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react'
 import { signalReady } from '@shared/api/bridge'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@shared/components/ui/tabs'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@shared/components/ui/sidebar'
 import { applyTheme, getThemesSync, setDarkMode as persistDarkMode } from '@shared/lib/themes'
 import { getSystemBridge } from '@shared/api/system-bridge'
 import { applyThemeEffects } from './theme-effects'
@@ -10,6 +21,7 @@ import FileBrowserTab from './tabs/FileBrowserTab'
 import SystemTab from './tabs/SystemTab'
 import EditorTab from './tabs/EditorTab'
 import SettingsTab from './tabs/SettingsTab'
+import ComponentsTab from './tabs/ComponentsTab'
 
 // Global listener for Qt theme changes — always active regardless of which tab is visible.
 let qtThemeCleanup: (() => void) | null = null
@@ -59,7 +71,18 @@ const TAB_TITLES: Record<string, string> = {
   files: '📂 Files',
   system: '⚙️ System',
   settings: '🎨 Settings',
+  components: '🧩 Components',
 }
+
+const NAV_ITEMS = [
+  { id: 'docs', label: 'Docs', icon: '📖' },
+  { id: 'editor', label: 'Editor', icon: '✏️' },
+  { id: 'todos', label: 'Todos', icon: '✅' },
+  { id: 'files', label: 'Files', icon: '📂' },
+  { id: 'system', label: 'System', icon: '⚙️' },
+  { id: 'settings', label: 'Settings', icon: '🎨' },
+  { id: 'components', label: 'Components', icon: '🧩' },
+] as const
 
 export default function App() {
   useEffect(() => { signalReady() }, [])
@@ -94,6 +117,19 @@ export default function App() {
     return () => window.removeEventListener('page-transparency-changed', handler)
   }, [])
 
+  const renderTab = () => {
+    switch (currentTab) {
+      case 'docs': return <DocsTab />
+      case 'editor': return <EditorTab />
+      case 'todos': return <TodosTab />
+      case 'files': return <FileBrowserTab />
+      case 'system': return <SystemTab />
+      case 'settings': return <SettingsTab />
+      case 'components': return <ComponentsTab />
+      default: return <DocsTab />
+    }
+  }
+
   return (
     <div
       className={`min-h-screen text-foreground ${pageTransparency === 0 ? 'bg-background' : ''}`}
@@ -101,24 +137,48 @@ export default function App() {
         backgroundColor: `oklch(from var(--color-background) l c h / ${(100 - pageTransparency) / 100})`,
       } : undefined}
     >
-      <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-        <div className="border-b border-border flex justify-center py-2 sticky top-0 z-50 bg-background/95 backdrop-blur-sm">
-          <TabsList className="h-10">
-            <TabsTrigger value="docs">📖 Docs</TabsTrigger>
-            <TabsTrigger value="editor">✏️ Editor</TabsTrigger>
-            <TabsTrigger value="todos">✅ Todos</TabsTrigger>
-            <TabsTrigger value="files">📂 Files</TabsTrigger>
-            <TabsTrigger value="system">⚙️ System</TabsTrigger>
-            <TabsTrigger value="settings">🎨 Settings</TabsTrigger>
-          </TabsList>
-        </div>
-        <TabsContent value="docs"><DocsTab /></TabsContent>
-        <TabsContent value="editor"><EditorTab /></TabsContent>
-        <TabsContent value="todos"><TodosTab /></TabsContent>
-        <TabsContent value="files"><FileBrowserTab /></TabsContent>
-        <TabsContent value="system"><SystemTab /></TabsContent>
-        <TabsContent value="settings"><SettingsTab /></TabsContent>
-      </Tabs>
+      <SidebarProvider defaultOpen>
+        <Sidebar collapsible="icon">
+          <SidebarHeader>
+            <div className="flex items-center justify-between gap-2">
+              <span className="px-2 text-base font-semibold group-data-[collapsible=icon]:hidden">
+                {import.meta.env.VITE_APP_NAME ?? 'App'}
+              </span>
+              <SidebarTrigger
+                data-testid="sidebar-trigger"
+                className="group-data-[collapsible=icon]:mx-auto"
+              />
+            </div>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarMenu>
+                {NAV_ITEMS.map(item => (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      isActive={currentTab === item.id}
+                      onClick={() => setCurrentTab(item.id)}
+                      tooltip={item.label}
+                      data-testid={`sidebar-${item.id}`}
+                    >
+                      <span
+                        aria-hidden
+                        className="inline-flex size-4 shrink-0 items-center justify-center text-base leading-none"
+                      >
+                        {item.icon}
+                      </span>
+                      <span>{item.label}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          </SidebarContent>
+        </Sidebar>
+        <SidebarInset>
+          {renderTab()}
+        </SidebarInset>
+      </SidebarProvider>
     </div>
   )
 }
