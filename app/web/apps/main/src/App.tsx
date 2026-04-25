@@ -94,7 +94,10 @@ export default function App() {
   // and portal their JSX into the div whose ref we expose via context.
   const sidebarSlotRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { signalReady() }, [])
+  useEffect(() => {
+    console.log(`[load-time] web: App mounted, calling signalReady at ${performance.now().toFixed(1)}ms (since page nav)`)
+    signalReady()
+  }, [])
 
   // Initialize tab from URL hash (e.g. app://main/#editor → "editor").
   // Hash routing is required because custom URL schemes (app://) don't

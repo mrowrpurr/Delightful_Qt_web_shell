@@ -10,9 +10,11 @@
 #include <QDebug>
 #include <QDragEnterEvent>
 #include <QDropEvent>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QMimeData>
 #include <QTimer>
+#include <memory>
 #include <QVBoxLayout>
 #include <QWebChannel>
 #include <QWebEnginePage>
@@ -65,12 +67,23 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
     view_->setPage(page);
     layout->addWidget(view_);
 
-    // Log when the underlying page actually finishes loading (full nav, not hash).
-    connect(view_, &QWebEngineView::loadStarted, this, [this]() {
-        qDebug() << "[WebShellWidget] loadStarted" << this;
+    // ── Page-load timing ─────────────────────────────────────
+    // Measures the user-visible "page load" cost: from setUrl() to the moment
+    // React calls signalReady(). loadFinished gives us the bytes-loaded mark;
+    // ready - loadFinished is the JS execution + first paint cost.
+    auto loadTimer = std::make_shared<QElapsedTimer>();
+
+    connect(view_, &QWebEngineView::loadStarted, this, [this, loadTimer]() {
+        qDebug() << "[load-time]" << this << "loadStarted at"
+                 << loadTimer->elapsed() << "ms";
     });
-    connect(view_, &QWebEngineView::loadFinished, this, [this](bool ok) {
-        qDebug() << "[WebShellWidget] loadFinished" << this << "ok=" << ok;
+    connect(view_, &QWebEngineView::loadFinished, this, [this, loadTimer](bool ok) {
+        qDebug() << "[load-time]" << this << "loadFinished at"
+                 << loadTimer->elapsed() << "ms ok=" << ok;
+    });
+    connect(shell, &WebShell::ready, this, [this, loadTimer]() {
+        qDebug() << "[load-time]" << this << "react ready (signalReady) at"
+                 << loadTimer->elapsed() << "ms";
     });
 
     // ── Inject qwebchannel.js ────────────────────────────────
@@ -122,6 +135,8 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
     });
 
     // ── Load content ─────────────────────────────────────────
+    loadTimer->start();
+    qDebug() << "[load-time]" << this << "setUrl" << contentUrl.toString();
     view_->setUrl(contentUrl);
 
     // ── Loading overlay ──────────────────────────────────────
