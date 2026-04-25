@@ -17,46 +17,31 @@ import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 self.MonacoEnvironment = { getWorker: () => new editorWorker() }
 loader.config({ monaco })
 
-// Theme: try the synchronous fast-path first (cached CSS from a previous
-// applyTheme()). On miss, dynamic-import the saved theme's module.
-// The full themes-index + per-theme modules are split into their own
-// chunks by Vite — main.tsx never parses the 3MB themes.json.
-import { tryFastTheme, isDarkMode, loadTheme, applyTheme, slugifyThemeName } from '@shared/lib/themes'
+// Load theme + font data (imported at build time — fetch doesn't work with app:// scheme)
+import { setThemeData, initTheme } from '@shared/lib/themes'
 import { setFontData, initFont } from '@shared/lib/fonts'
+import themesJson from '@shared/data/themes.json'
 import fontsJson from '@shared/data/google-fonts.json'
-
+lap('json modules imported')
+setThemeData(themesJson as any)
 setFontData(fontsJson as any)
+lap('setThemeData + setFontData done')
 
-const usedFastPath = tryFastTheme()
-lap(usedFastPath ? 'theme: fast-path (cached CSS injected)' : 'theme: cold-path (no cache, will fetch)')
-
-// Apply theme effects + font (these don't need theme vars, just the name)
+// Apply saved theme + font before first render to prevent flash
 import { applyThemeEffects } from './theme-effects'
-const savedThemeName = localStorage.getItem('theme-name') || 'Default'
+import { isDarkMode } from '@shared/lib/themes'
+initTheme()
 initFont()
-applyThemeEffects(savedThemeName)
-lap('font + effects init done')
-
-// Cold path: no cached CSS yet — BLOCK render until the saved theme's
-// module is loaded and applied. Otherwise React mounts with un-themed
-// CSS and the user sees "Default" for ~the duration of the dynamic import.
-// Top-level await is supported (target: esnext).
-if (!usedFastPath) {
-  const theme = await loadTheme(savedThemeName)
-  if (theme) {
-    applyTheme(theme, isDarkMode())
-    lap('cold-path theme loaded + applied (blocked render)')
-  } else {
-    // Saved name doesn't match any theme module (edge case after rename/delete)
-    console.warn('[theme] no module for', savedThemeName, '(slug:', slugifyThemeName(savedThemeName), ')')
-  }
-}
+applyThemeEffects(localStorage.getItem('theme-name') || 'Default')
+lap('theme + font init done')
 
 // Sync React's persisted theme state to Qt on startup.
 // React owns the truth (localStorage persists across sessions, Qt doesn't).
 import { getSystemBridge } from '@shared/api/system-bridge'
 getSystemBridge().then(system => {
-  system.setQtTheme({ displayName: savedThemeName, isDark: isDarkMode() })
+  const themeName = localStorage.getItem('theme-name') || 'Default'
+  const dark = isDarkMode()
+  system.setQtTheme({ displayName: themeName, isDark: dark })
 }).catch(() => {}) // WASM/browser mode — no bridge
 
 // Hash-based routing — same React app, different content.

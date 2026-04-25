@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Check, ChevronsUpDown } from 'lucide-react'
 import { cn } from '@shared/lib/utils'
-import { applyTheme, loadTheme, loadThemeIndex, isDarkMode, setDarkMode, type ThemeIndexEntry } from '@shared/lib/themes'
+import { applyTheme, loadThemes, getThemesSync, isDarkMode, setDarkMode, extractPreviewColor, extractBgColor, type ThemeEntry } from '@shared/lib/themes'
 import { loadGoogleFonts, getGoogleFontsSync, applyFont, type GoogleFont } from '@shared/lib/fonts'
 import { applyThemeEffects } from '../theme-effects'
 import { getSystemBridge } from '@shared/api/system-bridge'
@@ -28,19 +28,11 @@ function ThemePicker({ value, isDark, onChange }: {
   isDark: boolean
   onChange: (name: string) => void
 }) {
-  const [index, setIndex] = useState<ThemeIndexEntry[]>([])
+  const [themes, setThemes] = useState<ThemeEntry[]>(getThemesSync() ?? [])
   const [open, setOpen] = useState(false)
+  useEffect(() => { loadThemes().then(setThemes) }, [])
 
-  // Lazy-load the picker index only when the popover first opens —
-  // saves the ~150KB chunk on cold starts that never visit the picker.
-  useEffect(() => {
-    if (open && index.length === 0) {
-      loadThemeIndex().then(setIndex)
-    }
-  }, [open, index.length])
-
-  const previewFor = (entry: ThemeIndexEntry) => (isDark ? entry.pD : entry.pL) || '#888'
-  const currentEntry = index.find(t => t.name === value)
+  const currentTheme = themes.find(t => t.name === value)
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -53,10 +45,12 @@ function ThemePicker({ value, isDark, onChange }: {
           data-testid="theme-picker-trigger"
         >
           <span className="flex items-center gap-2 truncate">
-            <span
-              className="w-4 h-4 rounded-full shrink-0 border border-border"
-              style={{ backgroundColor: currentEntry ? previewFor(currentEntry) : 'var(--primary)' }}
-            />
+            {currentTheme && (
+              <span
+                className="w-4 h-4 rounded-full shrink-0 border border-border"
+                style={{ backgroundColor: extractPreviewColor(currentTheme, isDark) }}
+              />
+            )}
             <span className="truncate">{value || 'Default'}</span>
           </span>
           <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
@@ -68,10 +62,10 @@ function ThemePicker({ value, isDark, onChange }: {
             itemValue.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
           }
         >
-          <CommandInput placeholder={index.length ? `Search ${index.length} themes...` : 'Loading themes...'} />
+          <CommandInput placeholder={`Search ${themes.length} themes...`} />
           <CommandList>
             <CommandEmpty>No themes found</CommandEmpty>
-            {index.map(t => (
+            {themes.map(t => (
               <CommandItem
                 key={t.name}
                 value={t.name}
@@ -79,10 +73,15 @@ function ThemePicker({ value, isDark, onChange }: {
                 className="gap-3"
               >
                 <span
-                  className="w-3 h-3 rounded-full shrink-0"
-                  style={{ backgroundColor: previewFor(t) }}
-                />
+                  className="w-5 h-5 rounded-full shrink-0 border border-border flex items-center justify-center"
+                  style={{ backgroundColor: extractBgColor(t, isDark) }}
+                >
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: extractPreviewColor(t, isDark) }} />
+                </span>
                 <span className={cn('flex-1 truncate', t.name === value && 'font-medium')}>{t.name}</span>
+                {t.source !== 'default' && (
+                  <span className="text-xs text-muted-foreground shrink-0">{t.source}</span>
+                )}
                 {t.name === value && <Check className="size-4 shrink-0 text-primary" />}
               </CommandItem>
             ))}
@@ -183,10 +182,13 @@ export default function SettingsTab() {
     parseInt(localStorage.getItem('editor-transparency') ?? '0', 10)
   )
 
-  const onDarkToggle = useCallback(async (newDark: boolean) => {
+  const [themes, setThemes] = useState<ThemeEntry[]>([])
+  useEffect(() => { loadThemes().then(setThemes) }, [])
+
+  const onDarkToggle = useCallback((newDark: boolean) => {
     setDark(newDark)
     setDarkMode(newDark)
-    const theme = await loadTheme(appTheme)
+    const theme = themes.find(t => t.name === appTheme)
     if (theme) applyTheme(theme, newDark)
     applyThemeEffects(appTheme)
     notifyEditor()
@@ -194,11 +196,11 @@ export default function SettingsTab() {
     if (systemBridge) {
       systemBridge.setQtTheme({ displayName: appTheme, isDark: newDark }).catch(() => {})
     }
-  }, [appTheme])
+  }, [themes, appTheme])
 
-  const onAppTheme = useCallback(async (name: string) => {
+  const onAppTheme = useCallback((name: string) => {
     setAppTheme(name)
-    const theme = await loadTheme(name)
+    const theme = themes.find(t => t.name === name)
     if (theme) applyTheme(theme, dark)
     applyThemeEffects(name)
     if (editorUseAppTheme) {
@@ -210,7 +212,7 @@ export default function SettingsTab() {
     if (systemBridge) {
       systemBridge.setQtTheme({ displayName: name, isDark: dark }).catch(() => {})
     }
-  }, [dark, editorUseAppTheme])
+  }, [themes, dark, editorUseAppTheme])
 
   // ── Refresh local state when Qt theme changes (handled globally in App.tsx) ──
   useEffect(() => {
@@ -283,7 +285,7 @@ export default function SettingsTab() {
       {/* Theme */}
       <div>
         <p className="text-sm font-medium mb-1">Theme</p>
-        <p className="text-sm text-muted-foreground mb-3">Choose from 1000+ color themes</p>
+        <p className="text-sm text-muted-foreground mb-3">Choose from {themes.length}+ color themes</p>
         <ThemePicker value={appTheme} isDark={dark} onChange={onAppTheme} />
         <Label htmlFor="editor-use-app-theme" className="mt-3 font-normal text-muted-foreground">
           <Switch id="editor-use-app-theme" checked={editorUseAppTheme} onCheckedChange={onEditorUseAppTheme} size="sm" />
