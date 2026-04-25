@@ -20,7 +20,7 @@ target("setup")
         os.execv("npm", {"install"}, {curdir = path.join(root, "tools", "playwright-cdp")})
 
         print("── playwright install chromium ──")
-        os.execv("npx", {"playwright", "install", "chromium"}, {curdir = root})
+        os.execv("bunx", {"playwright", "install", "chromium"}, {curdir = root})
 
         print("✅ All dependencies installed")
     end)
