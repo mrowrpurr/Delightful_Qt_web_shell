@@ -1,7 +1,11 @@
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import {
   Bell, Bold, Calendar as CalendarIcon, Check, ChevronDown, ChevronRight, ChevronsUpDown,
-  Italic, Mail, Plus, Search, Star, Trash2, Underline, User,
+  Cloud, CreditCard, Italic, LifeBuoy, LogOut, Mail, MessageSquare, Plus,
+  Search, Settings, Star, Trash2, Underline, User, UserPlus, Users,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -23,7 +27,33 @@ import { ToggleGroup, ToggleGroupItem } from '@shared/components/ui/toggle-group
 
 // Combobox via popover + cmdk (the same composition used by SettingsTab pickers)
 import { Popover, PopoverContent, PopoverTrigger } from '@shared/components/ui/popover'
-import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@shared/components/ui/command'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@shared/components/ui/command'
+
+// Multi-select chips combobox (base-ui)
+import { Combobox, ComboboxChips, ComboboxChip, ComboboxChipsInput, ComboboxContent, ComboboxEmpty, ComboboxItem, ComboboxList } from '@shared/components/ui/combobox'
+
+// Field + Form (react-hook-form integration)
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSeparator, FieldSet } from '@shared/components/ui/field'
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@shared/components/ui/form'
+import { SelectGroup, SelectLabel, SelectSeparator } from '@shared/components/ui/select'
+
+// DropdownMenu enriched
+import {
+  DropdownMenuCheckboxItem, DropdownMenuGroup, DropdownMenuPortal,
+  DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuShortcut,
+  DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger,
+} from '@shared/components/ui/dropdown-menu'
+import {
+  ContextMenuCheckboxItem, ContextMenuLabel, ContextMenuRadioGroup, ContextMenuRadioItem,
+  ContextMenuSeparator, ContextMenuShortcut, ContextMenuSub, ContextMenuSubContent,
+  ContextMenuSubTrigger,
+} from '@shared/components/ui/context-menu'
+import {
+  MenubarCheckboxItem, MenubarRadioGroup, MenubarRadioItem, MenubarShortcut,
+  MenubarSub, MenubarSubContent, MenubarSubTrigger,
+} from '@shared/components/ui/menubar'
+import { BreadcrumbEllipsis } from '@shared/components/ui/breadcrumb'
+import { EmptyContent } from '@shared/components/ui/empty'
 
 // Display
 import { Avatar, AvatarFallback, AvatarImage } from '@shared/components/ui/avatar'
@@ -101,6 +131,9 @@ const TOC: Array<{ group: string; items: Array<{ id: string; label: string }> }>
       { id: 'slider', label: 'Slider' },
       { id: 'select', label: 'Select' },
       { id: 'combobox', label: 'Combobox' },
+      { id: 'multi-select-list', label: 'Multi-select list' },
+      { id: 'field', label: 'Field' },
+      { id: 'form', label: 'Form' },
       { id: 'toggle', label: 'Toggle' },
       { id: 'toggle-group', label: 'ToggleGroup' },
     ],
@@ -189,9 +222,10 @@ function TableOfContents() {
   )
 }
 
-const FRAMEWORKS = ['Next.js', 'SvelteKit', 'Nuxt.js', 'Remix', 'Astro', 'Qwik']
+const FRAMEWORKS = ['Next.js', 'SvelteKit', 'Nuxt.js', 'Remix', 'Astro', 'Qwik', 'Solid', 'Hono']
+const TAGS = ['typescript', 'react', 'tailwind', 'shadcn', 'radix', 'cmdk', 'monaco', 'qt', 'wasm', 'vite']
 
-function ComboboxDemo() {
+function ComboboxSingle() {
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState<string>('Next.js')
   return (
@@ -220,11 +254,122 @@ function ComboboxDemo() {
   )
 }
 
+function ComboboxMultiChips() {
+  const [value, setValue] = useState<string[]>(['typescript', 'tailwind'])
+  return (
+    <Combobox items={TAGS} value={value} onValueChange={(v) => setValue(v as string[])} multiple>
+      <ComboboxChips className="w-full max-w-md">
+        {value.map(tag => (
+          <ComboboxChip key={tag}>{tag}</ComboboxChip>
+        ))}
+        <ComboboxChipsInput placeholder={value.length ? '' : 'Add tags…'} />
+      </ComboboxChips>
+      <ComboboxContent>
+        <ComboboxEmpty>No tag found</ComboboxEmpty>
+        <ComboboxList>
+          {TAGS.map(tag => (
+            <ComboboxItem key={tag} value={tag}>{tag}</ComboboxItem>
+          ))}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
+  )
+}
+
+const PERMISSIONS = ['read', 'write', 'delete', 'admin', 'invite', 'billing', 'audit-log']
+
+function MultiSelectListview() {
+  const [selected, setSelected] = useState<Set<string>>(new Set(['read', 'write']))
+  const toggle = (perm: string) => {
+    const next = new Set(selected)
+    if (next.has(perm)) next.delete(perm); else next.add(perm)
+    setSelected(next)
+  }
+  return (
+    <div className="rounded-md border border-border bg-popover w-full max-w-sm">
+      <Command>
+        <CommandInput placeholder="Filter permissions…" />
+        <CommandList>
+          <CommandEmpty>No permission found.</CommandEmpty>
+          <CommandGroup heading={`${selected.size} of ${PERMISSIONS.length} selected`}>
+            {PERMISSIONS.map(perm => (
+              <CommandItem key={perm} value={perm} onSelect={() => toggle(perm)} className="gap-2">
+                <Checkbox checked={selected.has(perm)} className="pointer-events-none" tabIndex={-1} aria-hidden />
+                <span className="flex-1">{perm}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </Command>
+    </div>
+  )
+}
+
+const profileSchema = z.object({
+  username: z.string().min(2, 'At least 2 characters').max(20, 'Too long'),
+  email: z.email('Invalid email'),
+  bio: z.string().max(160).optional(),
+})
+type ProfileForm = z.infer<typeof profileSchema>
+
+function FormDemo() {
+  const form = useForm<ProfileForm>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: { username: '', email: '', bio: '' },
+  })
+  const onSubmit = (data: ProfileForm) => {
+    toast.success(`Submitted: ${JSON.stringify(data)}`)
+  }
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-md">
+        <FormField
+          control={form.control}
+          name="username"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Username</FormLabel>
+              <FormControl><Input placeholder="shadcn" {...field} /></FormControl>
+              <FormDescription>This is your public display name.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl><Input type="email" placeholder="you@example.com" {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="bio"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Bio</FormLabel>
+              <FormControl><Textarea placeholder="Tell us a little about yourself" {...field} /></FormControl>
+              <FormDescription>Up to 160 characters.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit">Submit</Button>
+      </form>
+    </Form>
+  )
+}
+
 // ── Page ────────────────────────────────────────────────────
 
 export default function ComponentsTab() {
   const [progress] = useState(63)
   const [sliderValue, setSliderValue] = useState([42])
+  const [rangeSlider, setRangeSlider] = useState([20, 75])
   const [checked, setChecked] = useState<boolean | 'indeterminate'>(true)
   const [switchOn, setSwitchOn] = useState(true)
   const [radio, setRadio] = useState('comfortable')
@@ -232,6 +377,20 @@ export default function ComponentsTab() {
   const [toggleGroup, setToggleGroup] = useState<string[]>(['bold'])
   const [otp, setOtp] = useState('')
   const [date, setDate] = useState<Date | undefined>(new Date())
+  const [dateRange, setDateRange] = useState<{ from: Date; to?: Date } | undefined>({
+    from: new Date(),
+    to: new Date(Date.now() + 5 * 86400000),
+  })
+  const [multiDates, setMultiDates] = useState<Date[]>([new Date()])
+  const [showStatusBar, setShowStatusBar] = useState(true)
+  const [showActivityBar, setShowActivityBar] = useState(false)
+  const [showPanel, setShowPanel] = useState(false)
+  const [menuPosition, setMenuPosition] = useState('bottom')
+  const [ctxBookmarks, setCtxBookmarks] = useState(true)
+  const [ctxFullUrls, setCtxFullUrls] = useState(false)
+  const [ctxPerson, setCtxPerson] = useState('pedro')
+  const [menubarVisible, setMenubarVisible] = useState(true)
+  const [menubarProfile, setMenubarProfile] = useState('andy')
 
   return (
     <TooltipProvider>
@@ -355,30 +514,94 @@ export default function ComponentsTab() {
           </RadioGroup>
         </Section>
 
-        <Section id="slider" title="Slider">
-          <div className="flex items-center gap-3 max-w-md">
-            <Slider value={sliderValue} onValueChange={setSliderValue} max={100} step={1} className="flex-1" />
-            <span className="text-sm tabular-nums text-muted-foreground w-10 text-right">{sliderValue[0]}</span>
+        <Section id="slider" title="Slider" blurb="Single thumb + range (two thumbs).">
+          <div className="space-y-4 max-w-md">
+            <div className="flex items-center gap-3">
+              <Slider value={sliderValue} onValueChange={setSliderValue} max={100} step={1} className="flex-1" />
+              <span className="text-sm tabular-nums text-muted-foreground w-12 text-right">{sliderValue[0]}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Slider value={rangeSlider} onValueChange={setRangeSlider} max={100} step={1} className="flex-1" />
+              <span className="text-sm tabular-nums text-muted-foreground w-12 text-right">{rangeSlider[0]}–{rangeSlider[1]}</span>
+            </div>
           </div>
         </Section>
 
-        <Section id="select" title="Select" blurb="Radix Select — Portal-based to dodge QWebEngine's native &lt;select&gt; bug.">
-          <Select defaultValue="apple">
-            <SelectTrigger className="w-[220px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="apple">Apple</SelectItem>
-              <SelectItem value="banana">Banana</SelectItem>
-              <SelectItem value="blueberry">Blueberry</SelectItem>
-              <SelectItem value="grapes">Grapes</SelectItem>
-              <SelectItem value="pineapple">Pineapple</SelectItem>
-            </SelectContent>
-          </Select>
+        <Section id="select" title="Select" blurb="Radix Select with grouped options. Portal-based to dodge QWebEngine's native &lt;select&gt; bug.">
+          <div className="flex flex-wrap gap-3">
+            <Select defaultValue="apple">
+              <SelectTrigger className="w-[220px]"><SelectValue placeholder="Pick a fruit" /></SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Fruits</SelectLabel>
+                  <SelectItem value="apple">Apple</SelectItem>
+                  <SelectItem value="banana">Banana</SelectItem>
+                  <SelectItem value="blueberry">Blueberry</SelectItem>
+                  <SelectItem value="grapes">Grapes</SelectItem>
+                  <SelectItem value="pineapple">Pineapple</SelectItem>
+                </SelectGroup>
+                <SelectSeparator />
+                <SelectGroup>
+                  <SelectLabel>Vegetables</SelectLabel>
+                  <SelectItem value="carrot">Carrot</SelectItem>
+                  <SelectItem value="kale">Kale</SelectItem>
+                  <SelectItem value="onion">Onion</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <Select disabled>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Disabled" /></SelectTrigger>
+              <SelectContent />
+            </Select>
+          </div>
         </Section>
 
-        <Section id="combobox" title="Combobox" blurb="Popover + cmdk Command. Same composition powers the theme/font pickers in Settings.">
-          <ComboboxDemo />
+        <Section id="combobox" title="Combobox" blurb="Single-select (Popover + cmdk) and multi-select chips (base-ui).">
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Single-select — searchable</p>
+              <ComboboxSingle />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Multi-select — chips</p>
+              <ComboboxMultiChips />
+            </div>
+          </div>
+        </Section>
+
+        <Section id="multi-select-list" title="Multi-select listview" blurb="Command + Checkbox indicators per item. Pattern for picking N from a list.">
+          <MultiSelectListview />
+        </Section>
+
+        <Section id="field" title="Field" blurb="Field primitive for forms — group label, control, description, error.">
+          <FieldSet className="max-w-md">
+            <FieldLegend>Notification preferences</FieldLegend>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="field-email">Email address</FieldLabel>
+                <Input id="field-email" type="email" placeholder="you@example.com" />
+                <FieldDescription>We'll never share your email.</FieldDescription>
+              </Field>
+              <FieldSeparator />
+              <Field orientation="horizontal">
+                <Switch id="field-marketing" defaultChecked />
+                <FieldLabel htmlFor="field-marketing">Marketing emails</FieldLabel>
+              </Field>
+              <Field orientation="horizontal">
+                <Switch id="field-product" />
+                <FieldLabel htmlFor="field-product">Product updates</FieldLabel>
+              </Field>
+              <Field data-invalid="true">
+                <FieldLabel htmlFor="field-handle">Handle</FieldLabel>
+                <Input id="field-handle" defaultValue="sh@dcn" aria-invalid />
+                <FieldError>Letters, numbers, and underscores only.</FieldError>
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+        </Section>
+
+        <Section id="form" title="Form" blurb="React Hook Form + Zod validation. Submit logs a toast.">
+          <FormDemo />
         </Section>
 
         <Section id="toggle" title="Toggle">
@@ -494,43 +717,77 @@ export default function ComponentsTab() {
           </AspectRatio>
         </Section>
 
-        <Section id="empty" title="Empty">
+        <Section id="empty" title="Empty" blurb="Empty state with optional CTA action.">
           <Empty className="border-dashed">
             <EmptyHeader>
               <EmptyMedia variant="icon"><Mail /></EmptyMedia>
               <EmptyTitle>No messages</EmptyTitle>
-              <EmptyDescription>You're all caught up.</EmptyDescription>
+              <EmptyDescription>You're all caught up. New messages will appear here.</EmptyDescription>
             </EmptyHeader>
+            <EmptyContent>
+              <Button size="sm"><Plus /> Compose message</Button>
+            </EmptyContent>
           </Empty>
         </Section>
 
         {/* ── Navigation ────────────────────────────────── */}
 
-        <Section id="tabs" title="Tabs" blurb="Radix Tabs (replaces the hand-rolled tabs.tsx from Phase 1).">
-          <Tabs defaultValue="account" className="max-w-md">
-            <TabsList>
-              <TabsTrigger value="account">Account</TabsTrigger>
-              <TabsTrigger value="password">Password</TabsTrigger>
-            </TabsList>
-            <TabsContent value="account" className="text-sm text-muted-foreground pt-3">
-              Make changes to your account here.
-            </TabsContent>
-            <TabsContent value="password" className="text-sm text-muted-foreground pt-3">
-              Change your password here.
-            </TabsContent>
-          </Tabs>
+        <Section id="tabs" title="Tabs" blurb="Radix Tabs — horizontal and vertical orientation.">
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Horizontal</p>
+              <Tabs defaultValue="account">
+                <TabsList>
+                  <TabsTrigger value="account">Account</TabsTrigger>
+                  <TabsTrigger value="password">Password</TabsTrigger>
+                  <TabsTrigger value="team">Team</TabsTrigger>
+                </TabsList>
+                <TabsContent value="account" className="text-sm text-muted-foreground pt-3">Make changes to your account.</TabsContent>
+                <TabsContent value="password" className="text-sm text-muted-foreground pt-3">Change your password.</TabsContent>
+                <TabsContent value="team" className="text-sm text-muted-foreground pt-3">Manage your team.</TabsContent>
+              </Tabs>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Vertical</p>
+              <Tabs defaultValue="general" orientation="vertical" className="flex flex-row gap-3">
+                <TabsList className="flex-col h-auto">
+                  <TabsTrigger value="general" className="justify-start w-full">General</TabsTrigger>
+                  <TabsTrigger value="security" className="justify-start w-full">Security</TabsTrigger>
+                  <TabsTrigger value="billing" className="justify-start w-full">Billing</TabsTrigger>
+                </TabsList>
+                <div className="flex-1 text-sm text-muted-foreground">
+                  <TabsContent value="general">General settings.</TabsContent>
+                  <TabsContent value="security">Security settings.</TabsContent>
+                  <TabsContent value="billing">Billing settings.</TabsContent>
+                </div>
+              </Tabs>
+            </div>
+          </div>
         </Section>
 
-        <Section id="breadcrumb" title="Breadcrumb">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem><BreadcrumbLink href="#">Home</BreadcrumbLink></BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem><BreadcrumbLink href="#">Components</BreadcrumbLink></BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem><BreadcrumbPage>Breadcrumb</BreadcrumbPage></BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+        <Section id="breadcrumb" title="Breadcrumb" blurb="Plain trail and collapsed-with-ellipsis.">
+          <div className="space-y-3">
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem><BreadcrumbLink href="#">Home</BreadcrumbLink></BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem><BreadcrumbLink href="#">Components</BreadcrumbLink></BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem><BreadcrumbPage>Breadcrumb</BreadcrumbPage></BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem><BreadcrumbLink href="#">Home</BreadcrumbLink></BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem><BreadcrumbEllipsis /></BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem><BreadcrumbLink href="#">Components</BreadcrumbLink></BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem><BreadcrumbPage>Breadcrumb</BreadcrumbPage></BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
         </Section>
 
         <Section id="pagination" title="Pagination">
@@ -546,51 +803,126 @@ export default function ComponentsTab() {
           </Pagination>
         </Section>
 
-        <Section id="dropdown-menu" title="DropdownMenu">
+        <Section id="dropdown-menu" title="DropdownMenu" blurb="Items, labels, separators, shortcuts, checkboxes, radios, and submenus.">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">Open menu <ChevronDown className="ml-1 size-4" /></Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
+            <DropdownMenuContent className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Profile</DropdownMenuItem>
-              <DropdownMenuItem>Billing</DropdownMenuItem>
-              <DropdownMenuItem>Team</DropdownMenuItem>
-              <DropdownMenuItem>Subscription</DropdownMenuItem>
+              <DropdownMenuGroup>
+                <DropdownMenuItem><User /> Profile <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut></DropdownMenuItem>
+                <DropdownMenuItem><CreditCard /> Billing <DropdownMenuShortcut>⌘B</DropdownMenuShortcut></DropdownMenuItem>
+                <DropdownMenuItem><Settings /> Settings <DropdownMenuShortcut>⌘,</DropdownMenuShortcut></DropdownMenuItem>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>View</DropdownMenuLabel>
+              <DropdownMenuCheckboxItem checked={showStatusBar} onCheckedChange={setShowStatusBar}>Status Bar</DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem checked={showActivityBar} onCheckedChange={setShowActivityBar}>Activity Bar</DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem checked={showPanel} onCheckedChange={setShowPanel}>Panel</DropdownMenuCheckboxItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Panel position</DropdownMenuLabel>
+              <DropdownMenuRadioGroup value={menuPosition} onValueChange={setMenuPosition}>
+                <DropdownMenuRadioItem value="top">Top</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="bottom">Bottom</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="right">Right</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger><UserPlus /> Invite users</DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem><Mail /> Email</DropdownMenuItem>
+                    <DropdownMenuItem><MessageSquare /> Message</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem><Users /> More…</DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem><LifeBuoy /> Support</DropdownMenuItem>
+              <DropdownMenuItem disabled><Cloud /> API <DropdownMenuShortcut>⌘K</DropdownMenuShortcut></DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem><LogOut /> Log out <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut></DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </Section>
 
-        <Section id="context-menu" title="ContextMenu" blurb="Right-click the box.">
+        <Section id="context-menu" title="ContextMenu" blurb="Right-click the box. Same pattern as DropdownMenu — checkboxes, radios, submenus, shortcuts.">
           <ContextMenu>
-            <ContextMenuTrigger className="flex h-20 w-full max-w-md items-center justify-center rounded-md border border-dashed border-border text-sm text-muted-foreground">
+            <ContextMenuTrigger className="flex h-32 w-full max-w-md items-center justify-center rounded-md border border-dashed border-border text-sm text-muted-foreground">
               Right-click here
             </ContextMenuTrigger>
-            <ContextMenuContent>
-              <ContextMenuItem>Cut</ContextMenuItem>
-              <ContextMenuItem>Copy</ContextMenuItem>
-              <ContextMenuItem>Paste</ContextMenuItem>
+            <ContextMenuContent className="w-56">
+              <ContextMenuItem>Back <ContextMenuShortcut>⌘[</ContextMenuShortcut></ContextMenuItem>
+              <ContextMenuItem disabled>Forward <ContextMenuShortcut>⌘]</ContextMenuShortcut></ContextMenuItem>
+              <ContextMenuItem>Reload <ContextMenuShortcut>⌘R</ContextMenuShortcut></ContextMenuItem>
+              <ContextMenuSub>
+                <ContextMenuSubTrigger>More tools</ContextMenuSubTrigger>
+                <ContextMenuSubContent>
+                  <ContextMenuItem>Save Page As… <ContextMenuShortcut>⇧⌘S</ContextMenuShortcut></ContextMenuItem>
+                  <ContextMenuItem>Create Shortcut…</ContextMenuItem>
+                  <ContextMenuItem>Name Window…</ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem>Developer Tools</ContextMenuItem>
+                </ContextMenuSubContent>
+              </ContextMenuSub>
+              <ContextMenuSeparator />
+              <ContextMenuCheckboxItem checked={ctxBookmarks} onCheckedChange={setCtxBookmarks}>Show Bookmarks Bar <ContextMenuShortcut>⌘⇧B</ContextMenuShortcut></ContextMenuCheckboxItem>
+              <ContextMenuCheckboxItem checked={ctxFullUrls} onCheckedChange={setCtxFullUrls}>Show Full URLs</ContextMenuCheckboxItem>
+              <ContextMenuSeparator />
+              <ContextMenuLabel>People</ContextMenuLabel>
+              <ContextMenuRadioGroup value={ctxPerson} onValueChange={setCtxPerson}>
+                <ContextMenuRadioItem value="pedro">Pedro Duarte</ContextMenuRadioItem>
+                <ContextMenuRadioItem value="colm">Colm Tuite</ContextMenuRadioItem>
+              </ContextMenuRadioGroup>
             </ContextMenuContent>
           </ContextMenu>
         </Section>
 
-        <Section id="menubar" title="Menubar">
+        <Section id="menubar" title="Menubar" blurb="Multiple menus with submenus, checkboxes, radios, shortcuts.">
           <Menubar>
             <MenubarMenu>
               <MenubarTrigger>File</MenubarTrigger>
               <MenubarContent>
-                <MenubarItem>New Tab</MenubarItem>
-                <MenubarItem>New Window</MenubarItem>
+                <MenubarItem>New Tab <MenubarShortcut>⌘T</MenubarShortcut></MenubarItem>
+                <MenubarItem>New Window <MenubarShortcut>⌘N</MenubarShortcut></MenubarItem>
+                <MenubarItem disabled>New Incognito Window</MenubarItem>
                 <MenubarSeparator />
-                <MenubarItem>Print</MenubarItem>
+                <MenubarSub>
+                  <MenubarSubTrigger>Share</MenubarSubTrigger>
+                  <MenubarSubContent>
+                    <MenubarItem>Email link</MenubarItem>
+                    <MenubarItem>Messages</MenubarItem>
+                    <MenubarItem>Notes</MenubarItem>
+                  </MenubarSubContent>
+                </MenubarSub>
+                <MenubarSeparator />
+                <MenubarItem>Print… <MenubarShortcut>⌘P</MenubarShortcut></MenubarItem>
               </MenubarContent>
             </MenubarMenu>
             <MenubarMenu>
-              <MenubarTrigger>Edit</MenubarTrigger>
+              <MenubarTrigger>View</MenubarTrigger>
               <MenubarContent>
-                <MenubarItem>Undo</MenubarItem>
-                <MenubarItem>Redo</MenubarItem>
+                <MenubarCheckboxItem checked={menubarVisible} onCheckedChange={setMenubarVisible}>Always Show Bookmarks Bar</MenubarCheckboxItem>
+                <MenubarCheckboxItem>Always Show Full URLs</MenubarCheckboxItem>
+                <MenubarSeparator />
+                <MenubarItem inset>Reload <MenubarShortcut>⌘R</MenubarShortcut></MenubarItem>
+                <MenubarItem disabled inset>Force Reload <MenubarShortcut>⇧⌘R</MenubarShortcut></MenubarItem>
+              </MenubarContent>
+            </MenubarMenu>
+            <MenubarMenu>
+              <MenubarTrigger>Profiles</MenubarTrigger>
+              <MenubarContent>
+                <MenubarRadioGroup value={menubarProfile} onValueChange={setMenubarProfile}>
+                  <MenubarRadioItem value="andy">Andy</MenubarRadioItem>
+                  <MenubarRadioItem value="benoit">Benoit</MenubarRadioItem>
+                  <MenubarRadioItem value="luis">Luis</MenubarRadioItem>
+                </MenubarRadioGroup>
+                <MenubarSeparator />
+                <MenubarItem inset>Edit…</MenubarItem>
+                <MenubarItem inset>Add Profile…</MenubarItem>
               </MenubarContent>
             </MenubarMenu>
           </Menubar>
@@ -653,20 +985,24 @@ export default function ComponentsTab() {
           </AlertDialog>
         </Section>
 
-        <Section id="sheet" title="Sheet">
-          <Sheet>
-            <SheetTrigger asChild><Button variant="outline">Open sheet</Button></SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>Edit profile</SheetTitle>
-                <SheetDescription>Quick changes from the side.</SheetDescription>
-              </SheetHeader>
-              <div className="p-4 space-y-3">
-                <Label htmlFor="sheet-name">Name</Label>
-                <Input id="sheet-name" defaultValue="Pedro Duarte" />
-              </div>
-            </SheetContent>
-          </Sheet>
+        <Section id="sheet" title="Sheet" blurb="Slides in from any of the four sides.">
+          <div className="flex flex-wrap gap-2">
+            {(['top', 'right', 'bottom', 'left'] as const).map(side => (
+              <Sheet key={side}>
+                <SheetTrigger asChild><Button variant="outline" className="capitalize">From {side}</Button></SheetTrigger>
+                <SheetContent side={side}>
+                  <SheetHeader>
+                    <SheetTitle className="capitalize">{side} sheet</SheetTitle>
+                    <SheetDescription>Slides in from the {side}.</SheetDescription>
+                  </SheetHeader>
+                  <div className="p-4 space-y-3">
+                    <Label htmlFor={`sheet-name-${side}`}>Name</Label>
+                    <Input id={`sheet-name-${side}`} defaultValue="Pedro Duarte" />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            ))}
+          </div>
         </Section>
 
         <Section id="drawer" title="Drawer">
@@ -735,17 +1071,43 @@ export default function ComponentsTab() {
 
         {/* ── Containers ────────────────────────────────── */}
 
-        <Section id="accordion" title="Accordion">
-          <Accordion type="single" collapsible className="max-w-md">
-            <AccordionItem value="a">
-              <AccordionTrigger>Is it accessible?</AccordionTrigger>
-              <AccordionContent>Yes. It adheres to the WAI-ARIA design pattern.</AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="b">
-              <AccordionTrigger>Is it styled?</AccordionTrigger>
-              <AccordionContent>Yes. It comes with default styles that match the other components.</AccordionContent>
-            </AccordionItem>
-          </Accordion>
+        <Section id="accordion" title="Accordion" blurb="Single (one open at a time, collapsible) and multiple (several open).">
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">type=&quot;single&quot;</p>
+              <Accordion type="single" collapsible defaultValue="a">
+                <AccordionItem value="a">
+                  <AccordionTrigger>Is it accessible?</AccordionTrigger>
+                  <AccordionContent>Yes. It adheres to the WAI-ARIA design pattern.</AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="b">
+                  <AccordionTrigger>Is it styled?</AccordionTrigger>
+                  <AccordionContent>Yes. It comes with default styles.</AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="c">
+                  <AccordionTrigger>Is it animated?</AccordionTrigger>
+                  <AccordionContent>Yes. With CSS variables.</AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">type=&quot;multiple&quot;</p>
+              <Accordion type="multiple" defaultValue={['a', 'c']}>
+                <AccordionItem value="a">
+                  <AccordionTrigger>Item one</AccordionTrigger>
+                  <AccordionContent>Both this and Item three start expanded.</AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="b">
+                  <AccordionTrigger>Item two</AccordionTrigger>
+                  <AccordionContent>This one starts collapsed.</AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="c">
+                  <AccordionTrigger>Item three</AccordionTrigger>
+                  <AccordionContent>Multi mode lets multiple items stay open at once.</AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
+          </div>
         </Section>
 
         <Section id="collapsible" title="Collapsible">
@@ -761,20 +1123,56 @@ export default function ComponentsTab() {
           </Collapsible>
         </Section>
 
-        <Section id="scroll-area" title="ScrollArea">
-          <ScrollArea className="h-32 max-w-md rounded-md border border-border p-3 text-sm">
-            {Array.from({ length: 30 }, (_, i) => (
-              <div key={i}>Row #{i + 1} — scroll me</div>
-            ))}
-          </ScrollArea>
+        <Section id="scroll-area" title="ScrollArea" blurb="Vertical and horizontal.">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Vertical</p>
+              <ScrollArea className="h-32 rounded-md border border-border p-3 text-sm">
+                {Array.from({ length: 30 }, (_, i) => (
+                  <div key={i}>Row #{i + 1}</div>
+                ))}
+              </ScrollArea>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Horizontal</p>
+              <ScrollArea className="rounded-md border border-border whitespace-nowrap">
+                <div className="flex gap-3 p-3">
+                  {Array.from({ length: 20 }, (_, i) => (
+                    <div key={i} className="size-20 shrink-0 rounded-md bg-muted flex items-center justify-center text-sm font-medium">
+                      #{i + 1}
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
         </Section>
 
-        <Section id="resizable" title="Resizable">
-          <ResizablePanelGroup orientation="horizontal" className="max-w-md rounded-md border border-border h-32">
-            <ResizablePanel defaultSize={50}><div className="p-3 text-sm">Left</div></ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={50}><div className="p-3 text-sm">Right</div></ResizablePanel>
-          </ResizablePanelGroup>
+        <Section id="resizable" title="Resizable" blurb="Horizontal, vertical, and nested panels.">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Horizontal</p>
+              <ResizablePanelGroup orientation="horizontal" className="rounded-md border border-border h-32">
+                <ResizablePanel defaultSize={50}><div className="p-3 text-sm">Left</div></ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={50}><div className="p-3 text-sm">Right</div></ResizablePanel>
+              </ResizablePanelGroup>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Vertical (with nested split)</p>
+              <ResizablePanelGroup orientation="vertical" className="rounded-md border border-border h-48">
+                <ResizablePanel defaultSize={40}><div className="p-3 text-sm">Top</div></ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={60}>
+                  <ResizablePanelGroup orientation="horizontal">
+                    <ResizablePanel defaultSize={50}><div className="p-3 text-sm">Bottom-left</div></ResizablePanel>
+                    <ResizableHandle withHandle />
+                    <ResizablePanel defaultSize={50}><div className="p-3 text-sm">Bottom-right</div></ResizablePanel>
+                  </ResizablePanelGroup>
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            </div>
+          </div>
         </Section>
 
         <Section id="carousel" title="Carousel">
@@ -833,8 +1231,32 @@ export default function ComponentsTab() {
 
         {/* ── Data ──────────────────────────────────────── */}
 
-        <Section id="calendar" title="Calendar">
-          <Calendar mode="single" selected={date} onSelect={setDate} className="rounded-md border border-border" />
+        <Section id="calendar" title="Calendar" blurb="Single date, date range, and multiple-date modes.">
+          <div className="grid gap-6 md:grid-cols-3">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Single</p>
+              <Calendar mode="single" selected={date} onSelect={setDate} className="rounded-md border border-border" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Range</p>
+              <Calendar
+                mode="range"
+                selected={dateRange}
+                onSelect={(r) => setDateRange(r?.from ? { from: r.from, to: r.to } : undefined)}
+                numberOfMonths={1}
+                className="rounded-md border border-border"
+              />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Multiple</p>
+              <Calendar
+                mode="multiple"
+                selected={multiDates}
+                onSelect={(d) => setMultiDates(d ?? [])}
+                className="rounded-md border border-border"
+              />
+            </div>
+          </div>
         </Section>
 
         <Section id="chart" title="Chart" blurb="Recharts wrapper — full demo lands in Phase 4 alongside --chart-* wiring.">
