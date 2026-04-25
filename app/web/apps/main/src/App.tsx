@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { SidebarSlotProvider } from './sidebar-slot'
+import { SidebarSlotProvider } from '@/hooks/use-sidebar-slot'
 import { signalReady } from '@shared/api/bridge'
 import {
   Sidebar,

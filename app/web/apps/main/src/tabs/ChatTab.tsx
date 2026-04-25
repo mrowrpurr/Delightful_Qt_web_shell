@@ -8,7 +8,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@shared/components/ui/sidebar'
-import { useSidebarSlot } from '../sidebar-slot'
+import { useSidebarSlot } from '@/hooks/use-sidebar-slot'
 
 type Session = { id: string, title: string }
 
