@@ -141,8 +141,8 @@ export default function App() {
       <SidebarProvider defaultOpen>
         <Sidebar collapsible="icon">
           <SidebarHeader>
-            <div className="flex items-center justify-between gap-2">
-              <span className="px-2 text-base font-semibold group-data-[collapsible=icon]:hidden">
+            <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:gap-0">
+              <span className="overflow-hidden whitespace-nowrap px-2 text-base font-semibold opacity-100 transition-opacity duration-150 ease-linear delay-200 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:delay-0">
                 {import.meta.env.VITE_APP_NAME ?? 'App'}
               </span>
               <SidebarTrigger
