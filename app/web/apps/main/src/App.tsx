@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { SidebarSlotProvider } from './sidebar-slot'
 import { signalReady } from '@shared/api/bridge'
 import {
   Sidebar,
@@ -23,6 +24,7 @@ import SystemTab from './tabs/SystemTab'
 import EditorTab from './tabs/EditorTab'
 import SettingsTab from './tabs/SettingsTab'
 import ComponentsTab from './tabs/ComponentsTab'
+import ChatTab from './tabs/ChatTab'
 
 // Global listener for Qt theme changes — always active regardless of which tab is visible.
 let qtThemeCleanup: (() => void) | null = null
@@ -70,6 +72,7 @@ const TAB_TITLES: Record<string, string> = {
   editor: '✏️ Editor',
   todos: '✅ Todos',
   files: '📂 Files',
+  chat: '💬 Chat',
   system: '⚙️ System',
   settings: '🎨 Settings',
   components: '🧩 Components',
@@ -80,12 +83,17 @@ const NAV_ITEMS = [
   { id: 'editor', label: 'Editor', icon: '✏️' },
   { id: 'todos', label: 'Todos', icon: '✅' },
   { id: 'files', label: 'Files', icon: '📂' },
+  { id: 'chat', label: 'Chat', icon: '💬' },
   { id: 'system', label: 'System', icon: '⚙️' },
   { id: 'settings', label: 'Settings', icon: '🎨' },
   { id: 'components', label: 'Components', icon: '🧩' },
 ] as const
 
 export default function App() {
+  // Slot for page-contributed sidebar content. Pages call useSidebarSlot(<JSX/>)
+  // and it lands here. Cleared when the page unmounts.
+  const [sidebarSlot, setSidebarSlot] = useState<ReactNode>(null)
+
   useEffect(() => { signalReady() }, [])
 
   // Initialize tab from URL hash (e.g. app://main/#editor → "editor").
@@ -124,6 +132,7 @@ export default function App() {
       case 'editor': return <EditorTab />
       case 'todos': return <TodosTab />
       case 'files': return <FileBrowserTab />
+      case 'chat': return <ChatTab />
       case 'system': return <SystemTab />
       case 'settings': return <SettingsTab />
       case 'components': return <ComponentsTab />
@@ -139,6 +148,7 @@ export default function App() {
       } : undefined}
     >
       <SidebarProvider defaultOpen>
+        <SidebarSlotProvider value={setSidebarSlot}>
         <Sidebar collapsible="icon">
           <SidebarHeader>
             <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:gap-0">
@@ -174,11 +184,13 @@ export default function App() {
                 ))}
               </SidebarMenu>
             </SidebarGroup>
+            {sidebarSlot}
           </SidebarContent>
         </Sidebar>
         <SidebarInset>
           {renderTab()}
         </SidebarInset>
+        </SidebarSlotProvider>
       </SidebarProvider>
       <Toaster />
     </div>
