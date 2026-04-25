@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm'
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@shared/components/ui/select'
 import { Switch } from '@shared/components/ui/switch'
 import { Label } from '@shared/components/ui/label'
+import { Card, CardContent, CardHeader, CardTitle } from '@shared/components/ui/card'
 
 // ── Human docs ────────────────────────────────────────────
 import readme from '../../../../../README.md?raw'
@@ -68,30 +69,32 @@ export default function DocsTab() {
 
   return (
     <div className="max-w-3xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
-        <h2 className="text-lg font-semibold text-primary">Documentation</h2>
-        <div className="flex items-center gap-4">
-          {/* Agent/Human toggle */}
-          <Label htmlFor="docs-mode-switch" className="font-normal">
-            <span className="text-xs text-muted-foreground">{agentMode ? '🤖 Agent' : '👤 Human'}</span>
-            <Switch id="docs-mode-switch" checked={agentMode} onCheckedChange={handleToggle} size="sm" />
-          </Label>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between border-b border-border">
+          <CardTitle>Documentation</CardTitle>
+          <div className="flex items-center gap-4">
+            {/* Agent/Human toggle */}
+            <Label htmlFor="docs-mode-switch" className="font-normal">
+              <span className="text-xs text-muted-foreground">{agentMode ? '🤖 Agent' : '👤 Human'}</span>
+              <Switch id="docs-mode-switch" checked={agentMode} onCheckedChange={handleToggle} size="sm" />
+            </Label>
 
-          <Select value={selectedDoc} onValueChange={setSelectedDoc}>
-            <SelectTrigger className="w-[240px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {docs.map(d => (
-                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="markdown-body">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{doc.content}</ReactMarkdown>
-      </div>
+            <Select value={selectedDoc} onValueChange={setSelectedDoc}>
+              <SelectTrigger className="w-[240px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {docs.map(d => (
+                  <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent className="markdown-body">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{doc.content}</ReactMarkdown>
+        </CardContent>
+      </Card>
     </div>
   )
 }

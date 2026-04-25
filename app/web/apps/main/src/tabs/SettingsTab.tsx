@@ -10,6 +10,7 @@ import { Label } from '@shared/components/ui/label'
 import { Button } from '@shared/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@shared/components/ui/popover'
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@shared/components/ui/command'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@shared/components/ui/card'
 
 // Lazy-init the system bridge (may not be available in WASM/browser mode)
 let systemBridge: Awaited<ReturnType<typeof getSystemBridge>> | null = null
@@ -274,110 +275,113 @@ export default function SettingsTab() {
   }, [])
 
   return (
-    <div className="max-w-lg mx-auto p-6 space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-primary mb-1">Appearance</h2>
-        <p className="text-sm text-muted-foreground">Theme, font, and editor settings. Saved to localStorage.</p>
-      </div>
-
-      {/* Dark/Light */}
-      <div className="flex items-center justify-between">
-        <Label htmlFor="dark-mode-switch" className="flex-col items-start gap-1">
-          <span className="font-medium">Dark Mode</span>
-          <span className="font-normal text-muted-foreground">Toggle between light and dark themes</span>
-        </Label>
-        <Switch id="dark-mode-switch" checked={dark} onCheckedChange={onDarkToggle} />
-      </div>
-
-      {/* Theme */}
-      <div>
-        <p className="text-sm font-medium mb-1">Theme</p>
-        <p className="text-sm text-muted-foreground mb-3">Choose from 1000+ color themes</p>
-        <ThemePicker value={appTheme} isDark={dark} onChange={onAppTheme} />
-        <Label htmlFor="editor-use-app-theme" className="mt-3 font-normal text-muted-foreground">
-          <Switch id="editor-use-app-theme" checked={editorUseAppTheme} onCheckedChange={onEditorUseAppTheme} size="sm" />
-          Use in Code Editor
-        </Label>
-        {!editorUseAppTheme && (
-          <div className="mt-3 ml-1 pl-3 border-l-2 border-border">
-            <p className="text-sm font-medium mb-1">Code Editor Theme</p>
-            <ThemePicker value={editorTheme} isDark={dark} onChange={onEditorTheme} />
+    <div className="max-w-lg mx-auto p-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+          <CardDescription>Theme, font, and editor settings. Saved to localStorage.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Dark/Light */}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="dark-mode-switch" className="flex-col items-start gap-1">
+              <span className="font-medium">Dark Mode</span>
+              <span className="font-normal text-muted-foreground">Toggle between light and dark themes</span>
+            </Label>
+            <Switch id="dark-mode-switch" checked={dark} onCheckedChange={onDarkToggle} />
           </div>
-        )}
-      </div>
 
-      {/* Font */}
-      <div>
-        <p className="text-sm font-medium mb-1">Font</p>
-        <p className="text-sm text-muted-foreground mb-3">Choose from 1900+ Google Fonts</p>
-        <FontPicker value={appFont} onChange={onAppFont} />
-        {appFont && (
-          <p className="mt-2 text-sm text-muted-foreground" style={{ fontFamily: `"${appFont}", sans-serif` }}>
-            The quick brown fox jumps over the lazy dog
-          </p>
-        )}
-        <Label htmlFor="editor-use-app-font" className="mt-3 font-normal text-muted-foreground">
-          <Switch id="editor-use-app-font" checked={editorUseAppFont} onCheckedChange={onEditorUseAppFont} size="sm" />
-          Use in Code Editor
-        </Label>
-        {!editorUseAppFont && (
-          <div className="mt-3 ml-1 pl-3 border-l-2 border-border">
-            <p className="text-sm font-medium mb-1">Code Editor Font</p>
-            <FontPicker value={editorFont} onChange={onEditorFont} />
+          {/* Theme */}
+          <div>
+            <p className="text-sm font-medium mb-1">Theme</p>
+            <p className="text-sm text-muted-foreground mb-3">Choose from 1000+ color themes</p>
+            <ThemePicker value={appTheme} isDark={dark} onChange={onAppTheme} />
+            <Label htmlFor="editor-use-app-theme" className="mt-3 font-normal text-muted-foreground">
+              <Switch id="editor-use-app-theme" checked={editorUseAppTheme} onCheckedChange={onEditorUseAppTheme} size="sm" />
+              Use in Code Editor
+            </Label>
+            {!editorUseAppTheme && (
+              <div className="mt-3 ml-1 pl-3 border-l-2 border-border">
+                <p className="text-sm font-medium mb-1">Code Editor Theme</p>
+                <ThemePicker value={editorTheme} isDark={dark} onChange={onEditorTheme} />
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Page Transparency */}
-      <div>
-        <p className="text-sm font-medium mb-1">Page Transparency</p>
-        <p className="text-sm text-muted-foreground mb-3">Fade the page background so wallpaper themes show through</p>
-        <div className="flex items-center gap-3">
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={pageTransparency}
-            onChange={e => onPageTransparency(parseInt(e.target.value, 10))}
-            className="flex-1 accent-primary"
-          />
-          <span className="text-sm text-muted-foreground tabular-nums w-10 text-right">{pageTransparency}%</span>
-        </div>
-      </div>
+          {/* Font */}
+          <div>
+            <p className="text-sm font-medium mb-1">Font</p>
+            <p className="text-sm text-muted-foreground mb-3">Choose from 1900+ Google Fonts</p>
+            <FontPicker value={appFont} onChange={onAppFont} />
+            {appFont && (
+              <p className="mt-2 text-sm text-muted-foreground" style={{ fontFamily: `"${appFont}", sans-serif` }}>
+                The quick brown fox jumps over the lazy dog
+              </p>
+            )}
+            <Label htmlFor="editor-use-app-font" className="mt-3 font-normal text-muted-foreground">
+              <Switch id="editor-use-app-font" checked={editorUseAppFont} onCheckedChange={onEditorUseAppFont} size="sm" />
+              Use in Code Editor
+            </Label>
+            {!editorUseAppFont && (
+              <div className="mt-3 ml-1 pl-3 border-l-2 border-border">
+                <p className="text-sm font-medium mb-1">Code Editor Font</p>
+                <FontPicker value={editorFont} onChange={onEditorFont} />
+              </div>
+            )}
+          </div>
 
-      {/* Surface Transparency */}
-      <div>
-        <p className="text-sm font-medium mb-1">Surface Transparency</p>
-        <p className="text-sm text-muted-foreground mb-3">Fade cards and the sidebar so the page underneath shows through</p>
-        <div className="flex items-center gap-3">
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={surfaceTransparency}
-            onChange={e => onSurfaceTransparency(parseInt(e.target.value, 10))}
-            className="flex-1 accent-primary"
-          />
-          <span className="text-sm text-muted-foreground tabular-nums w-10 text-right">{surfaceTransparency}%</span>
-        </div>
-      </div>
+          {/* Page Transparency */}
+          <div>
+            <p className="text-sm font-medium mb-1">Page Transparency</p>
+            <p className="text-sm text-muted-foreground mb-3">Fade the page background so wallpaper themes show through</p>
+            <div className="flex items-center gap-3">
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={pageTransparency}
+                onChange={e => onPageTransparency(parseInt(e.target.value, 10))}
+                className="flex-1 accent-primary"
+              />
+              <span className="text-sm text-muted-foreground tabular-nums w-10 text-right">{pageTransparency}%</span>
+            </div>
+          </div>
 
-      {/* Editor Transparency */}
-      <div>
-        <p className="text-sm font-medium mb-1">Code Editor Transparency</p>
-        <p className="text-sm text-muted-foreground mb-3">Make the editor background see-through</p>
-        <div className="flex items-center gap-3">
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={editorTransparency}
-            onChange={e => onEditorTransparency(parseInt(e.target.value, 10))}
-            className="flex-1 accent-primary"
-          />
-          <span className="text-sm text-muted-foreground tabular-nums w-10 text-right">{editorTransparency}%</span>
-        </div>
-      </div>
+          {/* Surface Transparency */}
+          <div>
+            <p className="text-sm font-medium mb-1">Surface Transparency</p>
+            <p className="text-sm text-muted-foreground mb-3">Fade cards and the sidebar so the page underneath shows through</p>
+            <div className="flex items-center gap-3">
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={surfaceTransparency}
+                onChange={e => onSurfaceTransparency(parseInt(e.target.value, 10))}
+                className="flex-1 accent-primary"
+              />
+              <span className="text-sm text-muted-foreground tabular-nums w-10 text-right">{surfaceTransparency}%</span>
+            </div>
+          </div>
+
+          {/* Editor Transparency */}
+          <div>
+            <p className="text-sm font-medium mb-1">Code Editor Transparency</p>
+            <p className="text-sm text-muted-foreground mb-3">Make the editor background see-through</p>
+            <div className="flex items-center gap-3">
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={editorTransparency}
+                onChange={e => onEditorTransparency(parseInt(e.target.value, 10))}
+                className="flex-1 accent-primary"
+              />
+              <span className="text-sm text-muted-foreground tabular-nums w-10 text-right">{editorTransparency}%</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { getSystemBridge, type SystemBridge } from '@shared/api/system-bridge'
 import { Button } from '@shared/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@shared/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@shared/components/ui/card'
 import { Input } from '@shared/components/ui/input'
 import { ScrollArea } from '@shared/components/ui/scroll-area'
 
@@ -117,94 +117,97 @@ export default function FileBrowserTab() {
   }, [browseFolder, globPattern])
 
   return (
-    <div className="max-w-2xl mx-auto p-6 flex flex-col gap-4">
-      <div>
-        <h2 className="text-lg font-semibold text-primary mb-1">File Browser</h2>
-        <p className="text-sm text-muted-foreground">
-          File I/O demo — three tiers: <code className="text-xs bg-muted px-1 rounded">readTextFile</code> for small files,{' '}
-          <code className="text-xs bg-muted px-1 rounded">readFileBytes</code> for images,{' '}
-          <code className="text-xs bg-muted px-1 rounded">openFileHandle</code> for streaming large files.
-        </p>
-      </div>
-
-      <div className="flex gap-2">
-        <Button data-testid="browse-folder-button" onClick={handleBrowseFolder}>📂 Browse Folder</Button>
-        <Button variant="outline" data-testid="open-file-button" onClick={handleOpenFile}>📄 Open File</Button>
-      </div>
-
-      {browseFolder && (
-        <>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Button variant="ghost" size="icon" onClick={handleBrowseUp} title="Go up">⬆</Button>
-            <span className="break-all">{browseFolder}</span>
-          </div>
-
+    <div className="max-w-2xl mx-auto p-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>File Browser</CardTitle>
+          <CardDescription>
+            File I/O demo — three tiers: <code className="text-xs bg-muted px-1 rounded">readTextFile</code> for small files,{' '}
+            <code className="text-xs bg-muted px-1 rounded">readFileBytes</code> for images,{' '}
+            <code className="text-xs bg-muted px-1 rounded">openFileHandle</code> for streaming large files.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
           <div className="flex gap-2">
-            <Input
-              className="flex-1"
-              placeholder="Glob pattern (e.g. *.tsx)"
-              value={globPattern}
-              onChange={e => setGlobPattern(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleGlob()}
-            />
-            <Button variant="secondary" onClick={handleGlob}>🔍 Glob</Button>
+            <Button data-testid="browse-folder-button" onClick={handleBrowseFolder}>📂 Browse Folder</Button>
+            <Button variant="outline" data-testid="open-file-button" onClick={handleOpenFile}>📄 Open File</Button>
           </div>
 
-          {globResults && (
+          {browseFolder && (
+            <>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Button variant="ghost" size="icon" onClick={handleBrowseUp} title="Go up">⬆</Button>
+                <span className="break-all">{browseFolder}</span>
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  className="flex-1"
+                  placeholder="Glob pattern (e.g. *.tsx)"
+                  value={globPattern}
+                  onChange={e => setGlobPattern(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleGlob()}
+                />
+                <Button variant="secondary" onClick={handleGlob}>🔍 Glob</Button>
+              </div>
+
+              {globResults && (
+                <Card>
+                  <CardHeader className="py-2 px-3 flex-row items-center justify-between">
+                    <CardTitle className="text-sm text-primary">
+                      {globResults.length} match{globResults.length !== 1 ? 'es' : ''}
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" onClick={() => setGlobResults(null)}>✕</Button>
+                  </CardHeader>
+                  <CardContent className="p-0 max-h-48 overflow-y-auto">
+                    {globResults.map((path, i) => (
+                      <div key={i} className="px-3 py-1 text-xs font-mono text-muted-foreground break-all">{path}</div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              <ScrollArea className="border border-border rounded-lg h-60">
+                {browseEntries.map(entry => (
+                  <div
+                    key={entry.name}
+                    className={`flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-accent/30 transition-colors ${entry.isDir ? 'font-medium' : ''}`}
+                    onClick={() => handleBrowseEntry(entry.name, entry.isDir, entry.size)}
+                  >
+                    <span>{entry.isDir ? '📁' : '📄'}</span>
+                    <span className="flex-1 truncate">{entry.name}</span>
+                    {!entry.isDir && <span className="text-xs text-muted-foreground">{formatSize(entry.size)}</span>}
+                  </div>
+                ))}
+              </ScrollArea>
+            </>
+          )}
+
+          {imagePreview && (
             <Card>
               <CardHeader className="py-2 px-3 flex-row items-center justify-between">
-                <CardTitle className="text-sm text-primary">
-                  {globResults.length} match{globResults.length !== 1 ? 'es' : ''}
-                </CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => setGlobResults(null)}>✕</Button>
+                <CardTitle className="text-sm">{imagePreview.name}</CardTitle>
+                <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">readFileBytes</span>
               </CardHeader>
-              <CardContent className="p-0 max-h-48 overflow-y-auto">
-                {globResults.map((path, i) => (
-                  <div key={i} className="px-3 py-1 text-xs font-mono text-muted-foreground break-all">{path}</div>
-                ))}
+              <CardContent className="text-center">
+                <img src={imagePreview.dataUrl} alt={imagePreview.name} className="max-w-full max-h-72 rounded inline-block" />
               </CardContent>
             </Card>
           )}
 
-          <ScrollArea className="border border-border rounded-lg h-60">
-            {browseEntries.map(entry => (
-              <div
-                key={entry.name}
-                className={`flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-accent/30 transition-colors ${entry.isDir ? 'font-medium' : ''}`}
-                onClick={() => handleBrowseEntry(entry.name, entry.isDir, entry.size)}
-              >
-                <span>{entry.isDir ? '📁' : '📄'}</span>
-                <span className="flex-1 truncate">{entry.name}</span>
-                {!entry.isDir && <span className="text-xs text-muted-foreground">{formatSize(entry.size)}</span>}
-              </div>
-            ))}
-          </ScrollArea>
-        </>
-      )}
-
-      {imagePreview && (
-        <Card>
-          <CardHeader className="py-2 px-3 flex-row items-center justify-between">
-            <CardTitle className="text-sm">{imagePreview.name}</CardTitle>
-            <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">readFileBytes</span>
-          </CardHeader>
-          <CardContent className="text-center">
-            <img src={imagePreview.dataUrl} alt={imagePreview.name} className="max-w-full max-h-72 rounded inline-block" />
-          </CardContent>
-        </Card>
-      )}
-
-      {filePreview && (
-        <Card>
-          <CardHeader className="py-2 px-3 flex-row items-center justify-between">
-            <CardTitle className="text-sm">{filePreview.name}</CardTitle>
-            <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">{filePreview.method}</span>
-          </CardHeader>
-          <CardContent className="p-0">
-            <pre className="p-3 text-xs font-mono text-muted-foreground max-h-72 overflow-auto whitespace-pre-wrap break-all">{filePreview.text}</pre>
-          </CardContent>
-        </Card>
-      )}
+          {filePreview && (
+            <Card>
+              <CardHeader className="py-2 px-3 flex-row items-center justify-between">
+                <CardTitle className="text-sm">{filePreview.name}</CardTitle>
+                <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">{filePreview.method}</span>
+              </CardHeader>
+              <CardContent className="p-0">
+                <pre className="p-3 text-xs font-mono text-muted-foreground max-h-72 overflow-auto whitespace-pre-wrap break-all">{filePreview.text}</pre>
+              </CardContent>
+            </Card>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }
