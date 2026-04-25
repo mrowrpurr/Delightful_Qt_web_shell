@@ -27,6 +27,15 @@ import fontsJson from '@shared/data/google-fonts.json'
 
 setFontData(fontsJson as any)
 
+// Transparency knobs — write CSS vars on :root from saved settings.
+// Sliders persist 0–100 (% transparent); CSS vars want 0..1 opacity.
+function applyTransparency(key: string, cssVar: string) {
+  const pct = parseInt(localStorage.getItem(key) ?? '0', 10) || 0
+  document.documentElement.style.setProperty(cssVar, String((100 - pct) / 100))
+}
+applyTransparency('page-transparency', '--page-opacity')
+applyTransparency('surface-transparency', '--surface-opacity')
+
 const usedFastPath = tryFastTheme()
 lap(usedFastPath ? 'theme: fast-path (cached CSS injected)' : 'theme: cold-path (no cache, will fetch)')
 

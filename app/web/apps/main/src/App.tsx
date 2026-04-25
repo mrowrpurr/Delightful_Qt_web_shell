@@ -115,19 +115,6 @@ export default function App() {
     window.location.hash = currentTab
   }, [currentTab])
 
-  const [pageTransparency, setPageTransparency] = useState(
-    () => parseInt(localStorage.getItem('page-transparency') ?? '0', 10) || 0
-  )
-
-  // Listen for transparency changes from Settings tab
-  useEffect(() => {
-    const handler = () => {
-      setPageTransparency(parseInt(localStorage.getItem('page-transparency') ?? '0', 10) || 0)
-    }
-    window.addEventListener('page-transparency-changed', handler)
-    return () => window.removeEventListener('page-transparency-changed', handler)
-  }, [])
-
   const renderTab = () => {
     switch (currentTab) {
       case 'docs': return <DocsTab />
@@ -143,12 +130,7 @@ export default function App() {
   }
 
   return (
-    <div
-      className={`min-h-screen text-foreground ${pageTransparency === 0 ? 'bg-background' : ''}`}
-      style={pageTransparency > 0 ? {
-        backgroundColor: `oklch(from var(--color-background) l c h / ${(100 - pageTransparency) / 100})`,
-      } : undefined}
-    >
+    <div className="min-h-screen text-foreground bg-page">
       <SidebarProvider defaultOpen>
         <SidebarSlotProvider value={sidebarSlotRef}>
         <Sidebar collapsible="icon">

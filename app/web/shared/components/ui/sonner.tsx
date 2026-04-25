@@ -12,9 +12,9 @@ import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 import { isDarkMode } from "@shared/lib/themes"
 
-// Sonner mode-tracker — listens for theme changes the same way the rest of
-// the app does (page-transparency-changed / qt-theme-synced both fire on
-// dark/light flips), so the toaster reflects the active palette.
+// Sonner mode-tracker — listens for theme changes (qt-theme-synced and
+// editor-theme-changed both fire on dark/light flips) so the toaster
+// reflects the active palette.
 function useDarkMode(): boolean {
   const [dark, setDark] = useState(isDarkMode)
   useEffect(() => {

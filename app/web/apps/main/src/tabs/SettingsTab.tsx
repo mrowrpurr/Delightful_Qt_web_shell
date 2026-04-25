@@ -179,6 +179,9 @@ export default function SettingsTab() {
   const [pageTransparency, setPageTransparency] = useState(
     parseInt(localStorage.getItem('page-transparency') ?? '0', 10)
   )
+  const [surfaceTransparency, setSurfaceTransparency] = useState(
+    parseInt(localStorage.getItem('surface-transparency') ?? '0', 10)
+  )
   const [editorTransparency, setEditorTransparency] = useState(
     parseInt(localStorage.getItem('editor-transparency') ?? '0', 10)
   )
@@ -255,7 +258,13 @@ export default function SettingsTab() {
   const onPageTransparency = useCallback((value: number) => {
     setPageTransparency(value)
     localStorage.setItem('page-transparency', String(value))
-    window.dispatchEvent(new CustomEvent('page-transparency-changed'))
+    document.documentElement.style.setProperty('--page-opacity', String((100 - value) / 100))
+  }, [])
+
+  const onSurfaceTransparency = useCallback((value: number) => {
+    setSurfaceTransparency(value)
+    localStorage.setItem('surface-transparency', String(value))
+    document.documentElement.style.setProperty('--surface-opacity', String((100 - value) / 100))
   }, [])
 
   const onEditorTransparency = useCallback((value: number) => {
@@ -322,7 +331,7 @@ export default function SettingsTab() {
       {/* Page Transparency */}
       <div>
         <p className="text-sm font-medium mb-1">Page Transparency</p>
-        <p className="text-sm text-muted-foreground mb-3">Make the page background see-through so wallpaper themes show through</p>
+        <p className="text-sm text-muted-foreground mb-3">Fade the page background so wallpaper themes show through</p>
         <div className="flex items-center gap-3">
           <input
             type="range"
@@ -333,6 +342,23 @@ export default function SettingsTab() {
             className="flex-1 accent-primary"
           />
           <span className="text-sm text-muted-foreground tabular-nums w-10 text-right">{pageTransparency}%</span>
+        </div>
+      </div>
+
+      {/* Surface Transparency */}
+      <div>
+        <p className="text-sm font-medium mb-1">Surface Transparency</p>
+        <p className="text-sm text-muted-foreground mb-3">Fade cards and the sidebar so the page underneath shows through</p>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={surfaceTransparency}
+            onChange={e => onSurfaceTransparency(parseInt(e.target.value, 10))}
+            className="flex-1 accent-primary"
+          />
+          <span className="text-sm text-muted-foreground tabular-nums w-10 text-right">{surfaceTransparency}%</span>
         </div>
       </div>
 

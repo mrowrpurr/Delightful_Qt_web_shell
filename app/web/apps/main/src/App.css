@@ -7,10 +7,21 @@
    `bg-background` / `text-foreground` / etc. utilities from the `--*`
    variables our theme system writes to :root.
    --radius stays declared here because no theme authors it. */
+/* Transparency knobs — set on :root, defaulted to 1 (fully opaque).
+   `--page-opacity` controls the page background (.bg-page utility, used by
+   the App root div + SidebarInset). `--surface-opacity` folds into card and
+   sidebar tokens so any `bg-card` / `bg-sidebar` consumer picks it up.
+   Floating UI (Popover, Dialog, Drawer, etc.) is intentionally not affected
+   so it stays readable regardless of slider position. */
+:root {
+  --page-opacity: 1;
+  --surface-opacity: 1;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-card: var(--card);
+  --color-card: oklch(from var(--card) l c h / var(--surface-opacity, 1));
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
@@ -27,6 +38,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-sidebar: oklch(from var(--sidebar) l c h / var(--surface-opacity, 1));
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -38,6 +50,14 @@
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
+}
+
+/* Page-level surface — translucent under --page-opacity so wallpaper themes
+   bleed through. Used by the App root div and SidebarInset. */
+@layer utilities {
+  .bg-page {
+    background-color: oklch(from var(--background) l c h / var(--page-opacity, 1));
+  }
 }
 
 /* ── Markdown rendering (for DocsTab) ─────────────────── */
