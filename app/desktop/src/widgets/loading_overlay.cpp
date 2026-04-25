@@ -14,13 +14,16 @@
 #include <QVBoxLayout>
 
 // Must match --bg in App.css — prevents white flash before web content loads.
-static constexpr QColor kBackground{0x24, 0x24, 0x24};
+static constexpr QColor kBackground{0x09, 0x09, 0x0b};
 
 LoadingOverlay::LoadingOverlay(Style style, QWidget* parent)
     : QWidget(parent), style_(style)
 {
+    setObjectName(QStringLiteral("LoadingOverlay"));
+    setAttribute(Qt::WA_StyledBackground, true);
     setStyleSheet(
-        QStringLiteral("background-color: %1;").arg(kBackground.name()));
+        QStringLiteral("QWidget#LoadingOverlay { background-color: %1; }")
+            .arg(kBackground.name()));
 
     auto* layout = new QVBoxLayout(this);
     layout->setAlignment(Qt::AlignCenter);
