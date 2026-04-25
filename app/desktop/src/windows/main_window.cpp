@@ -283,12 +283,14 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
         }
     }
 
-    // Floating dock close — user clicked X on a floating dock.
+    // Dock close — user clicked the X on a dock (floating or tabified).
+    // Qt's default for the dock title bar X is hide(), not destroy. Without
+    // this, tabified docks accumulate forever in the saved layout.
     // Skip during shutdown — shutdownAll handles cleanup.
     if (event->type() == QEvent::Close) {
         auto* dm = qobject_cast<Application*>(qApp)->dockManager();
         auto* dock = qobject_cast<QDockWidget*>(obj);
-        if (dock && !dm->isQuitting() && dock->isFloating()
+        if (dock && !dm->isQuitting()
             && docks_.contains(dock) && docks_.size() > 1) {
             QTimer::singleShot(0, this, [this, dm, dock]() {
                 if (!dm->isQuitting() && docks_.contains(dock) && docks_.size() > 1)

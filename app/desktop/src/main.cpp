@@ -3,6 +3,7 @@
 
 #include "application.hpp"
 #include "dock_manager.hpp"
+#include "logging.hpp"
 #include "system_bridge.hpp"
 #include "web_shell.hpp"
 #include "widgets/scheme_handler.hpp"
@@ -11,6 +12,8 @@
 #include <QTimer>
 
 int main(int argc, char* argv[]) {
+    setupLogging();
+
     // Custom URL scheme must be registered BEFORE QApplication is constructed.
     // Qt enforces this — it's a hard requirement, not a suggestion.
     SchemeHandler::registerUrlScheme();

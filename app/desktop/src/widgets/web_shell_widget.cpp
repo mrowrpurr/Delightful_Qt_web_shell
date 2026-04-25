@@ -7,6 +7,7 @@
 #include "web_shell_widget.hpp"
 #include "loading_overlay.hpp"
 
+#include <QDebug>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QFile>
@@ -61,7 +62,11 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile, WebShell* shell,
     // ── Register shell + bridges on this view's channel ──────
     auto* channel = new QWebChannel(page);
     channel->registerObject("_shell", shell);
+    qInfo() << "[WebShellWidget] creating adapters" << this
+            << "bridgeCount=" << shell->bridges().size()
+            << "url=" << contentUrl.toString();
     for (auto it = shell->bridges().begin(); it != shell->bridges().end(); ++it) {
+        qInfo() << "[WebShellWidget]   bridge=" << it.key();
         auto* adapter = new BridgeChannelAdapter(it.value(), channel);
         channel->registerObject(it.key(), adapter);
     }

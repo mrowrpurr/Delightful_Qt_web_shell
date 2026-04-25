@@ -2,3 +2,6 @@
 build/
 .xmake/
 compile_commands/
+
+# Logs
+*.log
