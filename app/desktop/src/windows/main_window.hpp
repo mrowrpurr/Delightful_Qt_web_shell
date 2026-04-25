@@ -18,6 +18,7 @@
 
 class DockTabManager;
 class QDockWidget;
+class QTabBar;
 class StatusBar;
 class WebShellWidget;
 struct MenuActions;
@@ -51,6 +52,12 @@ private:
     WebShellWidget* activeTab() const;
     void wireToActiveDock();
     void wireTabBar();
+
+    // Resolve a tab index to its QDockWidget without string matching.
+    // Qt stamps tabData() with reinterpret_cast<quintptr>(dock) when it builds
+    // the tab bar; we compare against our own live pointers in docks_ rather
+    // than dereferencing whatever Qt handed us.
+    QDockWidget* dockForTab(QTabBar* tabBar, int index) const;
 
     QList<QDockWidget*> docks_;
     QDockWidget* activeDock_ = nullptr;

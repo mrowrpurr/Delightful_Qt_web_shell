@@ -197,6 +197,16 @@ void MainWindow::removeDock(QDockWidget* dock) {
 
 // ── Tab bar wiring ───────────────────────────────────────────
 
+QDockWidget* MainWindow::dockForTab(QTabBar* tabBar, int index) const {
+    if (index < 0 || index >= tabBar->count()) return nullptr;
+    quintptr id = tabBar->tabData(index).value<quintptr>();
+    if (!id) return nullptr;
+    for (auto* dock : docks_)
+        if (reinterpret_cast<quintptr>(dock) == id)
+            return dock;
+    return nullptr;
+}
+
 void MainWindow::wireTabBar() {
     auto* dm = qobject_cast<Application*>(qApp)->dockManager();
 
@@ -208,25 +218,15 @@ void MainWindow::wireTabBar() {
             tabManager_->manageTabBar(tabBar);
 
             connect(tabBar, &QTabBar::tabCloseRequested, this, [this, tabBar, dm](int index) {
-                if (index < 0 || index >= tabBar->count()) return;
-                QString title = tabBar->tabText(index);
-                for (auto* dock : docks_) {
-                    if (dock->windowTitle() == title) {
-                        dm->closeDock(dock);
-                        break;
-                    }
-                }
+                if (auto* dock = dockForTab(tabBar, index))
+                    dm->closeDock(dock);
             });
 
             connect(tabBar, &QTabBar::currentChanged, this, [this, tabBar](int index) {
-                if (docks_.isEmpty() || index < 0 || index >= tabBar->count()) return;
-                QString title = tabBar->tabText(index);
-                for (auto* dock : docks_) {
-                    if (dock->windowTitle() == title && activeDock_ != dock) {
-                        activeDock_ = dock;
-                        wireToActiveDock();
-                        break;
-                    }
+                auto* dock = dockForTab(tabBar, index);
+                if (dock && activeDock_ != dock) {
+                    activeDock_ = dock;
+                    wireToActiveDock();
                 }
             });
         }
@@ -304,15 +304,8 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
             auto* me = static_cast<QMouseEvent*>(event);
             if (me->button() == Qt::MiddleButton) {
                 int index = tabBar->tabAt(me->pos());
-                if (index >= 0) {
-                    QString title = tabBar->tabText(index);
-                    for (auto* dock : docks_) {
-                        if (dock->windowTitle() == title) {
-                            auto* dm = qobject_cast<Application*>(qApp)->dockManager();
-                            dm->closeDock(dock);
-                            break;
-                        }
-                    }
+                if (auto* dock = dockForTab(tabBar, index)) {
+                    qobject_cast<Application*>(qApp)->dockManager()->closeDock(dock);
                     return true;
                 }
             }
@@ -328,15 +321,7 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
             if (index >= 0) {
                 auto* dm = qobject_cast<Application*>(qApp)->dockManager();
 
-                // Resolve the right-clicked dock by title.
-                QString clickedTitle = tabBar->tabText(index);
-                QDockWidget* clickedDock = nullptr;
-                for (auto* dock : docks_) {
-                    if (dock->windowTitle() == clickedTitle) {
-                        clickedDock = dock;
-                        break;
-                    }
-                }
+                QDockWidget* clickedDock = dockForTab(tabBar, index);
                 if (!clickedDock) return QMainWindow::eventFilter(obj, event);
 
                 QMenu menu;
@@ -357,31 +342,19 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
                 if (chosen == closeTab) {
                     dm->closeDock(clickedDock);
                 } else if (chosen == closeOthers) {
-                    // Collect docks to close — everything except the clicked one.
                     QList<QDockWidget*> toClose;
                     for (int i = 0; i < tabBar->count(); ++i) {
                         if (i == index) continue;
-                        QString title = tabBar->tabText(i);
-                        for (auto* dock : docks_) {
-                            if (dock->windowTitle() == title) {
-                                toClose.append(dock);
-                                break;
-                            }
-                        }
+                        if (auto* dock = dockForTab(tabBar, i))
+                            toClose.append(dock);
                     }
                     for (auto* dock : toClose)
                         dm->closeDock(dock);
                 } else if (chosen == closeRight) {
-                    // Close tabs to the right of the clicked one.
                     QList<QDockWidget*> toClose;
                     for (int i = index + 1; i < tabBar->count(); ++i) {
-                        QString title = tabBar->tabText(i);
-                        for (auto* dock : docks_) {
-                            if (dock->windowTitle() == title) {
-                                toClose.append(dock);
-                                break;
-                            }
-                        }
+                        if (auto* dock = dockForTab(tabBar, i))
+                            toClose.append(dock);
                     }
                     for (auto* dock : toClose)
                         dm->closeDock(dock);
