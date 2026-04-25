@@ -24,8 +24,8 @@ export default function ChatTab() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
 
-  // The page renders its own sidebar JSX and ships it up via the slot.
-  useSidebarSlot(
+  // The page renders its own sidebar JSX and portals it into the slot.
+  const sidebarSlot = useSidebarSlot(
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Recent</SidebarGroupLabel>
       <SidebarMenu>
@@ -46,6 +46,8 @@ export default function ChatTab() {
   )
 
   return (
+    <>
+    {sidebarSlot}
     <div className="mx-auto flex h-full min-h-[60vh] max-w-xl flex-col items-center justify-center gap-6 p-8 text-center">
       <div className="space-y-2">
         <div className="text-4xl">💬</div>
@@ -75,5 +77,6 @@ export default function ChatTab() {
         </Button>
       </form>
     </div>
+    </>
   )
 }

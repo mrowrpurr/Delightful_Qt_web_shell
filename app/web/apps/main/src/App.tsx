@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { SidebarSlotProvider } from '@/hooks/use-sidebar-slot'
 import { signalReady } from '@shared/api/bridge'
 import {
@@ -91,8 +91,8 @@ const NAV_ITEMS = [
 
 export default function App() {
   // Slot for page-contributed sidebar content. Pages call useSidebarSlot(<JSX/>)
-  // and it lands here. Cleared when the page unmounts.
-  const [sidebarSlot, setSidebarSlot] = useState<ReactNode>(null)
+  // and portal their JSX into the div whose ref we expose via context.
+  const sidebarSlotRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => { signalReady() }, [])
 
@@ -148,7 +148,7 @@ export default function App() {
       } : undefined}
     >
       <SidebarProvider defaultOpen>
-        <SidebarSlotProvider value={setSidebarSlot}>
+        <SidebarSlotProvider value={sidebarSlotRef}>
         <Sidebar collapsible="icon">
           <SidebarHeader>
             <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:gap-0">
@@ -184,7 +184,7 @@ export default function App() {
                 ))}
               </SidebarMenu>
             </SidebarGroup>
-            {sidebarSlot}
+            <div ref={sidebarSlotRef} />
           </SidebarContent>
         </Sidebar>
         <SidebarInset>
