@@ -1,6 +1,9 @@
 -- ── WASM dev server ─────────────────────────────────────────────────
--- Copies WASM build artifacts into web/apps/main/public/ and starts Vite
+-- Copies WASM build artifacts into web/apps/demo/public/ and starts Vite
 -- with WASM transport enabled. The React app runs entirely in the browser.
+--
+-- Demo is the WASM dev target because it exercises every bridge — proving
+-- the bridge layer works under Embind is the point of WASM mode.
 --
 -- Usage:
 --   xmake f -p wasm && xmake build wasm-app
@@ -15,7 +18,7 @@ target("dev-wasm")
     set_default(false)
     on_run(function()
         local wasm_build = path.join(os.projectdir(), "build", "wasm", "wasm32", "release")
-        local public_dir = path.join(_TEMPLATE_ROOT, "web", "apps", "main", "public")
+        local public_dir = path.join(_TEMPLATE_ROOT, "web", "apps", "demo", "public")
 
         -- Verify WASM was built
         local js_file = path.join(wasm_build, "wasm-app.js")
@@ -24,11 +27,11 @@ target("dev-wasm")
             raise("WASM not built. Run: xmake f -p wasm && xmake build wasm-app")
         end
 
-        -- Copy artifacts to web/apps/main/public/ so Vite serves them
+        -- Copy artifacts to web/apps/demo/public/ so Vite serves them
         os.mkdir(public_dir)
         os.cp(js_file, public_dir)
         os.cp(wasm_file, public_dir)
-        print("Copied WASM artifacts to web/apps/main/public/")
+        print("Copied WASM artifacts to web/apps/demo/public/")
 
         -- Start Vite with WASM transport
         local web_dir = path.join(_TEMPLATE_ROOT, "web")
@@ -36,5 +39,5 @@ target("dev-wasm")
         envs["VITE_APP_NAME"] = _APP_NAME
         envs["VITE_TRANSPORT"] = "wasm"
         print("Starting Vite with WASM transport...")
-        os.execv("bun", {"run", "dev:main"}, {curdir = web_dir, envs = envs})
+        os.execv("bun", {"run", "dev:demo"}, {curdir = web_dir, envs = envs})
     end)

@@ -9,21 +9,21 @@ target("dev-web")
     set_kind("phony")
     set_default(false)
     on_run(function()
-        -- Default: start the main app's dev server
+        -- Default: start the demo app's dev server
         local web_dir = path.join(_TEMPLATE_ROOT, "web")
         local envs = os.getenvs()
         envs["VITE_APP_NAME"] = _APP_NAME
-        os.execv("bun", {"run", "dev:main"}, {curdir = web_dir, envs = envs})
+        os.execv("bun", {"run", "dev:demo"}, {curdir = web_dir, envs = envs})
     end)
 
-target("dev-web-main")
+target("dev-web-demo")
     set_kind("phony")
     set_default(false)
     on_run(function()
         local web_dir = path.join(_TEMPLATE_ROOT, "web")
         local envs = os.getenvs()
         envs["VITE_APP_NAME"] = _APP_NAME
-        os.execv("bun", {"run", "dev:main"}, {curdir = web_dir, envs = envs})
+        os.execv("bun", {"run", "dev:demo"}, {curdir = web_dir, envs = envs})
     end)
 
 -- ── Storybook ──────────────────────────────────────────────────────────

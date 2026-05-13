@@ -56,7 +56,7 @@ DockManager::DockManager(app_shell::App& app, QObject* parent)
 
 QDockWidget* DockManager::createDock(const QUrl& contentUrl, MainWindow* host,
                                      const QString& dockId) {
-    QUrl url = contentUrl.isEmpty() ? app_.appUrl("main") : contentUrl;
+    QUrl url = contentUrl.isEmpty() ? app_.appUrl("demo") : contentUrl;
 
     auto* widget = new WebShellWidget(
         app_.webProfile(), app_.registry(), app_.lifecycle(), url,

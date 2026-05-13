@@ -31,7 +31,7 @@ export default defineConfig({
   webServer: isDesktop ? [] : [
     {
       command: 'bunx vite',
-      cwd: './web/apps/main',
+      cwd: './web/apps/demo',
       port: 5173,
       reuseExistingServer: !process.env.CI,
       env: { VITE_APP_NAME: process.env.VITE_APP_NAME || 'Test App' },

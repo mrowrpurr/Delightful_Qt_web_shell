@@ -25,7 +25,7 @@ WebDialog::WebDialog(app_shell::App& app, QWidget* parent)
     // Same React app as the main window, but with #/dialog hash route.
     // React checks window.location.hash at mount time and renders
     // DialogView instead of App — lightweight UI suited for a popup.
-    QUrl dialogUrl = app.appUrl("main");
+    QUrl dialogUrl = app.appUrl("demo");
     dialogUrl.setFragment("/dialog");
     webShell_ = new WebShellWidget(
         app.webProfile(), app.registry(), app.lifecycle(), dialogUrl,

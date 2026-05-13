@@ -3,10 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev:main": "cd apps/main && vite",
-    "build:main": "cd apps/main && tsc -b && vite build",
-    "build": "bun run build:main",
-    "typecheck": "cd apps/main && tsc -b --noEmit",
+    "dev:demo": "cd apps/demo && vite",
+    "build:demo": "cd apps/demo && tsc -b && vite build",
+    "build": "bun run build:demo",
+    "typecheck": "cd apps/demo && tsc -b --noEmit",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

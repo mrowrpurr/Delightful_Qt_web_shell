@@ -61,8 +61,8 @@
         "vite": "^6.3.5",
       },
     },
-    "web/apps/main": {
-      "name": "@app/main",
+    "web/apps/demo": {
+      "name": "@app/demo",
       "version": "0.0.0",
     },
     "web/packages/bridge": {
@@ -95,7 +95,7 @@
 
     "@app/bridge": ["@app/bridge@workspace:web/packages/bridge"],
 
-    "@app/main": ["@app/main@workspace:web/apps/main"],
+    "@app/demo": ["@app/demo@workspace:web/apps/demo"],
 
     "@app/monaco": ["@app/monaco@workspace:web/packages/monaco"],
 
