@@ -17,7 +17,6 @@
 class AppLifecycle;
 class DockManager;
 class QLocalServer;
-class QSystemTrayIcon;
 class QWebEngineProfile;
 class StyleManager;
 
@@ -72,7 +71,6 @@ protected:
 
 private:
     void setupSingleInstance();
-    void setupSystemTray();
     void promptUrlProtocolRegistration();
 
     bool devMode_ = false;
@@ -83,7 +81,6 @@ private:
     BridgeRegistry registry_;
     AppLifecycle* lifecycle_ = nullptr;
     QLocalServer* instanceServer_ = nullptr;
-    QSystemTrayIcon* trayIcon_ = nullptr;
     StyleManager* styleManager_ = nullptr;
     DockManager* dockManager_ = nullptr;
 };

@@ -14,14 +14,12 @@
 #include <QIcon>
 #include <QLocalServer>
 #include <QLocalSocket>
-#include <QMenu>
 #include <QMessageBox>
 #include <QPalette>
 #include <QProcess>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QStyleHints>
-#include <QSystemTrayIcon>
 #include <QWebEngineProfile>
 
 #include "dock_manager.hpp"
@@ -121,9 +119,6 @@ App::App(int& argc, char** argv)
 
     // ── URL protocol registration ────────────────────────────
     promptUrlProtocolRegistration();
-
-    // ── System tray ──────────────────────────────────────────
-    setupSystemTray();
 
     // ── Dock manager ─────────────────────────────────────────
     dockManager_ = new DockManager(*this, this);
@@ -294,70 +289,6 @@ bool App::event(QEvent* event) {
         return true;
     }
     return QApplication::event(event);
-}
-
-void App::setupSystemTray() {
-    if (!QSystemTrayIcon::isSystemTrayAvailable()) return;
-
-    trayIcon_ = new QSystemTrayIcon(QIcon(iconPath_), this);
-    trayIcon_->setToolTip(APP_NAME);
-
-    auto* trayMenu = new QMenu;
-
-    auto* showAction = trayMenu->addAction("&Show Window");
-    connect(showAction, &QAction::triggered, this, &App::activationRequested);
-
-    auto* versionAction = trayMenu->addAction(
-        QString("%1 %2").arg(APP_NAME).arg(APP_VERSION));
-    versionAction->setEnabled(false);
-
-    trayMenu->addSeparator();
-
-    // ── Example Menu 1 — flat actions ────────────────────────
-    auto* exampleMenu1 = trayMenu->addMenu("Example Menu 1");
-    for (const auto& name : {"Alpha", "Beta", "Gamma"}) {
-        auto* action = exampleMenu1->addAction(name);
-        connect(action, &QAction::triggered, this, [name] {
-            QMessageBox::information(nullptr, "Example Menu 1", QString("You clicked: %1").arg(name));
-        });
-    }
-
-    // ── Nested Example 2 — submenus ─────────────────────────
-    auto* nestedMenu = trayMenu->addMenu("Nested Example 2");
-
-    auto* topAction = nestedMenu->addAction("Top-Level Action");
-    connect(topAction, &QAction::triggered, this, [] {
-        QMessageBox::information(nullptr, "Nested Example 2", "You clicked: Top-Level Action");
-    });
-
-    auto* subMenu1 = nestedMenu->addMenu("Sub-Menu");
-    auto* subAction1 = subMenu1->addAction("Sub Action");
-    connect(subAction1, &QAction::triggered, this, [] {
-        QMessageBox::information(nullptr, "Sub-Menu", "You clicked: Sub Action");
-    });
-
-    auto* subMenu2 = subMenu1->addMenu("Deeper Sub-Menu");
-    auto* deepAction = subMenu2->addAction("Deep Action");
-    connect(deepAction, &QAction::triggered, this, [] {
-        QMessageBox::information(nullptr, "Deeper Sub-Menu", "You clicked: Deep Action");
-    });
-
-    trayMenu->addSeparator();
-
-    auto* quitAction = trayMenu->addAction("&Quit");
-    connect(quitAction, &QAction::triggered, this, &App::requestQuit);
-
-    trayIcon_->setContextMenu(trayMenu);
-
-    connect(trayIcon_, &QSystemTrayIcon::activated, this,
-            [this](QSystemTrayIcon::ActivationReason reason) {
-        if (reason == QSystemTrayIcon::Trigger ||
-            reason == QSystemTrayIcon::DoubleClick) {
-            emit activationRequested();
-        }
-    });
-
-    trayIcon_->show();
 }
 
 QUrl App::appUrl(const QString& appName) const {
