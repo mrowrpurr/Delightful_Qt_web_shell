@@ -58,7 +58,7 @@ Create `%LOCALAPPDATA%/MyOrganization/Delightful Qt Web Shell/styles/` and drop 
 
 ### Option 1: Add to themes.json (Both Sides)
 
-1. Add a theme entry to `web/apps/main/src/data/themes.json` with `light` and `dark` color objects
+1. Add a theme entry to `web/packages/theming/data/themes.json` with `light` and `dark` color objects
 2. Run `bun run tools/generate-qss-themes.ts` to regenerate QSS files
 3. Rebuild — both React and Qt pick up the new theme
 
@@ -104,13 +104,14 @@ The QSS template targets these with `[class~="destructive"]`. Built-in classes: 
 
 | File | Purpose |
 |------|---------|
-| `themes.json` | Source of truth — 1000+ themes with light/dark CSS variables |
-| `widgets.qss.template` | How theme colors map to Qt widgets |
+| `web/packages/theming/data/themes.json` | Source of truth — 1000+ themes with light/dark CSS variables |
+| `desktop/styles/shared/widgets.qss.template` | How theme colors map to Qt widgets |
 | `desktop/styles/compiled/` | Generated QSS files (committed, regenerate with the generator) |
-| `theme-names.json` | Slug ↔ display name mapping for Qt/React sync |
+| `desktop/styles/compiled/theme-names.json` | Slug ↔ display name mapping for Qt/React sync |
 | `tools/generate-qss-themes.ts` | The generator script |
 | `desktop/src/style_manager.hpp` | C++ theme loader and live reload engine |
-| `shared/lib/themes.ts` | React-side theme application |
+| `@app/theming/lib/themes.ts` | React-side theme application |
+| `@app/theming/lib/qt-sync.ts` | `setupQtThemeListener()` — keeps React in sync with Qt theme changes |
 
 ## Acknowledgements
 

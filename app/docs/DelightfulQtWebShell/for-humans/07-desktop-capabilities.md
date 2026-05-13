@@ -53,9 +53,9 @@ The app registers as a URL protocol handler (`your-app://...`) on first launch. 
 React can control the Qt-side QSS theme:
 
 ```typescript
-await system.setQtTheme('Dracula', true)   // set theme + dark mode
-const state = await system.getQtTheme()     // { displayName, isDark }
-system.qtThemeChanged(() => { ... })        // listen for toolbar changes
+await system.setQtTheme({ displayName: 'Dracula', isDark: true })  // set theme + dark mode
+const state = await system.getQtTheme()                             // { displayName, isDark }
+system.qtThemeChanged(() => { ... })                                // listen for toolbar changes
 ```
 
 See [Theming](08-theming.md) for the full architecture.

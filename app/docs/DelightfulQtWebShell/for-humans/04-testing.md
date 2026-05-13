@@ -10,7 +10,7 @@ Five test layers, from instant unit tests to native Qt window automation.
     │               │                │                │                │
     ▼               ▼                ▼                ▼                ▼
  TodoStore      WS protocol     React + C++      Same tests →     Menus, dialogs,
- (pure C++)     (mock server)   (real backend)   real Qt app      shortcuts, window
+ (pure C++)     (real backend)  (real backend)   real Qt app      shortcuts, window
 ```
 
 | Layer | Command | Speed | What it proves |
@@ -39,7 +39,7 @@ xmake run setup    # all deps: uv sync, bun install, playwright-cdp, playwright 
 |---|---|
 | Domain logic in `todo_store.hpp` | Add a Catch2 test |
 | New bridge method in `todo_bridge.hpp` | Nothing — test server uses the real bridge |
-| New WASM bridge method | Catch2 covers the domain logic; browser e2e covers the UI |
+| New request DTO | It compiles = it works. PFR handles serialization. |
 | UI behavior changed | Add a Playwright e2e test |
 | New native Qt dialog or menu | Add a pywinauto test in `tests/pywinauto/` |
 | Nothing visible changed | You probably don't need a new test |
@@ -49,7 +49,7 @@ xmake run setup    # all deps: uv sync, bun install, playwright-cdp, playwright 
 | Test that fails | What's wrong |
 |---|---|
 | **Catch2** | C++ domain logic. Fix `todo_store.hpp`. |
-| **Bun** | Bridge protocol or type conversion. Check `expose_as_ws.hpp`. |
+| **Bun** | Bridge dispatch or DTO serialization. Check `todo_bridge.hpp`, `todo_dtos.hpp`, or `app/framework/qt-transport/include/expose_as_ws.hpp`. |
 | **Playwright browser** | UI + backend. Could be React, bridge, or server. |
 | **Playwright desktop** | Same as browser, but in Qt. GPU/window issues are common. |
 | **pywinauto** | Native Qt — menu, dialog, or keyboard shortcut. |
@@ -66,7 +66,7 @@ xmake run setup    # all deps: uv sync, bun install, playwright-cdp, playwright 
 | E2e "locator not found" | A `data-testid` changed in React |
 | Desktop tests fail | Run `xmake build desktop` first |
 | Desktop tests flaky | GPU/window manager — inherently less stable |
-| App frozen with spinner | `signalReady()` missing or broken. See `web/apps/main/src/App.tsx`. |
+| App frozen with spinner | `signalReady()` missing or broken. See `web/apps/demo/src/App.tsx`. |
 
 ## Adding Tests
 
@@ -134,8 +134,9 @@ def test_save_dialog(app):
 | File | What it tests |
 |------|--------------|
 | `lib/todos/tests/unit/todo_store_test.cpp` | TodoStore C++ logic |
-| `lib/web-shell/tests/web/bridge_proxy_test.ts` | WS protocol (mock server) |
-| `lib/web-shell/tests/web/type_conversion_test.ts` | Type conversion (real C++ backend) |
+| `app/framework/qt-transport/tests/web/bridge_proxy_test.ts` | WS protocol (real C++ dev-server) |
+| `app/framework/qt-transport/tests/web/type_conversion_test.ts` | Bridge dispatch + type conversion (real C++ backend) |
+| `app/framework/qt-transport/tests/web/system_bridge_test.ts` | SystemBridge file I/O + clipboard round-trip |
 | `tests/playwright/todo-lists.spec.ts` | React UI + backend e2e |
 | `tests/pywinauto/test_window.py` | Window visibility, title, size |
 | `tests/pywinauto/test_menu_bar.py` | Menu items, About dialog, Export dialog |

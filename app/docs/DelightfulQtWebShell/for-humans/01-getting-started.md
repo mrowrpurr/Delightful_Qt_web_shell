@@ -136,37 +136,48 @@ The **🎨 Theme** panel (bottom of Storybook, next to Controls) lets you:
 
 This is the same theme and font system the app uses — great for verifying how your components look across different themes before shipping.
 
-Story files live in `web/shared/components/ui/*.stories.tsx`. Add a `.stories.tsx` next to any shared component and Storybook picks it up automatically.
+Story files live in `web/packages/ui/components/*.stories.tsx`. Add a `.stories.tsx` next to any shared component and Storybook picks it up automatically.
 
 ## Project Structure
 
+Two roots: `<repo>/lib/` for portable pure C++ (consumer can lift it to other projects), and `<repo>/app/` for everything the template owns.
+
 ```
-├── desktop/                  # Qt desktop app
-│   └── src/
-│       ├── main.cpp          #   Entry point (12 lines — just wiring)
-│       ├── application.*     #   QApplication — identity, theme, profile, bridges, tray
-│       ├── windows/          #   QMainWindow subclass
-│       ├── menus/            #   Menu bar + toolbar
-│       ├── widgets/          #   WebShellWidget, LoadingOverlay, StatusBar, SchemeHandler
-│       └── dialogs/          #   AboutDialog, WebDialog (React in a popup!)
-├── web/                      # React apps (Vite)
-│   ├── shared/api/           #   Bridge interfaces + transport (shared by all apps)
-│   ├── apps/main/            #   Main app (todo demo, file browser, bridge demos)
-│   ├── apps/                 #   Additional web apps go here
-│   └── package.json          #   Single deps, per-app scripts
-├── lib/
-│   ├── todos/                #   Domain logic (pure C++, no Qt, no Emscripten)
-│   ├── bridges/
-│   │   ├── qt/               #   Qt bridge — QObjects wrapping domain logic
-│   │   └── wasm/             #   WASM bridge — Embind wrapping domain logic
-│   └── web-shell/            #   Framework internals (you won't touch this)
-├── wasm/                     # WASM entry point + Emscripten linker config
-├── tests/
-│   ├── playwright/           #   Browser + desktop e2e tests
-│   ├── pywinauto/            #   Native Qt widget tests (Windows)
-│   └── helpers/dev-server/   #   Headless C++ backend for dev/test
-├── tools/playwright-cdp/      # Playwright + CDP library for agent tooling
-└── xmake.lua                 # Root build config (APP_NAME, APP_ORG, targets)
+<repo>/
+├── lib/                              # Portable pure C++ — no Qt, no Emscripten
+│   └── todos/                        #   Example domain (replace or delete)
+│       ├── include/                  #     todo_store.hpp, todo_dtos.hpp
+│       └── tests/unit/               #     Catch2 tests live with the domain
+└── app/                              # The template itself
+    ├── framework/                    # Bridge base + transports + lifecycle (don't touch)
+    ├── bridges/                      # Bridge classes — wrap a domain, extend app_shell::Bridge
+    │   ├── todos/                    #   TodoBridge — wraps <repo>/lib/todos
+    │   └── system/                   #   SystemBridge — file I/O, clipboard, dialogs
+    ├── desktop/src/                  # Qt desktop binary
+    │   ├── main.cpp                  #   Entry point — scheme registration, app, window, show
+    │   ├── shell/                    #   App class — QApplication, registry, lifecycle, tray
+    │   ├── windows/                  #   QMainWindow subclass
+    │   ├── menus/                    #   Menu bar + toolbar
+    │   ├── widgets/                  #   WebShellWidget, LoadingOverlay, StatusBar, SchemeHandler
+    │   └── dialogs/                  #   AboutDialog, WebDialog (React in a popup!)
+    ├── wasm/                         # WASM entry point + Emscripten linker config
+    ├── web/                          # React workspaces (Vite)
+    │   ├── packages/                 #   Workspace packages
+    │   │   ├── ui/                   #     @app/ui — shadcn primitives + useSidebarSlot + cn
+    │   │   ├── theming/              #     @app/theming — themes, fonts, effects, panels, qt-sync
+    │   │   ├── monaco/               #     @app/monaco — editor wrapper + theme bridge
+    │   │   └── bridge/               #     @app/bridge — transport + typed bridge declarations
+    │   ├── apps/                     #   Three Vite apps
+    │   │   ├── demo/                 #     Playground — every pattern lives here
+    │   │   ├── settings/             #     Thin app composing @app/theming
+    │   │   └── app/                  #     Empty slate — react + react-router + @app/bridge
+    │   └── package.json              #   Per-app scripts (build:demo, build:settings, build:app)
+    ├── tests/
+    │   ├── playwright/               #   Browser + desktop e2e tests
+    │   ├── pywinauto/                #   Native Qt widget tests (Windows)
+    │   └── helpers/dev-server/       #   Headless C++ backend for dev/test
+    ├── tools/playwright-cdp/         # Playwright CLI for driving web content
+    └── xmake/                        # xmake target definitions
 ```
 
 ## Quick Test

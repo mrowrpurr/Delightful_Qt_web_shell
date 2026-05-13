@@ -2,22 +2,23 @@
 
 > **Shortcut:** `xmake run scaffold-bridge <name>` scaffolds a new bridge end-to-end. This tutorial walks through the pattern manually so you understand what's happening under the hood.
 
-We'll add an `addItem` method — from C++ domain logic to React UI — and see how the four-file pattern works (domain logic + Qt bridge + WASM bridge + TypeScript interface).
+We'll add an `addItem` method — from C++ domain logic to React UI — and see how the three-file pattern works (domain logic + bridge + TypeScript interface).
 
-## The Four Files
+## The Three Files
 
 ```
-├── lib/todos/include/todo_store.hpp              ← C++ domain logic
-├── lib/bridges/qt/include/todo_bridge.hpp        ← Qt bridge (Q_INVOKABLE)
-├── lib/bridges/wasm/include/todo_wasm_bridge.hpp ← WASM bridge (Embind)
-└── web/shared/api/bridge.ts                         ← TypeScript interface
+├── <repo>/lib/todos/include/todo_store.hpp              ← C++ domain logic (pure)
+├── <repo>/app/bridges/todos/include/todo_bridge.hpp     ← Bridge — extends app_shell::Bridge
+└── <repo>/app/web/packages/bridge/lib/bridges/todo-bridge.ts  ← TypeScript interface
 ```
+
+No separate Qt bridge and WASM bridge — one C++ class serves both targets. The framework's transport adapters handle serialization at the edges.
 
 ## Step 1: Write the C++ Logic
 
 Add the method to `TodoStore` — pure C++, no Qt, no JSON.
 
-**`lib/todos/include/todo_store.hpp`:**
+**`<repo>/lib/todos/include/todo_store.hpp`:**
 
 ```cpp
 TodoItem add_item(const std::string& list_id, const std::string& text) {
@@ -27,133 +28,135 @@ TodoItem add_item(const std::string& list_id, const std::string& text) {
 }
 ```
 
-## Step 2: Expose It via the Qt Bridge (Desktop)
+## Step 2: Define the Request DTO
 
-Add a `Q_INVOKABLE` method to `TodoBridge` — the QObject wrapper.
+Bridge methods take **one request struct** as input. Add it to the DTOs header.
 
-**`lib/bridges/qt/include/todo_bridge.hpp`:**
-
-```cpp
-Q_INVOKABLE QJsonObject addItem(const QString& listId, const QString& text) {
-    auto item = store_.add_item(listId.toStdString(), text.toStdString());
-    emit dataChanged();
-    return to_json(item);
-}
-```
-
-`to_json()` is a hand-written helper that maps C++ struct fields to a `QJsonObject`:
+**`<repo>/lib/todos/include/todo_dtos.hpp`:**
 
 ```cpp
-static QJsonObject to_json(const TodoItem& i) {
-    return {
-        {"id",   QString::fromStdString(i.id)},
-        {"text", QString::fromStdString(i.text)},
-        {"done", i.done},
-    };
-}
+struct AddItemRequest {
+    std::string list_id;
+    std::string text;
+};
 ```
 
-**Why `QJsonObject`?** Return `QJsonObject` or `QJsonArray` and JS gets the data directly. If you return a scalar (`QString`, `int`, `bool`), JS receives it wrapped: `{value: "hello"}` instead of `"hello"`. This is by design — always return structured types for a clean JS API.
+That's the whole DTO. PFR (Boost.PFR) walks the struct fields and serializes them — no macros, no registration, no hand-written `to_json()`.
 
-## Step 3: Expose It via the WASM Bridge (Browser)
+## Step 3: Add the Bridge Method
 
-Add a matching method to `TodoWasmBridge` — **same method name**, same domain call, but returns `emscripten::val` instead of `QJsonObject`.
+Add a method to `TodoBridge` and register it in the constructor. The method takes the request DTO and returns a domain struct.
 
-**`lib/bridges/wasm/include/todo_wasm_bridge.hpp`:**
+**`<repo>/app/bridges/todos/include/todo_bridge.hpp`:**
 
 ```cpp
-emscripten::val addItem(const std::string& listId, const std::string& text) {
-    auto item = store_.add_item(listId, text);
-    return to_val(item);
-}
+class TodoBridge : public app_shell::Bridge {
+public:
+    TodoBridge() {
+        // ... existing registrations ...
+        method("addItem", &TodoBridge::addItem);
+
+        signal("itemAdded");
+    }
+
+    TodoItem addItem(AddItemRequest req) {
+        auto item = store_.add_item(req.list_id, req.text);
+        emit_signal("itemAdded", item);
+        return item;
+    }
+};
 ```
 
-`to_val()` maps C++ struct fields to a JavaScript object in WASM memory:
+That's it on the C++ side. `def_type::from_json` deserializes the request automatically. `def_type::to_json` serializes the response. One bridge class serves desktop *and* WASM.
 
-```cpp
-static emscripten::val to_val(const TodoItem& i) {
-    auto obj = emscripten::val::object();
-    obj.set("id",   i.id);
-    obj.set("text", i.text);
-    obj.set("done", i.done);
-    return obj;
-}
-```
+## Step 4: Mirror in TypeScript
 
-The method is registered with Embind at the bottom of the file:
-
-```cpp
-EMSCRIPTEN_BINDINGS(todo_bridge) {
-    emscripten::class_<TodoWasmBridge>("TodoBridge")
-        .constructor<>()
-        .function("addItem", &TodoWasmBridge::addItem);
-}
-```
-
-> **Pattern:** Qt bridge uses `to_json()` → `QJsonObject`. WASM bridge uses `to_val()` → `emscripten::val`. Same method names, same domain calls, different serialization.
-
-## Step 4: Define the TypeScript Interface
-
-**`web/shared/api/bridge.ts`:**
+**`<repo>/app/web/packages/bridge/lib/bridges/todo-bridge.ts`:**
 
 ```typescript
 export interface TodoBridge {
   // ... existing methods ...
-  addItem(listId: string, text: string): Promise<TodoItem>
+  addItem(req: { list_id: string; text: string }): Promise<TodoItem>
+  itemAdded(callback: (item: TodoItem) => void): () => void
 }
+```
+
+Bridge calls take a **request object** — not positional arguments:
+
+```typescript
+// Correct
+await todos.addItem({ list_id: id, text: 'Buy milk' })
+
+// Wrong — won't work
+await todos.addItem(id, 'Buy milk')
 ```
 
 ## Step 5: Use It in React
 
 ```typescript
 const todos = await getBridge<TodoBridge>('todos')
-await todos.addItem(listId, 'Buy milk')
+await todos.addItem({ list_id: listId, text: 'Buy milk' })
 ```
 
-That's it. Four files, no wiring, no glue code.
+That's it. Three files, no wiring, no glue code.
 
 ## What Just Happened?
 
 | File | What you wrote |
 |------|----------------|
 | `todo_store.hpp` | The actual logic (shared by both targets) |
-| `todo_bridge.hpp` | Qt bridge: `Q_INVOKABLE` wrapper + `to_json()` |
-| `todo_wasm_bridge.hpp` | WASM bridge: Embind method + `to_val()` |
-| `bridge.ts` | TypeScript interface line (shared by both targets) |
+| `todo_dtos.hpp` | The request DTO — a plain struct |
+| `todo_bridge.hpp` | `method("addItem", ...)` + the method body |
+| `todo-bridge.ts` | TypeScript interface line (shared by both targets) |
 
-The bridge infrastructure didn't change at all. The Qt side discovered your new method via `QMetaObject` introspection. The WASM side exposed it via Embind. Both are callable from the same React code.
+The framework infrastructure didn't change. The desktop transport (`BridgeChannelAdapter`) dispatches the call through QWebChannel. The WASM transport (`WasmBridgeWrapper`) dispatches through Embind. Both call the same `TodoBridge::addItem(AddItemRequest)`.
+
+## Return Types
+
+The framework picks JSON shapes from your C++ return type:
+
+| C++ returns | JSON result | Notes |
+|------------|-------------|-------|
+| A `def_type` struct | The struct as a JSON object | `{"id": "1", "name": "Groceries"}` |
+| `std::vector<T>` | A JSON array | Each element serialized recursively |
+| `bool` | `{"ok": value}` | |
+| `void` / `OkResponse` | `{"ok": true}` | For side-effect-only methods |
+| `nlohmann::json` | Passthrough | For manually constructed responses |
 
 ## Adding a New Bridge
 
 When you need a new domain area (not just a method on `todos`):
 
 ```bash
-xmake run scaffold-bridge settings
+xmake run scaffold-bridge notes
 ```
 
-This creates the C++ header, TypeScript interface stub, and wires registration into both entry points (`main.cpp` and `test_server.cpp`). No xmake.lua edits needed — the glob picks up new headers automatically.
+This creates the bridge class, request DTOs header, and TypeScript interface stub, and wires registration into both entry points (`application.cpp` and `test_server.cpp`). No xmake.lua edits needed — the targets use glob discovery.
 
-Then add your `Q_INVOKABLE` methods to the `.hpp` and mirror them in the `.ts`.
+Then add your methods to the bridge class and mirror them in the TS interface.
 
-Validate with `xmake run validate-bridges`.
+## Signals — Push Events with Typed Payloads
 
-## Signals — Push Events from C++ to React
-
-Add a parameterless signal and emit it:
+Signals carry typed data, not just a "something changed" notification:
 
 ```cpp
-signals:
-    void dataChanged();
+// In the constructor:
+signal("itemAdded");
+signal("listDeleted");
 
 // In a method:
-emit dataChanged();
+TodoItem addItem(AddItemRequest req) {
+    auto item = store_.add_item(req.list_id, req.text);
+    emit_signal("itemAdded", item);   // item is serialized via def_type::to_json
+    return item;
+}
 ```
 
-Subscribe in TypeScript:
+Subscribe in TypeScript with a typed callback:
 
 ```typescript
-const cleanup = todos.dataChanged(() => {
-  console.log('data changed!')
+const cleanup = todos.itemAdded((item: TodoItem) => {
+  console.log('item added:', item)
   refresh()
 })
 // Later: cleanup() to unsubscribe
@@ -163,7 +166,9 @@ In a React component:
 
 ```typescript
 useEffect(() => {
-  const cleanup = todos.dataChanged(() => setStale(true))
+  const cleanup = todos.itemAdded((item) => {
+    setItems(prev => [...prev, item])
+  })
   return cleanup
 }, [])
 ```
@@ -171,8 +176,7 @@ useEffect(() => {
 ## Validate Your Work
 
 ```bash
-xmake run validate-bridges   # checks TS interfaces match C++ methods
 xmake run test-all            # run all test layers
 ```
 
-> If you only changed WASM bridge code, Catch2 covers the domain logic (same C++) and browser e2e covers the UI. You don't need separate WASM tests — the domain logic is identical.
+The desktop and WASM builds catch DTO/method mismatches at compile time — if your request struct doesn't match what the bridge method expects, the code won't compile.

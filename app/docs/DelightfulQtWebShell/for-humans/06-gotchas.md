@@ -7,7 +7,7 @@ Things that will bite you if you don't know about them.
 | What you forgot | What happens |
 |---|---|
 | Register bridge in `application.cpp` and `test_server.cpp` | Bridge silently doesn't exist — no error, just missing |
-| Return `QJsonObject` but got `{value: ...}` | You returned a scalar (`QString`, `int`) — scalars get wrapped |
+| Bridge call with positional args | Bridges take a **request object** (`addItem({list_id, text})`), not positional args |
 | Remove `signalReady()` from `App.tsx` | App hangs with spinner forever, error after 15s |
 | Use Bun instead of Node for playwright-cdp | `connectOverCDP` hangs forever — no error, no timeout |
 | playwright-cdp fails with `ERR_MODULE_NOT_FOUND` | Deps not installed in `tools/playwright-cdp/` — it's a separate install from the Bun workspace. Run `cd tools/playwright-cdp && npm install` (or `xmake run setup`). |
@@ -27,9 +27,9 @@ Things that will bite you if you don't know about them.
 
 ## Multi-App / Vite
 
-- **`vite --config` doesn't change root.** Use `cd apps/main && vite build` in scripts, not `vite build --config apps/main/vite.config.ts`.
-- **`@shared` alias must be in each app's `vite.config.ts`.** It's not inherited.
-- **Vite inlines assets < 4KB as data URIs.** Set `assetsInlineLimit: 0` — QWebEngine can't always handle them.
+- **`vite --config` doesn't change root.** Use `cd apps/demo && vite build` in scripts, not `vite build --config apps/demo/vite.config.ts`.
+- **Vite inlines assets < 4KB as data URIs.** Set `assetsInlineLimit: 0` in every app's `vite.config.ts` — QWebEngine can't always handle them.
+- **Workspace package resolution from outside `web/`.** Bun hoists `@app/*` symlinks under `web/node_modules/@app/`. Code outside `web/` (e.g., bun tests under `framework/qt-transport/tests/web/`) needs the matching dep declared at `app/package.json` so a top-level `app/node_modules/@app/<name>` symlink exists.
 
 ## Theming
 
