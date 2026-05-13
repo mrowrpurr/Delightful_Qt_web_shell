@@ -1,7 +1,7 @@
 import '@app/monaco/lib/setup'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { HashRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route } from 'react-router'
 import App from './App'
 import DialogView from './DialogView'
 import './App.css'
