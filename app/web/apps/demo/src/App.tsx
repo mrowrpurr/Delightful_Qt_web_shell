@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
+import { Routes, Route, Link, useLocation } from 'react-router'
 import { SidebarSlotProvider } from '@app/ui/hooks/use-sidebar-slot'
 import { signalReady } from '@app/bridge/lib/transport/bridge'
 import {
@@ -49,42 +50,22 @@ export default function App() {
   // Slot for page-contributed sidebar content. Pages call useSidebarSlot(<JSX/>)
   // and portal their JSX into the div whose ref we expose via context.
   const sidebarSlotRef = useRef<HTMLDivElement>(null)
+  const location = useLocation()
+
+  // Current tab derived from the URL path (HashRouter strips the leading `#`).
+  // `/` and unknown paths default to docs so the doc tab is the landing page.
+  const currentTab = location.pathname.replace(/^\//, '') || 'docs'
 
   useEffect(() => {
     console.log(`[load-time] web: App mounted, calling signalReady at ${performance.now().toFixed(1)}ms (since page nav)`)
     signalReady()
   }, [])
 
-  // Initialize tab from URL hash (e.g. app://main/#editor → "editor").
-  // Hash routing is required because custom URL schemes (app://) don't
-  // support history.replaceState with path changes — Chromium treats
-  // the origin as scheme-only, so any path change is cross-origin.
-  // The full URL (including hash) is saved/restored by the Qt shell.
-  const [currentTab, setCurrentTab] = useState(() => {
-    const hash = window.location.hash.replace(/^#/, '')
-    return hash && hash in TAB_TITLES ? hash : 'docs'
-  })
-
-  // Update document.title and URL hash when the active tab changes.
-  // Title drives the dock widget tab label via the web engine's titleChanged signal.
+  // Update document.title from the active tab. The title drives the Qt dock
+  // widget's tab label via the web engine's titleChanged signal.
   useEffect(() => {
     document.title = TAB_TITLES[currentTab] ?? import.meta.env.VITE_APP_NAME ?? 'App'
-    window.location.hash = currentTab
   }, [currentTab])
-
-  const renderTab = () => {
-    switch (currentTab) {
-      case 'docs': return <DocsTab />
-      case 'editor': return <EditorTab />
-      case 'todos': return <TodosTab />
-      case 'files': return <FileBrowserTab />
-      case 'chat': return <ChatTab />
-      case 'system': return <SystemTab />
-      case 'settings': return <SettingsTab />
-      case 'components': return <ComponentsTab />
-      default: return <DocsTab />
-    }
-  }
 
   return (
     <div className="min-h-screen text-foreground bg-page">
@@ -108,18 +89,20 @@ export default function App() {
                 {NAV_ITEMS.map(item => (
                   <SidebarMenuItem key={item.id}>
                     <SidebarMenuButton
+                      asChild
                       isActive={currentTab === item.id}
-                      onClick={() => setCurrentTab(item.id)}
                       tooltip={item.label}
                       data-testid={`sidebar-${item.id}`}
                     >
-                      <span
-                        aria-hidden
-                        className="inline-flex size-4 shrink-0 items-center justify-center text-base leading-none"
-                      >
-                        {item.icon}
-                      </span>
-                      <span>{item.label}</span>
+                      <Link to={`/${item.id}`}>
+                        <span
+                          aria-hidden
+                          className="inline-flex size-4 shrink-0 items-center justify-center text-base leading-none"
+                        >
+                          {item.icon}
+                        </span>
+                        <span>{item.label}</span>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -129,7 +112,18 @@ export default function App() {
           </SidebarContent>
         </Sidebar>
         <SidebarInset>
-          {renderTab()}
+          <Routes>
+            <Route path="/" element={<DocsTab />} />
+            <Route path="/docs" element={<DocsTab />} />
+            <Route path="/editor" element={<EditorTab />} />
+            <Route path="/todos" element={<TodosTab />} />
+            <Route path="/files" element={<FileBrowserTab />} />
+            <Route path="/chat" element={<ChatTab />} />
+            <Route path="/system" element={<SystemTab />} />
+            <Route path="/settings" element={<SettingsTab />} />
+            <Route path="/components" element={<ComponentsTab />} />
+            <Route path="*" element={<DocsTab />} />
+          </Routes>
         </SidebarInset>
         </SidebarSlotProvider>
       </SidebarProvider>

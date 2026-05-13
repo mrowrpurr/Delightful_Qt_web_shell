@@ -1,6 +1,7 @@
 import '@app/monaco/lib/setup'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { HashRouter, Routes, Route } from 'react-router'
 import App from './App'
 import DialogView from './DialogView'
 import './App.css'
@@ -64,18 +65,22 @@ getSystemBridge().then(system => {
 }).catch(() => {}) // WASM/browser mode — no bridge
 setupQtThemeListener()
 
-// Hash-based routing — same React app, different content.
-// The main window loads app://main/ (no hash) → full app.
-// A dialog loads app://main/#/dialog → lightweight dialog UI.
-// No React Router needed — the hash is set once at load time.
-const route = window.location.hash
-
-const Root = route === '#/dialog' ? DialogView : App
-
+// HashRouter chooses the top-level UI from the URL hash:
+//   app://demo/                 → /        → App  (tabs handle the rest)
+//   app://demo/#/editor         → /editor  → App  (App routes nested below)
+//   app://demo/#/dialog         → /dialog  → DialogView
+// Custom URL schemes (app://) don't support history.replaceState path
+// changes — Chromium treats app:// origins as scheme-only, so any path
+// change is cross-origin. Hash routing is the only mechanism that works.
 lap('about to render')
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Root />
+    <HashRouter>
+      <Routes>
+        <Route path="/dialog" element={<DialogView />} />
+        <Route path="/*" element={<App />} />
+      </Routes>
+    </HashRouter>
   </StrictMode>,
 )
 lap('render call returned')
