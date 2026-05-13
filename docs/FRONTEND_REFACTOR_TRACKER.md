@@ -133,28 +133,38 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
 
 ### Phase 8 — Split apps, wire react-router, delete `web/shared/`
 
-- [ ] **Phase 8 complete**
-  - [ ] `web/apps/main/` → `web/apps/demo/`
-  - [ ] `web/apps/settings/` created — thin app composing `@app/theming`
-  - [ ] `web/apps/app/` created — empty slate (react + react-router + bridge transport only)
-  - [ ] HashRouter wired in all three apps
-  - [ ] `desktop/src/widgets/scheme_handler.cpp` updated for `app://demo/`, `app://settings/`, `app://app/` host routing
-  - [ ] `WEB_APPS` in `desktop/xmake.lua` registers all three apps
-  - [ ] Default URL the desktop loads on launch decided
-  - [ ] WASM artifact destination decided
-  - [ ] Which app `dev-wasm` starts decided
-  - [ ] ChatTab fate decided
-  - [ ] Vite dev ports per app decided
-  - [ ] Storybook globals (`web/shared/styles/globals.css`) landing place decided
-  - [ ] `App.css` split (Tailwind base → `@app/ui`, transparency vars → `@app/theming`, markdown → demo only, glow + wallpaper → `@app/theming`)
-  - [ ] `web/shared/` no longer exists
-  - [ ] `signalReady()` verified in **every** app's mount path
-  - [ ] `getBridge<T>(...)` at module scope verified per app
-  - [ ] `assetsInlineLimit: 0` verified in every new `vite.config.ts`
-  - [ ] `qtSyncGuard` preserved
-  - [ ] All three apps build (`bun run build:demo`, `build:settings`, `build:app`)
-  - [ ] `xmake build desktop` green (compiles with new scheme_handler routing + WEB_APPS list)
-  - [ ] `xmake build wasm-app` green
+- [x] **Phase 8 complete**
+  - [x] `web/apps/main/` → `web/apps/demo/`
+  - [x] `web/apps/settings/` created — thin app composing `@app/theming`
+  - [x] `web/apps/app/` created — empty slate (react + react-router + bridge transport only)
+  - [x] HashRouter wired in all three apps
+  - [x] `desktop/src/widgets/scheme_handler.cpp` updated for `app://demo/`, `app://settings/`, `app://app/` host routing *(comment generalized to `app://<name>/ → :/web-<name>/`; the routing itself was already dynamic so no logic change needed)*
+  - [x] `WEB_APPS` in `desktop/xmake.lua` registers all three apps
+  - [x] **Default URL the desktop loads on launch decided** → `app://demo/` (recommendation accepted). First-run shows the playground that demonstrates the template. Consumer flips this in `dock_manager.cpp` + `web_dialog.cpp` when ready to ship from `app`.
+  - [x] **WASM artifact destination decided** → `web/apps/demo/public/`. Demo is the bridge-exercise app — proving Embind works under it is the point of WASM mode.
+  - [x] **Which app `dev-wasm` starts decided** → `demo`. Same reason.
+  - [x] **ChatTab fate decided** → keep in demo. It's the only `useSidebarSlot` portal-pattern demonstration; deleting it silently removes the documented capability.
+  - [x] **Vite dev ports per app decided** → demo 5173 (preserved), settings 5174, app 5175. `App::appUrl` devPorts map updated.
+  - [x] **Storybook globals (`web/shared/styles/globals.css`) landing place decided** → extracted into the new `@app/ui/styles/globals.css` (tailwindcss + theme.css + body color rule). Every app + Storybook imports that one file.
+  - [x] `App.css` split (Tailwind base → `@app/ui/styles/globals.css`, transparency vars + `.bg-page` + glow + wallpaper → `@app/theming/styles/effects.css`, markdown → demo only)
+  - [x] `web/shared/` no longer exists
+  - [x] `signalReady()` verified in **every** app's mount path *(demo: App.tsx useEffect; settings: App.tsx useEffect; app: App.tsx useEffect)*
+  - [x] `getBridge<T>(...)` at module scope verified per app *(demo: main.tsx setupQtThemeListener; settings: main.tsx setupQtThemeListener + setQtTheme; app: App.tsx top-level `getSystemBridge()` promise)*
+  - [x] `assetsInlineLimit: 0` verified in every new `vite.config.ts` *(demo/settings/app all set it)*
+  - [x] `qtSyncGuard` preserved *(extracted into `@app/theming/lib/qt-sync.ts` as a closure inside `setupQtThemeListener()`; demo + settings both invoke it)*
+  - [x] All three apps build (`bun run build:demo`, `build:settings`, `build:app`)
+  - [x] `xmake build desktop` green (compiles with new scheme_handler routing + WEB_APPS list)
+  - [x] `xmake build wasm-app` green
+
+**Bonus landed in Phase 8:**
+- AppearancePanel editor leak resolved (Phase-5 deferred): split into editor-free `<AppearancePanel />` + new `<EditorAppearancePanel />`. Demo composes both; settings composes only AppearancePanel. Decision driven by the brief implying it once Monaco was its own package.
+- `next-themes` dep dropped (TODO.md flagged it dead since Phase 5; Sonner now uses `isDarkMode()` from `@app/theming/lib/themes` directly).
+- `setupQtThemeListener()` extracted from demo's App.tsx into `@app/theming/lib/qt-sync.ts` so settings (and any future themed app) can share the qtSyncGuard pattern without duplication.
+- EditorTab teaches itself the "follow app theme/font" rule: it reads `theme-name`/`app-font-family` when `editor-use-app-theme`/`editor-use-app-font` is on, else its own keys. Removes the old AppearancePanel-writes-into-editor-keys coupling.
+
+**Not landed (out of Phase 8 scope, flagged for later):**
+- Agent-facing docs (`app/docs/DelightfulQtWebShell/for-agents/*`) still reference `web/apps/main/`, `web/shared/`, and `@shared` in several places. They have stacked staleness from Phases 1–7 as well. A focused doc sweep is the right phase for fixing this — not Phase 8.
+- Bun tests under `app/framework/qt-transport/tests/web/` import from non-existent `web/shared/api/...` paths (Phase 7 leftover — they were broken before Phase 8). Phase 9 covers test trim and will repoint or delete.
 
 ---
 
