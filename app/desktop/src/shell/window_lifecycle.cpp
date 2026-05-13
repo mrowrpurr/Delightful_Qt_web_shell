@@ -1,6 +1,6 @@
-// app_shell::WindowRegistry — see window_registry.hpp for overview.
+// app_shell::WindowLifecycle — see window_lifecycle.hpp for overview.
 
-#include "shell/window_registry.hpp"
+#include "shell/window_lifecycle.hpp"
 
 #include <QApplication>
 #include <QSettings>
@@ -12,11 +12,11 @@
 
 namespace app_shell {
 
-WindowRegistry::WindowRegistry(App* parent)
+WindowLifecycle::WindowLifecycle(App* parent)
     : QObject(parent), app_(parent)
 {}
 
-QList<MainWindow*> WindowRegistry::restoreWindows() {
+QList<MainWindow*> WindowLifecycle::restoreWindows() {
     QSettings s(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
 
     s.beginGroup("window");
@@ -30,7 +30,7 @@ QList<MainWindow*> WindowRegistry::restoreWindows() {
     return windows;
 }
 
-int WindowRegistry::visibleWindowCount() const {
+int WindowLifecycle::visibleWindowCount() const {
     int count = 0;
     for (auto* w : QApplication::topLevelWidgets()) {
         if (auto* mw = qobject_cast<MainWindow*>(w))

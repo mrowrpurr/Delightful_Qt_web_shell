@@ -7,7 +7,7 @@
 #include "shell/single_instance.hpp"
 #include "shell/tray.hpp"
 #include "shell/url_protocol.hpp"
-#include "shell/window_registry.hpp"
+#include "shell/window_lifecycle.hpp"
 #include "system_bridge.hpp"
 #include "widgets/scheme_handler.hpp"
 #include "windows/main_window.hpp"
@@ -40,8 +40,8 @@ int main(int argc, char* argv[]) {
     urlProtocol->promptIfNeeded();
 
     // Restore saved windows, or create one default window.
-    auto* windowRegistry = new app_shell::WindowRegistry(&app);
-    auto windows = windowRegistry->restoreWindows();
+    auto* windowLifecycle = new app_shell::WindowLifecycle(&app);
+    auto windows = windowLifecycle->restoreWindows();
     if (windows.isEmpty())
         windows.append(new MainWindow(app));
 

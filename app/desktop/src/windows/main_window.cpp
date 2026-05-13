@@ -9,7 +9,7 @@
 
 #include "main_window.hpp"
 #include "shell/app.hpp"
-#include "shell/window_registry.hpp"
+#include "shell/window_lifecycle.hpp"
 #include "dock_manager.hpp"
 #include "menus/menu_bar.hpp"
 #include "widgets/dock_tab_manager.hpp"
@@ -399,10 +399,10 @@ void MainWindow::closeEvent(QCloseEvent* event) {
         return;
     }
 
-    // Hide-to-tray on the last visible window — but only when WindowRegistry
+    // Hide-to-tray on the last visible window — but only when WindowLifecycle
     // is present (consumer opted into multi-window lifecycle). Without it,
     // every close is a plain close.
-    auto* registry = app_.findChild<app_shell::WindowRegistry*>();
+    auto* registry = app_.findChild<app_shell::WindowLifecycle*>();
     int visibleCount = registry ? registry->visibleWindowCount() : 0;
 
     if (registry && visibleCount <= 1 && QSystemTrayIcon::isSystemTrayAvailable()) {
