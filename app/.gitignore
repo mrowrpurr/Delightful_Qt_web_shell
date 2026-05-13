@@ -25,6 +25,9 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Storybook build output (bun run build-storybook)
+web/storybook-static/
+
 # Test output
 test-results/
 
