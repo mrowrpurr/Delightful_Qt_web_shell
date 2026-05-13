@@ -138,6 +138,8 @@ QUrl App::appUrl(const QString& appName) const {
     if (devMode_) {
         static const QHash<QString, int> devPorts = {
             {"demo", 5173},
+            {"settings", 5174},
+            {"app", 5175},
         };
         int port = devPorts.value(appName, 5175);
         return QUrl(QString("http://localhost:%1").arg(port));
