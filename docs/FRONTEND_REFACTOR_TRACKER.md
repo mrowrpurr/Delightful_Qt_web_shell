@@ -135,7 +135,7 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
 
 - [ ] **Phase 8 complete**
   - [ ] `web/apps/main/` → `web/apps/demo/`
-  - [ ] `web/apps/settings/` created — thin app composing preferences package
+  - [ ] `web/apps/settings/` created — thin app composing `@app/theming`
   - [ ] `web/apps/app/` created — empty slate (react + react-router + bridge transport only)
   - [ ] HashRouter wired in all three apps
   - [ ] `desktop/src/widgets/scheme_handler.cpp` updated for `app://demo/`, `app://settings/`, `app://app/` host routing
@@ -146,7 +146,7 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
   - [ ] ChatTab fate decided
   - [ ] Vite dev ports per app decided
   - [ ] Storybook globals (`web/shared/styles/globals.css`) landing place decided
-  - [ ] `App.css` split (Tailwind base → shadcn pkg, transparency vars → preferences pkg, markdown → demo only, glow + wallpaper → preferences pkg)
+  - [ ] `App.css` split (Tailwind base → `@app/ui`, transparency vars → `@app/theming`, markdown → demo only, glow + wallpaper → `@app/theming`)
   - [ ] `web/shared/` no longer exists
   - [ ] `signalReady()` verified in **every** app's mount path
   - [ ] `getBridge<T>(...)` at module scope verified per app

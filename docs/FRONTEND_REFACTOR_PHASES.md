@@ -157,9 +157,9 @@ Bottom-up by dep chain. The current single app stays the consumer of each newly-
 - `shared/lib/themes.ts`, `themes.json`, `shared/lib/fonts.ts`, `google-fonts.json`
 - `shared/lib/tron-grid.ts`, theme-effects code (Tron, Dragon, Synthwave glow, wallpapers)
 - `<ThemePicker>`, `<FontPicker>`, `<TransparencySlider>`, `<DarkModeToggle>`, `<AppearancePanel>` components
-- Depends on the shadcn-primitives package.
+- Depends on `@app/ui`.
 
-**Why second:** depends only on shadcn-primitives, which is already extracted. Biggest surface in the web reshape — isolating it in its own phase makes regressions easier to bisect.
+**Why second:** depends only on `@app/ui`, which is already extracted. Biggest surface in the web reshape — isolating it in its own phase makes regressions easier to bisect.
 
 **Critical pattern preservation:** localStorage keys (`theme-name`, `theme-mode`, `editor-theme-name`, `editor-use-app-theme`, `page-transparency`, `surface-transparency`, font keys) **must not change**. Renaming or relocating any of them wipes user preferences across upgrades. Audit them at the end of this phase by clearing localStorage, setting preferences in the running app, then comparing keys with Phase 0.
 
@@ -169,16 +169,16 @@ Bottom-up by dep chain. The current single app stays the consumer of each newly-
 
 ---
 
-### Phase 6 — Monaco package
+### Phase 6 — Monaco package (`@app/monaco`)
 
 **Goal:** Monaco wrapper + `monaco-theme.ts` extract into their own package.
 
 **Moves:**
 - `@monaco-editor/react`, `monaco-editor`, `monaco-vim` deps move to the package
 - `shared/lib/monaco-theme.ts` and the Monaco setup code move
-- Depends on preferences (for theme integration via `buildMonacoThemeFromVars`).
+- Depends on `@app/theming` (for theme integration via `buildMonacoThemeFromVars`).
 
-**Why third:** sits on top of preferences in the dep graph. Smallest of the three packages by surface.
+**Why third:** sits on top of `@app/theming` in the dep graph. Smallest of the three packages by surface.
 
 **Critical pattern preservation:** Monaco worker setup runs before any editor mount. Preserve the initialization order during the move.
 
@@ -187,21 +187,19 @@ Bottom-up by dep chain. The current single app stays the consumer of each newly-
 
 ---
 
-### Phase 7 — Place bridge transport TS
+### Phase 7 — Bridge transport package (`@app/bridge`)
 
 **Goal:** resolve where bridge transport TypeScript lives, before splitting apps.
 
-**Open question being resolved:** `bridge.ts`, `bridge-transport.ts`, `wasm-transport.ts`, `system-bridge.ts`, `todo-bridge.ts` — currently in `web/shared/api/`. The original doc lists four options:
-1. A 4th workspace package
-2. Folded into the shadcn-primitives package
-3. Folded into the preferences package
-4. A bare shared folder under `web/`
+**Resolved (Phase 7 landed):** option 1 — a 4th workspace package, `@app/bridge` at `web/packages/bridge/`. Bridge transport is conceptually orthogonal to UI primitives, theming, and Monaco; co-locating it with any of them is a category error. A bare shared folder works mechanically but contradicts the "everything reusable is a workspace package" principle the refactor establishes.
 
-**Recommendation (this doc, not the original):** option 1 — a 4th workspace package, e.g., `bridge-transport/` or similar. Reasons: bridge transport is conceptually orthogonal to UI primitives, preferences, and Monaco; co-locating it with any of them is a category error. A bare shared folder works mechanically but contradicts the "everything reusable is a workspace package" principle the refactor establishes. Decide in the implementation phase, but expect this to be the recommendation that lands.
+**Internal layout (resolved):** split by purpose so the folder tells the reader what's what:
+- `lib/transport/` — framework runtime, consumers never touch (`bridge.ts`, `bridge-transport.ts`, `wasm-transport.ts`)
+- `lib/bridges/` — typed declarations of named bridges; this is where consumer-added bridges land (`system-bridge.ts`, `todo-bridge.ts`). Folder name mirrors the C++ side's `app/bridges/` for matching vocabulary across the wire.
 
 **Why this gets its own phase:** splitting apps before bridge transport has a stable home means thrash — every app would need to update its transport import path twice. Doing this as its own atomic phase keeps the apps-split phase focused on apps, not on transport.
 
-**JS-side `_shell` rename:** the QWebChannel object name `_shell` in `bridge-transport.ts` is named after the deleted `WebShell` class. Phase 2 split the C++ side into `BridgeRegistry` + `AppLifecycle` but kept registering the AppLifecycle as `_shell` for JS compatibility. This phase updates the JS side and the `channel->registerObject(...)` call site to a name that matches the C++ class — likely `_lifecycle` or `_appLifecycle`. Coordinated change in `bridge-transport.ts` and `web_shell_widget.cpp` (the registration site).
+**JS-side `_shell` rename (landed):** the QWebChannel object name `_shell` in `bridge-transport.ts` was named after the deleted `WebShell` class. Phase 2 split the C++ side into `BridgeRegistry` + `AppLifecycle` but kept registering the AppLifecycle as `_shell` for JS compatibility. Phase 7 renamed it to `_lifecycle` — coordinated change in `bridge-transport.ts` (`channel._lifecycle`, `lifecycle.appReady(...)`) and `web_shell_widget.cpp` (`channel->registerObject("_lifecycle", lifecycle);`).
 
 **Verification:**
 - `main` app builds
@@ -216,7 +214,7 @@ Bottom-up by dep chain. The current single app stays the consumer of each newly-
 
 **Actions:**
 - Rename `web/apps/main/` → `web/apps/demo/`
-- Create `web/apps/settings/` — thin app composing the preferences package
+- Create `web/apps/settings/` — thin app composing `@app/theming`
 - Create `web/apps/app/` — empty slate (react + react-router + bridge transport, nothing else)
 - HashRouter in all three apps
 - Update `desktop/src/widgets/scheme_handler.cpp` — host routing for `app://demo/`, `app://settings/`, `app://app/`
@@ -233,7 +231,7 @@ Bottom-up by dep chain. The current single app stays the consumer of each newly-
 - ChatTab fate — keep as a `useSidebarSlot` demo in `demo`, or remove entirely
 - Vite dev ports per app
 - Storybook globals (`web/shared/styles/globals.css`) landing place
-- App.css split (Tailwind base → shadcn pkg, transparency vars → preferences pkg, markdown → demo only, theme glow + wallpaper → preferences pkg)
+- App.css split (Tailwind base → `@app/ui`, transparency vars → `@app/theming`, markdown → demo only, theme glow + wallpaper → `@app/theming`)
 
 **Critical pattern preservations:**
 - `signalReady()` in **every** app's mount path. No call → 15-second loading-overlay timeout shows error. Verify per app.

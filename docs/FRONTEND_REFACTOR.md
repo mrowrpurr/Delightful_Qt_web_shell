@@ -63,9 +63,9 @@ Pure C++ domain hoists to `<repo>/lib/<domain>/`. Template runtime/framework mov
 
 ### Decisions
 
-- Pure C++ domain (no Qt, no Embind, no `web_shell::bridge`) lives at `<repo>/lib/<domain>/`.
-- Template runtime — `web_shell::bridge` base, WebShell loader, Qt-side transport adapters, WASM transport wrapper — lives in `<repo>/app/framework/`.
-- Domain bridges — classes that extend `web_shell::bridge` and wrap a domain — live in `<repo>/app/bridges/<domain>/`.
+- Pure C++ domain (no Qt, no Embind, no `app_shell::Bridge`) lives at `<repo>/lib/<domain>/`.
+- Template runtime — `app_shell::Bridge` base, WebShell loader, Qt-side transport adapters, WASM transport wrapper — lives in `<repo>/app/framework/`.
+- Domain bridges — classes that extend `app_shell::Bridge` and wrap a domain — live in `<repo>/app/bridges/<domain>/`.
 - `<repo>/app/lib/` is removed.
 - `TodoStore` + DTOs are pure domain. `TodoBridge` is the wrapper. They split.
 - `SystemBridge` is Qt-dependent and lives in `<repo>/app/bridges/system/` (Qt-aware code is allowed inside `app/`).
@@ -73,9 +73,10 @@ Pure C++ domain hoists to `<repo>/lib/<domain>/`. Template runtime/framework mov
 
 ### Open questions
 
-- Internal subfolder layout of `<repo>/app/framework/`. Subdivide by purpose (bridge base, WebShell loader, Qt transport, WASM transport)? Flat? Some other grouping?
-- xmake target names inside framework and bridges (`framework-bridge`, `bridge-todos`, etc. — these are unset).
-- Where framework-level tests live (e.g., the existing `bridge_channel_adapter_test.cpp` if it survives the test trim).
+All resolved in Phases 1–3:
+- Internal subfolder layout of `<repo>/app/framework/` — **subdivide by purpose**: `bridge/`, `bridge-registry/`, `app-lifecycle/`, `qt-transport/`, `wasm-transport/` (Phase 2). `WebShell` was split into `BridgeRegistry` (pure C++) + `AppLifecycle` (Qt QObject).
+- xmake target names — `app.framework.X` for framework targets, `app.bridges.X` for bridges, `lib.X` for pure-domain libs (Phases 2–3).
+- Framework-level tests — `bridge_channel_adapter_test.cpp` lives with its code at `app/framework/qt-transport/tests/unit/`. Bun tests (`bridge_proxy_test.ts`, `system_bridge_test.ts`, `type_conversion_test.ts`) at `app/framework/qt-transport/tests/web/` (Phase 2).
 
 ### Target shape
 
@@ -109,14 +110,15 @@ Split `<repo>/app/web/` into reusable workspace packages and three Vite apps. Mo
   - `demo` — playground showing every pattern. Renamed from the current `main`.
   - `settings` — thin app composing reusable preferences components. Plausibly embeddable in a real product.
   - `app` — empty slate where the consumer's product goes. Routes set up, one bridge call wired, nothing else.
-- Three reusable workspace packages (bun workspaces):
-  - shadcn primitives + `cn` helper + `useSidebarSlot`
-  - preferences — themes, fonts, theme effects (Tron, Dragon, all themes), `<ThemePicker>`, `<FontPicker>`, `<TransparencySlider>`, `<DarkModeToggle>`, `<AppearancePanel>`
-  - monaco editor wrapper + `monaco-theme.ts`
+- Four reusable workspace packages (bun workspaces):
+  - `@app/ui` — shadcn primitives + `cn` helper + `useSidebarSlot`
+  - `@app/theming` — themes, fonts, theme effects (Tron, Dragon, all themes), `<ThemePicker>`, `<FontPicker>`, `<TransparencySlider>`, `<DarkModeToggle>`, `<AppearancePanel>`
+  - `@app/monaco` — Monaco editor wrapper + `monaco-theme.ts`
+  - `@app/bridge` — bridge transport runtime + typed bridge declarations
 - Folder name is `components`, not `widgets`.
 - All themes ship as production. No theme is demo-only.
-- Tron and Dragon are production templates. Their assets and theme-effects code live in the preferences package.
-- `useSidebarSlot` lives in the shadcn-primitives package. Demo uses it. The empty `app` does not.
+- Tron and Dragon are production templates. Their assets and theme-effects code live in `@app/theming`.
+- `useSidebarSlot` lives in `@app/ui`. Demo uses it. The empty `app` does not.
 - `react-router` (HashRouter) in **every** app, including `app`.
 - All bridges register always. Consumer who deletes demo also deletes the matching bridge wiring.
 - The C++ `WebDialog` class stays. Demo demonstrates the dialog pattern. The URL it points to is implementation detail.
@@ -125,14 +127,18 @@ Split `<repo>/app/web/` into reusable workspace packages and three Vite apps. Mo
 
 ### Open questions
 
-- Names of the three workspace packages.
-- Where the bridge transport TS files (`bridge.ts`, `bridge-transport.ts`, `wasm-transport.ts`, `system-bridge.ts`, `todo-bridge.ts`) live. Options: 4th workspace package, folded into one of the three packages, a bare shared folder, or somewhere else.
+Resolved:
+- **Package names** — `@app/ui` (Phase 4), `@app/theming` (Phase 5), `@app/monaco` (Phase 6), `@app/bridge` (Phase 7).
+- **Bridge transport TS home** — `@app/bridge` workspace package, split internally into `lib/transport/` (framework runtime: `bridge.ts`, `bridge-transport.ts`, `wasm-transport.ts`) and `lib/bridges/` (typed bridge declarations: `system-bridge.ts`, `todo-bridge.ts`) (Phase 7).
+
+Still open (Phase 8 resolves):
 - Default URL the desktop app loads on launch. After the reshape `app://main/` no longer exists. Needs a chosen default.
 - `ChatTab` fate. Currently a placeholder demonstrating the `useSidebarSlot` portal pattern.
 - WASM artifact destination. `app/xmake/dev-wasm.lua` copies wasm artifacts into `web/apps/main/public/` and runs `bun run dev:main`. After the reshape, neither path exists. Where do the wasm artifacts land and which app does `dev-wasm` start?
 - Storybook globals (`web/shared/styles/globals.css`) — landing place.
-- Split of the current `web/apps/main/src/App.css` across new homes. The file mixes Tailwind base + theme mapping (shadcn pkg territory), transparency CSS vars (preferences pkg), markdown styles (demo only), theme glow + wallpaper rules (preferences pkg).
+- Split of the current `web/apps/main/src/App.css` across new homes. The file mixes Tailwind base + theme mapping (`@app/ui` territory), transparency CSS vars (`@app/theming`), markdown styles (demo only), theme glow + wallpaper rules (`@app/theming`).
 - Vite dev ports per app.
+- Whether `<AppearancePanel>` stays whole or splits — currently bakes editor-specific UI (use-app-theme/font toggles, separate editor sub-pickers, editor-transparency slider) into `@app/theming`, which is less portable to editor-less consumers (flagged from Phase 5).
 
 ### Target shape
 
@@ -238,7 +244,7 @@ C++ layout reshape and Web layer reshape both landed.
 | `app/lib/todos/include/todo_bridge.hpp` | `<repo>/app/bridges/todos/include/todo_bridge.hpp` |
 | `app/lib/todos/tests/unit/todo_store_test.cpp` | `<repo>/lib/todos/tests/unit/todo_store_test.cpp` |
 | `app/lib/todos/xmake.lua` | replaced by `<repo>/lib/todos/xmake.lua` (pure C++) and `<repo>/app/bridges/todos/xmake.lua` (bridge wrapper) |
-| `app/lib/bridge/include/bridge.hpp` | `<repo>/app/framework/...` (the `web_shell::bridge` base) |
+| `app/lib/bridge/include/bridge.hpp` | `<repo>/app/framework/...` (the `app_shell::Bridge` base) |
 | `app/lib/web-shell/include/web_shell.hpp` | `<repo>/app/framework/...` |
 | `app/lib/web-shell/src/web_shell.cpp` | `<repo>/app/framework/...` |
 | `app/lib/web-shell/include/bridge_channel_adapter.hpp` | `<repo>/app/framework/...` |
@@ -277,14 +283,14 @@ The exact subfolders inside `<repo>/app/framework/` are an open question (see C+
         ├── package.json               updated: declares bun workspaces
         ├── tsconfig.json
         ├── .storybook/
-        ├── packages/                  ← NEW: bun workspaces (names ❓ open)
-        │   ├── ?shadcn-ui/            shadcn primitives + use-sidebar-slot + cn helper + tailwind.css
-        │   ├── ?preferences/          themes + fonts + effects (Tron/Dragon) + ThemePicker / FontPicker / TransparencySlider / DarkModeToggle / AppearancePanel
-        │   ├── ?monaco/               Monaco wrapper + monaco-theme.ts
-        │   └── ❓                     4th package for bridge transport TS — or fold into one of the three?
+        ├── packages/                  ← NEW: bun workspaces
+        │   ├── ui/                    @app/ui — shadcn primitives + use-sidebar-slot + cn helper + theme.css
+        │   ├── theming/               @app/theming — themes + fonts + effects (Tron/Dragon) + ThemePicker / FontPicker / TransparencySlider / DarkModeToggle / AppearancePanel
+        │   ├── monaco/                @app/monaco — Monaco wrapper + monaco-theme.ts + setup
+        │   └── bridge/                @app/bridge — lib/transport/ (runtime) + lib/bridges/ (typed declarations)
         └── apps/
             ├── demo/                  renamed from main — the playground
-            ├── settings/              ← NEW: thin app composing the preferences package
+            ├── settings/              ← NEW: thin app composing @app/theming
             └── app/                   ← NEW: empty slate (react + react-router + bridge transport only)
 ```
 
@@ -292,7 +298,7 @@ The exact subfolders inside `<repo>/app/framework/` are an open question (see C+
 
 Package names are open. The deps are listed by which package's components currently use them in the source.
 
-### shadcn primitives package — current deps used by these components
+### `@app/ui` (shadcn primitives) — current deps used by these components
 
 - `@base-ui/react`
 - `@hookform/resolvers`, `react-hook-form`, `zod` (used by the form primitive)
@@ -308,25 +314,29 @@ Package names are open. The deps are listed by which package's components curren
 - `sonner` (toaster)
 - `vaul` (drawer)
 
-### Preferences package
+### `@app/theming`
 
-- Depends on the shadcn-primitives package and the bridge transport TS.
+- Depends on `@app/ui` and `@app/bridge`.
 - No additional runtime deps beyond what the components import from the above.
 
-### Monaco package
+### `@app/monaco`
 
 - `@monaco-editor/react`
 - `monaco-editor`
 - `monaco-vim`
-- Depends on the preferences package for monaco-theme integration.
+- Depends on `@app/theming` for monaco-theme integration via `buildMonacoThemeFromVars`.
+
+### `@app/bridge`
+
+- No runtime deps. Pure TS that talks to QWebChannel / WebSocket / Embind via runtime detection.
 
 ### Per-app deps
 
 | App | Direct deps |
 |---|---|
-| `demo` | `react`, `react-dom`, `react-router`, `react-markdown`, `remark-gfm`, all three shared packages, bridge transport TS |
-| `settings` | `react`, `react-dom`, `react-router`, shadcn-primitives package, preferences package, bridge transport TS |
-| `app` | `react`, `react-dom`, `react-router`, bridge transport TS |
+| `demo` | `react`, `react-dom`, `react-router`, `react-markdown`, `remark-gfm`, `@app/ui`, `@app/theming`, `@app/monaco`, `@app/bridge` |
+| `settings` | `react`, `react-dom`, `react-router`, `@app/ui`, `@app/theming`, `@app/bridge` |
+| `app` | `react`, `react-dom`, `react-router`, `@app/bridge` |
 
 ### Root devDeps
 
