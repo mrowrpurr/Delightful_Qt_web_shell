@@ -17,6 +17,7 @@
 
 #include "menu_bar.hpp"
 #include "shell/app.hpp"
+#include "shell/url_protocol.hpp"
 #include "dialogs/about_dialog.hpp"
 #include "dialogs/demo_widget_dialog.hpp"
 #include "dialogs/web_dialog.hpp"
@@ -170,11 +171,16 @@ MenuActions buildMenuBar(app_shell::App& app, QMainWindow* window) {
     // ── Tools ─────────────────────────────────────────────────
     auto* toolsMenu = menuBar->addMenu("&Tools");
 
-    // URL protocol register/unregister — shows current state in the label
+    // URL protocol register/unregister — shows current state in the label.
+    // Retrieves the UrlProtocol subsystem from App via findChild — it's
+    // constructed by main() iff the consumer wants the feature.
+    auto* urlProtocol = app.findChild<app_shell::UrlProtocol*>();
     auto* protocolAction = toolsMenu->addAction("");
-    auto updateProtocolLabel = [protocolAction]() {
-        bool registered = app_shell::App::isUrlProtocolRegistered();
-        QString protocol = app_shell::App::urlProtocolName();
+    protocolAction->setEnabled(urlProtocol != nullptr);
+    auto updateProtocolLabel = [protocolAction, urlProtocol]() {
+        if (!urlProtocol) { protocolAction->setText("URL Protocol Unavailable"); return; }
+        bool registered = urlProtocol->isRegistered();
+        QString protocol = urlProtocol->name();
         protocolAction->setText(registered
             ? QString("Unregister %1:// Protocol").arg(protocol)
             : QString("Register %1:// Protocol").arg(protocol));
@@ -182,11 +188,12 @@ MenuActions buildMenuBar(app_shell::App& app, QMainWindow* window) {
     updateProtocolLabel();
 
     QObject::connect(protocolAction, &QAction::triggered, window,
-                     [window, updateProtocolLabel]() {
-        if (app_shell::App::isUrlProtocolRegistered()) {
-            app_shell::App::unregisterUrlProtocol();
+                     [urlProtocol, updateProtocolLabel]() {
+        if (!urlProtocol) return;
+        if (urlProtocol->isRegistered()) {
+            urlProtocol->unregisterProtocol();
         } else {
-            app_shell::App::registerUrlProtocol();
+            urlProtocol->registerProtocol();
         }
         updateProtocolLabel();
     });

@@ -5,6 +5,7 @@
 #include "dock_manager.hpp"
 #include "logging.hpp"
 #include "shell/tray.hpp"
+#include "shell/url_protocol.hpp"
 #include "system_bridge.hpp"
 #include "widgets/scheme_handler.hpp"
 #include "windows/main_window.hpp"
@@ -26,6 +27,12 @@ int main(int argc, char* argv[]) {
     // If another instance is already running, it was signaled to activate.
     // This process exits cleanly — the user sees the existing window raise.
     if (!app.isPrimaryInstance()) return 0;
+
+    // ── URL protocol ────────────────────────────────────────────────────
+    // Lets users open the app from a browser via <slug>:// links. The prompt
+    // shows once on first launch unless the user opted out previously.
+    auto* urlProtocol = new app_shell::UrlProtocol(&app);
+    urlProtocol->promptIfNeeded();
 
     // ── System tray ─────────────────────────────────────────────────────
     // The framework's Tray subsystem is a thin QObject wrapper around

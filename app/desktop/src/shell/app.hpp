@@ -50,11 +50,6 @@ public:
 
     bool isPrimaryInstance() const { return isPrimary_; }
 
-    static bool isUrlProtocolRegistered();
-    static void registerUrlProtocol();
-    static void unregisterUrlProtocol();
-    static QString urlProtocolName();
-
 public slots:
     // Cleanly shut down all docks and windows, then quit.
     // Use this instead of QApplication::quit() so cleanup runs
@@ -71,7 +66,6 @@ protected:
 
 private:
     void setupSingleInstance();
-    void promptUrlProtocolRegistration();
 
     bool devMode_ = false;
     bool isPrimary_ = true;

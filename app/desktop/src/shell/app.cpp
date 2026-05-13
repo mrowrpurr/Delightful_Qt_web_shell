@@ -7,16 +7,12 @@
 
 #include <QCommandLineOption>
 #include <QCommandLineParser>
-#include <QCheckBox>
-#include <QDir>
 #include <QEvent>
 #include <QFileOpenEvent>
 #include <QIcon>
 #include <QLocalServer>
 #include <QLocalSocket>
-#include <QMessageBox>
 #include <QPalette>
-#include <QProcess>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QStyleHints>
@@ -117,9 +113,6 @@ App::App(int& argc, char** argv)
         }, Qt::QueuedConnection);
     });
 
-    // ── URL protocol registration ────────────────────────────
-    promptUrlProtocolRegistration();
-
     // ── Dock manager ─────────────────────────────────────────
     dockManager_ = new DockManager(*this, this);
 
@@ -173,109 +166,6 @@ void App::setupSingleInstance() {
             client->deleteLater();
         });
     });
-}
-
-QString App::urlProtocolName() {
-    return QString(APP_SLUG).toLower();
-}
-
-bool App::isUrlProtocolRegistered() {
-    QString protocol = urlProtocolName();
-
-#ifdef Q_OS_WIN
-    QSettings reg("HKEY_CURRENT_USER\\Software\\Classes\\" + protocol,
-                   QSettings::NativeFormat);
-    QString cmd = reg.value("shell/open/command/Default").toString();
-    return cmd.contains(QDir::toNativeSeparators(applicationFilePath()));
-#endif
-
-#ifdef Q_OS_LINUX
-    QString desktopDir = QStandardPaths::writableLocation(
-        QStandardPaths::ApplicationsLocation);
-    return QFile::exists(desktopDir + "/" + protocol + ".desktop");
-#endif
-
-    return true;
-}
-
-void App::registerUrlProtocol() {
-    QString protocol = urlProtocolName();
-    QString exePath = QDir::toNativeSeparators(applicationFilePath());
-
-#ifdef Q_OS_WIN
-    QSettings reg("HKEY_CURRENT_USER\\Software\\Classes\\" + protocol,
-                   QSettings::NativeFormat);
-    reg.setValue("Default", QString("URL:%1 Protocol").arg(APP_NAME));
-    reg.setValue("URL Protocol", "");
-    reg.setValue("shell/open/command/Default",
-                 QString("\"%1\" \"%2\"").arg(exePath, "%1"));
-#endif
-
-#ifdef Q_OS_LINUX
-    QString desktopDir = QStandardPaths::writableLocation(
-        QStandardPaths::ApplicationsLocation);
-    QDir().mkpath(desktopDir);
-    QString desktopPath = desktopDir + "/" + protocol + ".desktop";
-
-    QFile f(desktopPath);
-    if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QTextStream out(&f);
-        out << "[Desktop Entry]\n"
-            << "Type=Application\n"
-            << "Name=" << APP_NAME << "\n"
-            << "Exec=\"" << exePath << "\" %u\n"
-            << "MimeType=x-scheme-handler/" << protocol << "\n"
-            << "NoDisplay=true\n";
-        f.close();
-        QProcess::startDetached("xdg-mime",
-            {"default", protocol + ".desktop", "x-scheme-handler/" + protocol});
-    }
-#endif
-}
-
-void App::unregisterUrlProtocol() {
-    QString protocol = urlProtocolName();
-
-#ifdef Q_OS_WIN
-    QSettings reg("HKEY_CURRENT_USER\\Software\\Classes",
-                   QSettings::NativeFormat);
-    reg.remove(protocol);
-#endif
-
-#ifdef Q_OS_LINUX
-    QString desktopDir = QStandardPaths::writableLocation(
-        QStandardPaths::ApplicationsLocation);
-    QFile::remove(desktopDir + "/" + protocol + ".desktop");
-#endif
-}
-
-void App::promptUrlProtocolRegistration() {
-    QSettings settings(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
-    if (settings.value("urlProtocol/dontAsk", false).toBool()) return;
-    if (isUrlProtocolRegistered()) return;
-
-    QMessageBox box;
-    box.setWindowTitle(APP_NAME);
-    box.setIcon(QMessageBox::Question);
-    box.setText(QString("Register <b>%1://</b> URL protocol?").arg(urlProtocolName()));
-    box.setInformativeText(
-        QString("This lets you open %1 from a browser or other apps by clicking "
-                "<b>%2://</b> links.").arg(APP_NAME, urlProtocolName()));
-
-    auto* dontAskCheck = new QCheckBox("Don't ask me again");
-    box.setCheckBox(dontAskCheck);
-
-    box.addButton(QMessageBox::Yes);
-    box.addButton(QMessageBox::No);
-    box.setDefaultButton(QMessageBox::Yes);
-
-    int result = box.exec();
-
-    if (dontAskCheck->isChecked())
-        settings.setValue("urlProtocol/dontAsk", true);
-
-    if (result == QMessageBox::Yes)
-        registerUrlProtocol();
 }
 
 bool App::event(QEvent* event) {
