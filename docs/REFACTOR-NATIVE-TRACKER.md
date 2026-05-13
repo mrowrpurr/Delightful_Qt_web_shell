@@ -17,11 +17,23 @@ Tick a sub-box when its commit lands green (`xmake build desktop` + `xmake build
 
 ## Phase 2 — App-scoped subsystems opt-in
 
-- [ ] **Phase 2 complete**
-  - [ ] **4. Extract `Tray`** — `QObject` subclass parented to `App`, owns `QSystemTrayIcon` + `QMenu`; demo's tray content (Alpha/Beta/Gamma submenus) moves into demo's `main.cpp`
-  - [ ] **5. Extract `UrlProtocol`** — static methods on `App` move to instance methods on the subsystem; menu_bar.cpp retrieves via `app.findChild<UrlProtocol*>()`
-  - [ ] **6. Extract `SingleInstance`** — ⚠️ secondary-process ordering regression until Phases 3-4 lighten App's ctor (see PHASES.md note); decide whether to land 2.6 before or after 3-4
-  - [ ] **7. Extract `WindowRegistry`** — `DockManager::restoreWindows()` and the `topLevelWidgets()`-iteration in `MainWindow::closeEvent` move here
+- [x] **Phase 2 complete**
+  - [x] **4. Extract `Tray`** — `QObject` subclass parented to `App`, owns `QSystemTrayIcon` + `QMenu`; demo's tray content (Alpha/Beta/Gamma submenus) moved into `app/desktop/src/main.cpp`; commit `c0335a1`
+  - [x] **5. Extract `UrlProtocol`** — static methods on `App` became instance methods on the subsystem; `menu_bar.cpp` retrieves via `app.findChild<UrlProtocol*>()`; commit `a9db15f`
+  - [x] **6. Extract `SingleInstance`** — accepted the transitional secondary-process ordering regression per PHASES.md note (shrinks as Phases 3–4 lighten App's ctor); commit `95f290e`
+  - [x] **7. Extract `WindowLifecycle`** — `DockManager::restoreWindows()` and the `topLevelWidgets()`-iteration in `MainWindow::closeEvent` moved here; class originally named `WindowRegistry` but renamed because it holds no state and registers nothing (commit `55d7310`); original extraction commit `37d9d0e`
+
+### Phase 2 cleanups landed on top
+
+- `9dc1808` — 🪦 Deleted the now-vestigial `Application` shim (`application.hpp`/`application.cpp`)
+- `55d7310` — 🪪 Renamed `WindowRegistry` → `WindowLifecycle` (file pair `git mv`'d to preserve history)
+- `5921294` — 🧹 Renamed leftover `registry` local in `MainWindow::closeEvent` to `lifecycle` after the class rename
+- `9413ee9` — 🧹 Stripped roadmap framing from `app.hpp`'s class header
+- `b73eb94` — 🔒 Reworked the `raise` lambda in `main.cpp` to read from `QApplication::topLevelWidgets()` instead of capturing the startup `windows` list by reference (which held raw `MainWindow*` that go dangling on close)
+
+### Out-of-scope work I attempted and rolled back
+
+- `865a081` (`🍎 UrlProtocol: implement macOS path…`) was an unscoped scope-grab to fix macOS URL protocol registration. Pulled — I'm not trusted with macOS work from this Windows box. The commit remains in history but is no longer my responsibility; treat the macOS branch as needing rework before any Mac build.
 
 ---
 
