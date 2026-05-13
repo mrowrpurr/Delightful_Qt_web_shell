@@ -48,19 +48,28 @@ int main(int argc, char* argv[]) {
     // Shared "raise / activate the visible main window" handler — invoked
     // by both SingleInstance::activationRequested (second-instance launch)
     // and Tray::activated (tray-icon click or Show Window menu item).
-    auto raise = [&windows]() {
+    //
+    // Reads from QApplication::topLevelWidgets() rather than capturing the
+    // startup `windows` list — that list contains raw pointers that go
+    // dangling as MainWindows are deleted on close. Qt manages the
+    // top-level widget list itself, so this stays correct as windows
+    // come and go.
+    auto raise = []() {
+        MainWindow* fallback = nullptr;
         for (auto* w : QApplication::topLevelWidgets()) {
-            if (auto* mw = qobject_cast<MainWindow*>(w); mw && mw->isVisible()) {
+            auto* mw = qobject_cast<MainWindow*>(w);
+            if (!mw) continue;
+            if (mw->isVisible()) {
                 mw->raise();
                 mw->activateWindow();
                 return;
             }
+            if (!fallback) fallback = mw;
         }
-        // No visible windows — show the first one
-        if (!windows.isEmpty()) {
-            windows.first()->show();
-            windows.first()->raise();
-            windows.first()->activateWindow();
+        if (fallback) {
+            fallback->show();
+            fallback->raise();
+            fallback->activateWindow();
         }
     };
 
