@@ -15,13 +15,13 @@ Tick a sub-box when its commit lands green (`xmake build desktop` + `xmake build
 
 ---
 
-## Phase 2 — Features opt-in
+## Phase 2 — App-scoped subsystems opt-in
 
 - [ ] **Phase 2 complete**
-  - [ ] **4. Introduce `Feature` base + extract `TrayFeature`** — base class with self-registration, `App::feature<T>()` typed lookup, `TrayFeature` migrated; demo's tray content (Alpha/Beta/Gamma submenus) moves into demo's `main.cpp`
-  - [ ] **5. Extract `UrlProtocolFeature`** — static methods on `App` move to instance methods; menu_bar.cpp retrieves via `app.feature<UrlProtocolFeature>()`
-  - [ ] **6. Extract `SingleInstanceFeature`** — ⚠️ secondary-process ordering regression until Phases 3-4 lighten App's ctor (see PHASES.md note); decide whether to land 2.6 before or after 3-4
-  - [ ] **7. Extract `WindowRegistryFeature`** — `DockManager::restoreWindows()` and the `topLevelWidgets()`-iteration in `MainWindow::closeEvent` move here
+  - [ ] **4. Extract `Tray`** — `QObject` subclass parented to `App`, owns `QSystemTrayIcon` + `QMenu`; demo's tray content (Alpha/Beta/Gamma submenus) moves into demo's `main.cpp`
+  - [ ] **5. Extract `UrlProtocol`** — static methods on `App` move to instance methods on the subsystem; menu_bar.cpp retrieves via `app.findChild<UrlProtocol*>()`
+  - [ ] **6. Extract `SingleInstance`** — ⚠️ secondary-process ordering regression until Phases 3-4 lighten App's ctor (see PHASES.md note); decide whether to land 2.6 before or after 3-4
+  - [ ] **7. Extract `WindowRegistry`** — `DockManager::restoreWindows()` and the `topLevelWidgets()`-iteration in `MainWindow::closeEvent` move here
 
 ---
 
@@ -29,7 +29,7 @@ Tick a sub-box when its commit lands green (`xmake build desktop` + `xmake build
 
 - [ ] **Phase 3 complete**
   - [ ] **8. Carve `ThemeBridge` from `SystemBridge`** — theme methods/signals move to `app/bridges/theme/`; JS-side updates to `getBridge<ThemeBridge>('theme')`; `SystemBridge` becomes pure stateless OS I/O
-  - [ ] **9. Extract `ThemingFeature`** — demo constructs it; skip the construction → no StyleManager, no libsass, no watcher, no `ThemeBridge` registered
+  - [ ] **9. Extract `Theming`** — `QObject` subsystem parented to `App`; demo constructs it; skip the construction → no StyleManager, no libsass, no watcher, no `ThemeBridge` registered
 
 ---
 
@@ -45,8 +45,8 @@ Tick a sub-box when its commit lands green (`xmake build desktop` + `xmake build
 ## Phase 5 — `MainWindow` untangle
 
 - [ ] **Phase 5 complete**
-  - [ ] **13. `MainWindowBase` toolbox + `MainWindow` preset** — base exposes `useWebShellAsCentral`, `useStatusBar`, `useDockTabs`, `useMenuBar`, `useDevTools`, `useReactiveTitleFromContent`, `usePersistedGeometry`
-  - [ ] **14. Extract `WebContentController`** — zoom, devtools, reactive titles ride on it instead of `MainWindow` knowing `WebShellWidget` directly
+  - [ ] **13. Bare `MainWindowBase` + `MainWindow` preset composing window-scoped subsystems** — preset's ctor `new`s `WebShell` (central) + `MenuBar` + `StatusBar` + `DevToolsShortcut` + `ReactiveTitle` + `PersistedGeometry` as children of `this`; behavior identical to today
+  - [ ] **14. Extract `WebShell` as the dedicated window-scoped subsystem owning `QWebEngineView`** — `DevToolsShortcut` and `ReactiveTitle` find it via `window->findChild<WebShell*>()` instead of `MainWindow` knowing `WebShellWidget` directly
   - [ ] **15. `DockManager` accepts any `QWidget`** — no longer constructs `WebShellWidget` itself
   - [ ] **16. Docks carry their host as a property** — `DockManager` ↔ `MainWindow` `topLevelWidgets()` iteration dies
   - [ ] **17. `undockTab` uses `tabData()` quintptr** — `windowTitle()` string-match dies

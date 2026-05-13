@@ -8,7 +8,7 @@
 
 Today: god-class `Application` + monolithic `MainWindow`. Every feature is hardcoded ON. To opt out, you edit framework code. Demo content (Alpha/Beta/Gamma tray submenus, demo dialogs, "Demo Widget" menu actions) lives mixed inside framework files.
 
-Target: `app_shell::App` is tiny. Every capability is a `Feature` subclass the consumer constructs in `main()`. Features self-register on `App` so anywhere with `App&` can retrieve them via `app.feature<T>()`. The framework is silent about every choice you didn't make. Demo content lives in its own app binary, not in framework classes.
+Target: `app_shell::App` is tiny. Every capability is a `QObject` subclass the consumer constructs and parents to its host (`App` or `MainWindow`) — composition via Qt's parent/child tree. Retrieval anywhere with the host is plain `findChild<T*>()`. Lifetime is automatic. The framework is silent about every choice you didn't make. Demo content lives in its own app binary, not in framework classes.
 
 > **Opt-in framework, not opt-out god-class.** Same thesis as the frontend's slate-app story — a consumer should be able to start from nothing and add only what they reach for.
 
@@ -24,10 +24,10 @@ Day one for someone forking this template. Three concrete shapes, same framework
 app_shell::App app(argc, argv);
 app.addBridge<MySettingsBridge>("settings");
 
-app_shell::TrayFeature tray(app);
-tray.addItem("Settings…", [&]{ app.openWebDialog(app.appUrl("settings")); });
-tray.addItem("Quit",      [&]{ app.requestQuit(); });
-tray.show();
+auto* tray = new app_shell::Tray(&app);
+tray->addItem("Settings…", [&]{ app.openWebDialog(app.appUrl("settings")); });
+tray->addItem("Quit",      [&]{ app.requestQuit(); });
+tray->show();
 
 return app.exec();
 ```
@@ -49,20 +49,21 @@ return app.exec();
 ```cpp
 app_shell::App app(argc, argv);
 
-app_shell::SingleInstanceFeature singleInstance(app);
-if (!singleInstance.isPrimary()) return 0;
+auto* singleInstance = new app_shell::SingleInstance(&app);
+if (!singleInstance->isPrimary()) return 0;
 
-app_shell::UrlProtocolFeature urlProtocol(app);
-urlProtocol.promptIfNeeded();
+auto* urlProtocol = new app_shell::UrlProtocol(&app);
+urlProtocol->promptIfNeeded();
 
-app_shell::ThemingFeature theming(app, "default-dark");
-app_shell::TrayFeature   tray(app);
+new app_shell::Theming(&app, "default-dark");
+auto* tray = new app_shell::Tray(&app);
+// (demo wires its tray menu items here)
 
 app.addBridge<MyBridge>("my");
 app.addBridge<app_shell::SystemBridge>("system");
 
-app_shell::WindowRegistryFeature windows(app);
-auto mainWindows = windows.restoreOrCreate<app_shell::MainWindow>();
+auto* windows = new app_shell::WindowRegistry(&app);
+auto mainWindows = windows->restoreOrCreate<app_shell::MainWindow>();
 for (auto* w : mainWindows) w->show();
 
 return app.exec();
@@ -94,7 +95,7 @@ The other three scenarios — multi-window tools-and-inspectors (#3), WASM-only 
 │   ├── bridges/                ← typed bridge wrappers per domain
 │   │   ├── todos/                   wraps lib/todos
 │   │   ├── system/                  SystemBridge (clipboard, files, drag-drop, ...)
-│   │   └── theme/                   ThemeBridge (auto-registered by ThemingFeature ctor)
+│   │   └── theme/                   ThemeBridge (auto-registered by Theming ctor)
 │   │
 │   ├── apps/                   ← N desktop apps. Mirrors web/apps/.
 │   │   ├── demo/                    the showcase (IDE-like)
@@ -118,25 +119,31 @@ Every folder name announces its purpose. Consumer day-one journey: open `app/app
 
 ```cpp
 namespace app_shell {
-  // App + windows + ui
+  // Hosts
   class App;
   class MainWindow;
   class MainWindowBase;
-  class WebShellWidget;
-  class WebDialog;
-  class MenuBuilder;
+
+  // App-scoped subsystems — QObject children parented to App, retrieved via app.findChild<T*>()
+  class Tray;
+  class UrlProtocol;
+  class SingleInstance;
+  class Theming;
+  class WindowRegistry;
+
+  // Window-scoped subsystems — QObject children parented to MainWindow, retrieved via window->findChild<T*>()
+  class WebShell;
+  class MenuBar;
   class StatusBar;
+  class DevToolsShortcut;
+  class ReactiveTitle;
+  class PersistedGeometry;
+  class DockSystem;
+
+  // Plumbing (not composable subsystems — framework internals consumers don't construct directly)
+  class WebDialog;
   class LoadingOverlay;
   class SchemeHandler;
-
-  // Features — App-scoped subsystems, retrieved via app.feature<T>()
-  class Feature;                       // base — self-registers on App ctor
-  class TrayFeature;
-  class UrlProtocolFeature;
-  class SingleInstanceFeature;
-  class ThemingFeature;
-  class DockSystemFeature;
-  class WindowRegistryFeature;
 
   // Transport adapters
   namespace qt   { class BridgeChannelAdapter; /* expose_as_ws, json_adapter */ }
@@ -154,86 +161,81 @@ Consumer bridges (`SystemBridge`, `ThemeBridge`, consumer's own) live in their o
 
 For each: what we're doing + **why**.
 
-### 1. `MainWindowBase` (toolbox) + `MainWindow` (preset)
+### 1. `MainWindowBase` (bare) + `MainWindow` (preset)
+
+`MainWindowBase` is a thin `QMainWindow` subclass with no widgets and no behavior installed. Consumers compose by constructing subsystem `QObject` children parented to the window. The framework ships a `MainWindow` preset that does the standard composition for the typical case.
 
 ```cpp
 class MainWindowBase : public QMainWindow {
 public:
     explicit MainWindowBase(App& app);
-
-    // Functional helpers — call them, or don't
-    WebShellWidget& useWebShellAsCentral(const QUrl& url);
-    StatusBar&      useStatusBar();
-    void            usePersistedGeometry();
-    DockSystem&     useDockTabs();
-    MenuBuilder&    useMenuBar();
-    void            useDevTools(QKeySequence = QKeySequence("F12"));
-    void            useReactiveTitleFromContent();
+    App& app() const { return app_; }
+private:
+    App& app_;
 };
 
 class MainWindow : public MainWindowBase {
 public:
     MainWindow(App& app, const QUrl& url) : MainWindowBase(app) {
-        useWebShellAsCentral(url);
-        useMenuBar();
-        useStatusBar();
-        usePersistedGeometry();
-        useDevTools();
-        useReactiveTitleFromContent();
+        auto* shell = new WebShell(this, url);
+        setCentralWidget(shell);
+        new MenuBar(this);
+        new StatusBar(this);
+        new DevToolsShortcut(this);
+        new ReactiveTitle(this, shell);
+        new PersistedGeometry(this);
     }
 };
+```
+
+Each `new Subsystem(this, ...)` is parented to the window. Qt's parent/child contract handles cleanup. Anywhere else with a `MainWindow*` retrieves via `findChild`:
+
+```cpp
+if (auto* status = window->findChild<StatusBar*>()) {
+    status->showMessage("Saved", 2000);
+}
 ```
 
 **Why:** Today's `MainWindow` is 428 lines, knows `WebShellWidget` concretely, owns the dock-tab system, and has a 0×0 placeholder central widget — hostile to non-dock apps. The new shape gives consumers three usable starting points:
 
 - **Bare `MainWindowBase`** for power users (e.g., Qt-native central widget + web content in docks — a real use case)
 - **`MainWindow` preset** for the typical case (one line, you get the works)
-- **Derive from `MainWindow`** for "the preset plus my extras"
+- **Derive from `MainWindow` or `MainWindowBase`** and pick exactly which subsystems to `new` in your ctor
 
-`MainWindow` is just a tiny class that calls `useX()` helpers in its ctor. Not magic. The toolbox is the API; the preset is one composition of it.
+The preset is not magic — it's a tiny ctor that `new`s a small number of standard subsystems. Consumers read the preset's ctor to see what's installed and copy the pieces they want into their own subclass.
 
-### 2. Opt-in features via direct construction + DI registration
+### 2. Opt-in composition via Qt's parent/child tree
 
-`App`'s constructor does only the minimum: identity, web profile, scheme handler in production, the bridge dispatch contract, logging. Every other capability is a `Feature` subclass the consumer constructs in `main()`:
+`App`'s constructor does only the minimum: identity, web profile, scheme handler in production, the bridge dispatch contract, logging. Every other capability is a `QObject` subclass the consumer constructs and parents to its host. App-scoped subsystems parent to `App`; window-scoped subsystems parent to a `MainWindow`. No framework-specific base class. No custom registry. The composition primitive is Qt's parent/child tree.
 
 ```cpp
-class Feature {
-public:
-    explicit Feature(App& app);     // self-registers on App by typeid
-    virtual ~Feature();              // self-unregisters
-protected:
-    App& app_;
-};
+// App-scoped — parented to App
+auto* tray  = new app_shell::Tray(&app);
+auto* theme = new app_shell::Theming(&app, "default-dark");
 
-class TrayFeature           : public Feature { /* ... */ };
-class UrlProtocolFeature    : public Feature { /* ... */ };
-class SingleInstanceFeature : public Feature { /* ... */ };
-class ThemingFeature        : public Feature { /* ... */ };
-class WindowRegistryFeature : public Feature { /* ... */ };
+// Window-scoped — parented to the window (see Decision #1)
+new app_shell::StatusBar(this);
+new app_shell::DevToolsShortcut(this);
 ```
 
-Consumer constructs features in `main()`. There is one canonical construction path — no lazy `app.useX()` accessor, no parallel direct-construction escape hatch:
+Retrieval anywhere with the host is plain Qt:
 
 ```cpp
-app_shell::TrayFeature tray(app);
-tray.addItem(...);
-tray.show();
-```
+if (auto* tray = app.findChild<app_shell::Tray*>()) {
+    tray->qIcon()->showMessage("Notice", msg);
+}
 
-Anywhere else with `App&` retrieves features by type:
-
-```cpp
-if (auto* tray = app.feature<app_shell::TrayFeature>()) {
-    tray->addItem(...);
+if (auto* status = window->findChild<app_shell::StatusBar*>()) {
+    status->showMessage("Saved", 2000);
 }
 ```
 
-`app.feature<T>()` returns `nullptr` when no one constructed it — caller checks. Same shape and idiom as `app.bridge<T>()` (#3 below). App's surface stays small: one templated lookup method, one templated registration method, plus identity/lifecycle.
+Cleanup is automatic — when the host dies, Qt deletes its children. Consumers who don't construct a subsystem don't pay for it (no instance, no registration, no symbol referenced — the linker DCEs unused subsystem classes).
 
-App still exposes a few non-feature conveniences for things every consumer wants:
+App still exposes a few non-subsystem conveniences for things every consumer wants:
 
 ```cpp
-app.bridge<T>()          → typed bridge access
+app.bridge<T>()          → typed bridge access (#3 below)
 app.addBridge<T>(name)   → typed bridge registration
 app.openWebDialog(url)   → modal web dialog (one-liner from anywhere)
 app.requestQuit()        → cleanup-then-quit
@@ -242,7 +244,13 @@ app.appUrl(name)         → resolve dev/prod URL for a web app
 
 **Why:** Today `Application::Application()` runs 14 setup steps in one constructor. Tray (with literal Alpha/Beta/Gamma demo submenus), URL protocol prompt, single-instance pipe, theme baseline, dock manager — all hardcoded ON. Consumer who doesn't want tray must edit framework code.
 
-An earlier draft of this doc proposed lazy `app.useTray()` member methods. That aesthetic lies about what's happening: each `useX()` is a stateful side-effecting registry call dressed up as a builder. It also bloats App's surface (one method per feature) and creates a split-brain where direct construction (`Tray tray(app)`) and `app.useTray()` produce *different* state — defaults installed in one path, not in the other, with the same `addItem` method silently behaving differently depending on which constructor ran. Direct construction with self-registration is honest: features are real objects living in `main()`'s scope, App is a typed lookup, surface stays small.
+Two earlier drafts of this doc were wrong about the mechanism:
+
+1. **Lazy `app.useTray()` accessor methods.** Each `useX()` was a stateful side-effecting registry call dressed up as a builder. It bloated `App`'s surface (one method per subsystem), lied about its imperative nature, and created a split-brain where direct construction and `app.useTray()` produced different state — the same `addItem` method silently behaving differently depending on which constructor ran.
+
+2. **A `Feature` base class with a `typeid` registry on `App`.** Reinvented `QObject::findChild`. The parent/child tree already provides typed lookup, automatic cleanup, and Qt-idiomatic composition; adding a parallel custom registry was overengineering against a phantom benefit.
+
+The honest mechanism is Qt's parent/child tree. Subsystems are normal `QObject` children of their host. Construction is explicit (`new Subsystem(host, ...)`), retrieval is the built-in `findChild`, cleanup is automatic. The framework adds zero machinery on top of what every Qt programmer already knows; it just provides the subsystem classes.
 
 ### 3. Typed bridge access
 
@@ -260,7 +268,7 @@ auto* bridge = static_cast<SystemBridge*>(shell()->bridges().value("system"));
 
 ### 4. SystemBridge sheds theme control; `ThemeBridge` is separate
 
-`SystemBridge` today holds `setQtTheme`/`getQtTheme`/`qtThemeChanged` — a category error on a "stateless OS I/O" bridge. **Themes go to a dedicated `ThemeBridge`**, auto-registered by `ThemingFeature`'s constructor. Consumer who skips constructing the feature has no theme bridge in their binary. Lives in `app/bridges/theme/`.
+`SystemBridge` today holds `setQtTheme`/`getQtTheme`/`qtThemeChanged` — a category error on a "stateless OS I/O" bridge. **Themes go to a dedicated `ThemeBridge`**, auto-registered by `Theming`'s constructor. Consumer who skips constructing `Theming` has no theme bridge in their binary. Lives in `app/bridges/theme/`.
 
 `SystemBridge` stays as one bridge for stateless OS I/O:
 
@@ -279,7 +287,7 @@ Ships in `app/bridges/system/`. Consumer registers it via `app.addBridge<SystemB
 
 ### 5. Theming is opt-in (heavy + composable)
 
-`ThemingFeature(app, baseline)` attaches the full theme system: StyleManager, libsass, file watcher, JSON name mapping, dark/light suffix convention, `ThemeBridge` auto-registered. Consumer who skips constructing the feature gets Qt's default style and zero theming dependencies in their binary.
+`new Theming(&app, baseline)` attaches the full theme system: StyleManager, libsass, file watcher, JSON name mapping, dark/light suffix convention, `ThemeBridge` auto-registered. Consumer who skips constructing `Theming` gets Qt's default style and zero theming dependencies in their binary.
 
 Two axes, separately controllable:
 
@@ -288,7 +296,7 @@ Two axes, separately controllable:
 | **Feature richness** (Axis 1) | minimal — one QSS embedded, no live reload | full — StyleManager + libsass + watcher + JSON map + dark/light |
 | **Theme set size** (Axis 2) | 1 (e.g. `catppuccin-dark`) | 1000+ shadcn |
 
-Axis 1 = controlled by `ThemingFeature(...)` ctor options.
+Axis 1 = controlled by `Theming(...)` ctor options.
 Axis 2 = controlled at build time via xmake config (consumer's `xmake.lua` declares which themes embed). **Tracked as future work** — not load-bearing for the headline refactor.
 
 **Why:** The QSS theme system is genuinely production-grade and gets used in 100% of typical apps. But a tray-only utility shouldn't pay for libsass + 1000 themes + watcher just to exist. Opt-in keeps it heavy when wanted, invisible when not.
@@ -307,9 +315,9 @@ Both are full apps. Demo is the running showcase of every framework feature (Sce
 
 ### 8. xmake — one framework target
 
-**`app-shell` is one xmake target.** Static library. Everything inside it: `App`, `MainWindow` + `MainWindowBase`, `Feature` base, `TrayFeature`, `UrlProtocolFeature`, `SingleInstanceFeature`, `ThemingFeature` (libsass and all), `DockSystemFeature`, `WindowRegistryFeature`, ui widgets, both transport adapters. Transport-qt vs transport-wasm is platform-conditional `add_files` *inside* `app-shell`'s `xmake.lua`, not separate targets.
+**`app-shell` is one xmake target.** Static library. Everything inside it: `App`, `MainWindow` + `MainWindowBase`, all app- and window-scoped subsystems (`Tray`, `UrlProtocol`, `SingleInstance`, `Theming` with libsass, `WindowRegistry`, `WebShell`, `MenuBar`, `StatusBar`, `DevToolsShortcut`, `ReactiveTitle`, `PersistedGeometry`, `DockSystem`), ui plumbing, both transport adapters. Transport-qt vs transport-wasm is platform-conditional `add_files` *inside* `app-shell`'s `xmake.lua`, not separate targets.
 
-**Why:** Opt-in is a class-level concept — consumer who doesn't construct `TrayFeature` doesn't instantiate the class, and the linker DCEs unused symbols. xmake target granularity buys nothing on top of that. Splitting into per-feature targets was overengineering against a phantom benefit.
+**Why:** Opt-in is a class-level concept — consumer who doesn't construct `Tray` doesn't instantiate the class, and the linker DCEs unused symbols. xmake target granularity buys nothing on top of that. Splitting into per-subsystem targets was overengineering against a phantom benefit.
 
 Bridges live in their own xmake targets per Phase 1's plan (must-preserve #10 — WASM bridges need `set_kind("object")` to keep `EMSCRIPTEN_BINDINGS` from being dead-stripped). Frontend-agent territory.
 
@@ -340,7 +348,7 @@ These die naturally as the architectural pieces land:
 - `kBackground` color constant duplicated in 3 places (with **inconsistent hex values** — `0x24,0x24,0x24` vs `0x09,0x09,0x0b`, both with "Must match --bg in App.css" comments) — single source of truth
 - `windowTitle()` string-match in `dock_tab_manager.undockTab` — replaced by existing `tabData()` quintptr mechanism (already used elsewhere)
 - `LoadingOverlay`'s "F12" reference in error message — read from menu shortcut, or genericized to "open developer tools"
-- `MainWindow` knows `WebShellWidget` concretely — extracts to a `WebContentController` invoked by `useWebShellAsCentral` (zoom, devtools, reactive titles all opt-in)
+- `MainWindow` knows `WebShellWidget` concretely — splits into the `WebShell` subsystem (constructed as a child of the window) plus separate `DevToolsShortcut` / `ReactiveTitle` subsystems that find the shell via `window->findChild<WebShell*>()`
 - `DockManager` constructs `WebShellWidget` directly — becomes content-agnostic, accepts any `QWidget`
 - `DockManager` ↔ `MainWindow` bidirectional concrete-type knowledge — docks carry their host as a property, no `topLevelWidgets()` iteration
 
