@@ -215,26 +215,6 @@ void DockManager::restoreDocks(MainWindow* host) {
     restoring_ = false;
 }
 
-QList<MainWindow*> DockManager::restoreWindows() {
-    QSettings s(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
-
-    // Find all saved window IDs.
-    s.beginGroup("window");
-    QStringList windowIds = s.childGroups();
-    s.endGroup();
-
-    log(QString("restoreWindows: found %1 saved windows").arg(windowIds.size()));
-
-    QList<MainWindow*> windows;
-    for (const auto& id : windowIds) {
-        auto* win = new MainWindow(app_, id);
-        windows.append(win);
-        log(QString("  created MainWindow: %1").arg(id));
-    }
-
-    return windows;
-}
-
 // ── Shutdown ─────────────────────────────────────────────────
 
 void DockManager::shutdownAll() {
