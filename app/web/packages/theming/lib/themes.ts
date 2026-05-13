@@ -69,7 +69,7 @@ export async function loadThemeIndex() {
 }
 
 // Vite glob: turns each ../data/themes/*.ts file into its own dynamic chunk.
-// Path is relative to this file (web/shared/lib/themes.ts).
+// Path is relative to this file (web/packages/theming/lib/themes.ts).
 const themeLoaders = import.meta.glob<{ light: ThemeVars; dark: ThemeVars }>(
   '../data/themes/*.ts'
 )
