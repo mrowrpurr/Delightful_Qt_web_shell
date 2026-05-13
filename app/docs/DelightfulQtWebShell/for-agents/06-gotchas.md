@@ -37,9 +37,9 @@ QtWebEngine doesn't support `Browser.setDownloadBehavior` — Playwright crashes
 
 ## Multi-App / Vite Gotchas
 
-**Vite `--config` doesn't change root:** `vite build --config apps/main/vite.config.ts` from `web/` fails. Vite needs CWD = config dir. Use `cd apps/main && vite build` in your scripts.
+**Vite `--config` doesn't change root:** `vite build --config apps/demo/vite.config.ts` from `web/` fails. Vite needs CWD = config dir. Use `cd apps/demo && vite build` in your scripts.
 
-**`@shared` alias requires vite.config.ts in each app:** Each app must define its own `@shared` → `../../shared` resolve alias. It's not inherited.
+**Workspace package resolution from outside `web/`:** Bun hoists `@app/*` workspace symlinks under `web/node_modules/@app/` because most consumers live there. Code outside `web/` (e.g., bun tests under `framework/qt-transport/tests/web/`) needs the matching dep declared at `app/package.json` so a top-level `app/node_modules/@app/<name>` symlink exists for resolution.
 
 **QCommandLineParser: `parse()` not `process()`:** `process()` shows an error dialog and exits on unknown flags. Use `parse()` so args (including URL protocol activations) pass through to the app.
 

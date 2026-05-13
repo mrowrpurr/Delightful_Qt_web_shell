@@ -28,30 +28,37 @@ One React UI, one domain library, two deployment targets:
 
 1. **Domain logic** (`lib/todos/include/todo_store.hpp`) — Pure C++, no Qt, no Emscripten. Your business logic lives here. Testable with Catch2 in isolation. Compiled for both desktop and WASM.
 
-2. **Bridge** (`lib/todos/include/todo_bridge.hpp`) — A class extending `app_shell::Bridge`. Methods are registered with `method("name", &Bridge::fn)`. Each method takes a plain C++ request DTO and returns a plain C++ response struct. No `Q_INVOKABLE`, no `QVariant`, no `emscripten::val`. One bridge class serves both desktop and WASM.
+2. **Bridge** (`app/bridges/todos/include/todo_bridge.hpp`) — A class extending `app_shell::Bridge`. Methods are registered with `method("name", &Bridge::fn)`. Each method takes a plain C++ request DTO and returns a plain C++ response struct. No `Q_INVOKABLE`, no `QVariant`, no `emscripten::val`. One bridge class serves both desktop and WASM.
 
-3. **TypeScript interface** (`web/shared/api/bridge.ts`) — Declares the methods and signals your bridge exposes. Shared by both targets — React doesn't know which bridge it's talking to.
+3. **TypeScript interface** (`@app/bridge/lib/bridges/<name>-bridge.ts`) — Declares the methods and signals your bridge exposes. Shared by both targets — React doesn't know which bridge it's talking to.
 
 ## Two Layers You Don't Touch
 
-- **WebShell** (`lib/web-shell/include/web_shell.hpp`) — Bridge registration, `appReady` lifecycle signal. You call `shell->addBridge("name", bridge)` and never think about it again. *(Desktop only — WASM doesn't use WebShell.)*
+- **BridgeRegistry + AppLifecycle** (`app/framework/bridge-registry/`, `app/framework/app-lifecycle/`) — Bridge registration, `appReady` lifecycle signal. You call `registry.addBridge("name", bridge)` and never think about it again. *(Desktop only — WASM doesn't use AppLifecycle.)*
 
-- **Transport** (`web/shared/api/bridge-transport.ts`, `wasm-transport.ts`) — The React app auto-detects which transport to use. You never touch this.
+- **Transport** (`@app/bridge/lib/transport/bridge-transport.ts`, `wasm-transport.ts`) — The React app auto-detects which transport to use. You never touch this.
 
 ## Multi-App Web Layer
 
-The web layer isn't a single Vite app — it's N apps sharing common code:
+The web layer is three Vite apps sharing four workspace packages:
 
 ```
 web/
-  shared/api/     <- bridge interfaces + transport (shared by all apps)
-  apps/main/      <- main app (todo demo, file browser, all bridge demos)
-  package.json    <- single deps, per-app scripts (build:main, dev:main, etc.)
+  packages/
+    ui/             <- @app/ui — shadcn primitives + use-sidebar-slot + cn
+    theming/        <- @app/theming — themes, fonts, effects, AppearancePanel, qt-sync
+    monaco/         <- @app/monaco — Monaco editor wrapper + theme bridge
+    bridge/         <- @app/bridge — bridge transport + typed bridge declarations
+  apps/
+    demo/           <- the playground (every pattern lives here)
+    settings/       <- thin app composing @app/theming; embeddable in a real product
+    app/            <- empty slate (react + react-router + @app/bridge)
+  package.json      <- single deps, per-app scripts (build:demo, build:settings, build:app)
 ```
 
-Each app has its own `vite.config.ts` with a `@shared` alias pointing to `../../shared`. The SchemeHandler routes by host — `app://main/` serves the main app. `Application::appUrl("main")` returns the right URL for dev or production.
+Each app has its own `vite.config.ts`. The SchemeHandler routes by host — `app://demo/` serves the demo app, `app://settings/` the settings app, `app://app/` the empty slate. `Application::appUrl("demo")` returns the right URL for dev (port 5173) or production (`app://demo/`).
 
-To add a new app, copy `web/apps/main/`, register it in the SchemeHandler, and add build scripts. See [Adding Features](03-adding-features.md) for the recipe.
+To add a new app, copy `web/apps/app/` (the smallest template), add it to `WEB_APPS` in `desktop/xmake.lua`, and add `build:<name>`/`dev:<name>` scripts to `web/package.json`. See [Adding Features](03-adding-features.md) for the recipe.
 
 ## The Bridge System
 
@@ -165,6 +172,6 @@ All transports use the same serialization — `detail::serialize_response()` in 
 
 ## signalReady() Contract (Desktop Only)
 
-React calls `signalReady()` after mounting. This fires `WebShell::ready()` on the C++ side, which fades out the loading overlay. If it never fires (bridge broken, JS error), a 15-second timeout shows an error message.
+React calls `signalReady()` after mounting. This fires `AppLifecycle::ready()` on the C++ side, which fades out the loading overlay. If it never fires (bridge broken, JS error), a 15-second timeout shows an error message.
 
 **Never remove the `signalReady()` call in App.tsx.** Move it if you refactor, but it must run after your app mounts. In WASM mode, `signalReady()` is a no-op — there's no loading overlay to dismiss.

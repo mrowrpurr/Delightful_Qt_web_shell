@@ -29,7 +29,7 @@ struct AddItemRequest {
 };
 ```
 
-Add the method to `lib/todos/include/todo_bridge.hpp` and register it in the constructor:
+Add the method to `app/bridges/todos/include/todo_bridge.hpp` and register it in the constructor:
 
 ```cpp
 class TodoBridge : public app_shell::Bridge {
@@ -53,7 +53,7 @@ That's it on the C++ side. `def_type::from_json` deserializes the request automa
 
 ### 3. TypeScript interface
 
-`web/shared/api/bridge.ts`:
+`@app/bridge/lib/bridges/todo-bridge.ts`:
 
 ```typescript
 export interface TodoBridge {
@@ -100,9 +100,9 @@ xmake run scaffold-bridge notes
 ```
 
 This creates a new bridge class with def_type DTOs:
-1. Creates `lib/bridges/qt/include/notes_bridge.hpp` — bridge class extending `app_shell::Bridge` with method/signal registration skeleton
+1. Creates `app/bridges/notes/include/notes_bridge.hpp` — bridge class extending `app_shell::Bridge` with method/signal registration skeleton
 2. Creates a DTOs header for request/response structs
-3. Creates `web/shared/api/notes-bridge.ts` — TypeScript interface stub
+3. Creates `web/packages/bridge/lib/bridges/notes-bridge.ts` — TypeScript interface stub
 4. Wires `#include` + `addBridge()` into both `desktop/src/application.cpp` and `tests/helpers/dev-server/src/test_server.cpp`
 
 No xmake.lua edits needed — the bridge targets use glob discovery.
@@ -198,33 +198,40 @@ useEffect(() => {
 
 ## Adding a New Web App
 
-The web layer supports multiple Vite apps under `web/apps/`. Each shares code from `web/shared/` via the `@shared` alias.
+The web layer supports multiple Vite apps under `web/apps/`. Each composes shared code from the workspace packages under `web/packages/`.
 
-1. Copy `web/apps/main/` to `web/apps/yourapp/`
-2. Edit its `vite.config.ts` — set a unique dev port, keep the `@shared` alias
-3. Add scripts to `web/package.json`: `"build:yourapp": "cd apps/yourapp && vite build"`, `"dev:yourapp": "cd apps/yourapp && vite --port 5175"`
-4. Register in `desktop/src/widgets/scheme_handler.cpp` — add host routing so `app://yourapp/` serves from `:/web-yourapp/`
-5. Add to `WEB_APPS` list in `desktop/xmake.lua` so it gets built and embedded in the qrc
-6. Create a `WebShellWidget` pointed at `app->appUrl("yourapp")` wherever you want it
+1. Copy `web/apps/app/` (the smallest template) to `web/apps/yourapp/`
+2. Edit its `vite.config.ts` — set a unique dev port, keep `assetsInlineLimit: 0`
+3. Edit `web/apps/yourapp/package.json` — set the workspace `name` to `@app/yourapp`
+4. Add scripts to `web/package.json`: `"build:yourapp": "cd apps/yourapp && vite build"`, `"dev:yourapp": "cd apps/yourapp && vite"` — and chain the build script into the root `build` target
+5. Add `"yourapp"` to the `WEB_APPS` list in `desktop/xmake.lua` so it gets built and embedded in the qrc with prefix `/web-yourapp`
+6. Register the dev port in `App::appUrl` (`desktop/src/shell/app.cpp`) so dev mode routes `app://yourapp/` to `http://localhost:<port>`
+7. Create a `WebShellWidget` pointed at `app->appUrl("yourapp")` wherever you want it (e.g., new dock)
 
-The new app automatically gets all shared bridges — `getBridge<TodoBridge>('todos')` works the same way.
+The new app automatically gets all shared bridges — `getBridge<TodoBridge>('todos')` works the same way. Compose `@app/ui`, `@app/theming`, and `@app/monaco` in as needed.
 
 ## Adding Hash Routes (Dialog Pattern)
 
-To render different UIs from the same app build (e.g., a dialog vs the main window):
+To render different UIs from the same app build (e.g., a dialog vs the main window), the demo app uses react-router's `HashRouter` at the top level in `main.tsx`:
 
-1. Create a view component (e.g., `SettingsView.tsx`)
-2. In `main.tsx`, check `window.location.hash`:
-   ```typescript
-   const hash = window.location.hash
-   if (hash === '#/settings') root.render(<SettingsView />)
-   else root.render(<App />)
-   ```
-3. From C++, set the hash when loading the URL:
-   ```cpp
-   QUrl url = app->appUrl("main");
-   url.setFragment("/settings");
-   ```
+```typescript
+import { HashRouter, Routes, Route } from 'react-router'
+
+createRoot(...).render(
+  <HashRouter>
+    <Routes>
+      <Route path="/dialog" element={<DialogView />} />
+      <Route path="/*" element={<App />} />
+    </Routes>
+  </HashRouter>
+)
+```
+
+From C++, set the hash when loading the URL:
+```cpp
+QUrl url = app->appUrl("demo");
+url.setFragment("/dialog");  // HashRouter resolves to the /dialog route → DialogView
+```
 
 **QTimer::singleShot(0, ...) is required** when a bridge method triggers opening a modal dialog. Without deferring, the QWebChannel blocks and the dialog's own channel can't initialize. See `main_window.cpp` for the pattern.
 

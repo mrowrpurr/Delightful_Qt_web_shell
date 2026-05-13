@@ -12,50 +12,60 @@ You're an agent who wants to build an app. This template gives you Qt + React + 
 
 ## Project Layout
 
+Two roots: `<repo>/lib/` for portable pure C++ that has nothing to do with this template (consumer can lift it to other projects), and `<repo>/app/` for everything the template owns.
+
 ```
-├── desktop/                  # Qt desktop app
-│   └── src/
-│       ├── main.cpp          #   Entry point — scheme registration, app, window, show
-│       ├── application.*     #   QApplication — identity, theme, profile, bridges, tray
-│       ├── windows/
-│       │   └── main_window.* #   QMainWindow — wires menus, toolbar, status bar, web view
-│       ├── menus/
-│       │   └── menu_bar.*    #   Menu bar + toolbar construction
-│       ├── widgets/
-│       │   ├── web_shell_widget.*  # QWidget wrapping QWebEngineView + bridges + overlay
-│       │   ├── loading_overlay.*   # Loading overlay (Full or Spinner mode)
-│       │   ├── scheme_handler.*    # app:// URL scheme for embedded resources
-│       │   └── status_bar.*       # Status bar (zoom %, status, flash messages)
-│       └── dialogs/
-│           ├── about_dialog.*     # Custom QDialog example
-│           └── web_dialog.*       # React-in-a-dialog (WebShellWidget in a QDialog!)
-├── web/                      # React apps (Vite) — shared by desktop + WASM
-│   ├── shared/api/           #   Bridge transport + TS interfaces (shared by all apps)
-│   │   ├── bridge.ts         #     TypeScript bridge interfaces + transport auto-detect
-│   │   ├── system-bridge.ts  #     SystemBridge — desktop capabilities (file I/O, clipboard, etc.)
-│   │   └── wasm-transport.ts #     WASM transport (Embind calls wrapped in Promises)
-│   ├── apps/
-│   │   ├── main/             #   Main app (todo demo + file browser + all bridge demos)
-│   │   └── docs/             #   Docs app (architecture guide, runs alongside main)
-│   └── package.json          #   Single deps, per-app scripts (build:main, dev:main, etc.)
-├── lib/
-│   ├── todos/                #   Domain logic + bridge (pure C++, no Qt, no Emscripten)
-│   │   └── include/
-│   │       ├── bridge.hpp        # Bridge base class (app_shell::Bridge)
-│   │       ├── todo_bridge.hpp   # TodoBridge — extends app_shell::Bridge
-│   │       ├── todo_dtos.hpp     # Request DTOs for TodoBridge methods
-│   │       └── todo_store.hpp    # Domain logic — pure C++ structs + operations
-│   ├── bridges/
-│   │   ├── qt/               #   Qt-specific bridges (SystemBridge — needs Qt APIs)
-│   │   └── wasm/             #   WasmBridgeWrapper — generic Embind wrapper for any bridge
-│   └── web-shell/            #   Framework internals (don't touch)
-├── wasm/                     # WASM entry point + Emscripten linker config
-├── tests/
-│   ├── playwright/           #   Browser + desktop e2e tests
-│   ├── pywinauto/            #   Native Qt widget tests (Windows)
-│   └── helpers/dev-server/   #   Headless C++ backend for dev/test
-├── tools/playwright-cdp/     # Playwright CLI for driving web content (desktop + browser)
-└── xmake.lua                 # Root build config (APP_NAME, APP_SLUG, APP_ORG, targets)
+<repo>/
+├── lib/                              # Portable pure C++ — no Qt, no Emscripten, no app_shell::
+│   └── todos/                        #   Example domain (consumer replaces or deletes)
+│       ├── include/
+│       │   ├── todo_store.hpp        #     Domain logic — pure C++ structs + operations
+│       │   └── todo_dtos.hpp         #     Request DTOs for TodoBridge methods
+│       └── tests/unit/               #     Catch2 tests live with the domain
+└── app/                              # The template itself
+    ├── framework/                    # Bridge base + transports + lifecycle (don't touch)
+    │   ├── bridge/                   #   app_shell::Bridge base
+    │   ├── bridge-registry/          #   Pure-C++ registry of bridges by name
+    │   ├── app-lifecycle/            #   Qt QObject — appReady signal
+    │   ├── qt-transport/             #   QWebChannel adapter + WebSocket server
+    │   └── wasm-transport/           #   Embind wrapper (header-only)
+    ├── bridges/                      # Bridge classes — wrap a domain area, extend app_shell::Bridge
+    │   ├── todos/include/            #   TodoBridge — wraps <repo>/lib/todos
+    │   └── system/                   #   SystemBridge — Qt-dependent file/clipboard/dialogs
+    ├── desktop/src/                  # Qt desktop binary
+    │   ├── main.cpp                  #   Entry point — scheme registration, app, window, show
+    │   ├── shell/                    #   App — QApplication, registry, lifecycle, tray
+    │   ├── windows/main_window.*     #   QMainWindow — wires menus, toolbar, status bar, web view
+    │   ├── menus/menu_bar.*          #   Menu bar + toolbar construction
+    │   ├── widgets/
+    │   │   ├── web_shell_widget.*    #     QWidget wrapping QWebEngineView + bridges + overlay
+    │   │   ├── loading_overlay.*     #     Loading overlay (Full or Spinner mode)
+    │   │   ├── scheme_handler.*      #     app:// URL scheme for embedded resources
+    │   │   └── status_bar.*          #     Status bar (zoom %, status, flash messages)
+    │   └── dialogs/
+    │       ├── about_dialog.*        #     Custom QDialog example
+    │       └── web_dialog.*          #     React-in-a-dialog (WebShellWidget in a QDialog!)
+    ├── wasm/                         # WASM entry point + Emscripten linker config
+    ├── web/                          # React workspaces (Vite) — shared by desktop + WASM
+    │   ├── packages/                 #   Workspace packages
+    │   │   ├── ui/                   #     @app/ui — shadcn primitives + useSidebarSlot + cn
+    │   │   ├── theming/              #     @app/theming — themes, fonts, effects, panels, qt-sync
+    │   │   ├── monaco/               #     @app/monaco — editor wrapper + theme bridge
+    │   │   └── bridge/               #     @app/bridge — transport + typed bridge declarations
+    │   │       └── lib/
+    │   │           ├── transport/    #       Framework runtime (don't touch)
+    │   │           └── bridges/      #       Typed bridge declarations (add yours here)
+    │   ├── apps/                     #   Three Vite apps
+    │   │   ├── demo/                 #     Playground — every pattern lives here
+    │   │   ├── settings/             #     Thin app composing @app/theming
+    │   │   └── app/                  #     Empty slate — react + react-router + @app/bridge
+    │   └── package.json              #   Per-app scripts (build:demo, build:settings, build:app)
+    ├── tests/
+    │   ├── playwright/               #   Browser + desktop e2e tests
+    │   ├── pywinauto/                #   Native Qt widget tests (Windows)
+    │   └── helpers/dev-server/       #   Headless C++ backend for dev/test
+    ├── tools/playwright-cdp/         # Playwright CLI for driving web content
+    └── xmake/                        # xmake target definitions (dev, dev-wasm, scaffolding, etc.)
 ```
 
 **dev-server** is a headless C++ process that serves your bridges over WebSocket on port 9876 — no Qt window, no GUI. It's what runs during `xmake run dev-server`, Playwright browser tests, and Bun tests. Same bridge code as the desktop app, just without a window.
@@ -191,9 +201,9 @@ Browse and test shared UI components (Button, Card, Select, Tabs) in isolation. 
 - **Dark/Light toggle** — switches all components instantly
 - **Font picker** — searchable list of 1900+ Google Fonts with category labels
 
-Themes and fonts are the same system the app uses (`shared/lib/themes.ts`, `shared/lib/fonts.ts`). Selection persists in localStorage across Storybook sessions.
+Themes and fonts are the same system the app uses (`@app/theming/lib/themes.ts`, `@app/theming/lib/fonts.ts`). Selection persists in localStorage across Storybook sessions.
 
-**Story files** live in `web/shared/components/ui/*.stories.tsx`. To add a story for a new component, create a `.stories.tsx` file next to it — Storybook scans `shared/**/*.stories.@(ts|tsx)`.
+**Story files** live in `web/packages/ui/components/*.stories.tsx`. To add a story for a new component, create a `.stories.tsx` file next to it — Storybook scans `packages/ui/components/**/*.stories.@(ts|tsx)`.
 
 **Key files:**
 - `.storybook/main.ts` — Vite config, addons, story glob

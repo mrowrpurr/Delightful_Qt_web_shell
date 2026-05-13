@@ -163,8 +163,8 @@ Run: `xmake run test-bun`
 | File | What it tests |
 |------|--------------|
 | `lib/todos/tests/unit/todo_store_test.cpp` | TodoStore C++ logic |
-| `lib/web-shell/tests/web/bridge_proxy_test.ts` | WS protocol (mock server) |
-| `lib/web-shell/tests/web/type_conversion_test.ts` | Bridge dispatch + type conversion (real C++ backend) |
+| `app/framework/qt-transport/tests/web/bridge_proxy_test.ts` | WS protocol (mock server) |
+| `app/framework/qt-transport/tests/web/type_conversion_test.ts` | Bridge dispatch + type conversion (real C++ backend) |
 | `tests/playwright/todo-lists.spec.ts` | React UI + backend e2e |
 | `tests/pywinauto/test_window.py` | Window visibility, title, size |
 | `tests/pywinauto/test_menu_bar.py` | Menu items, About dialog, Export dialog |

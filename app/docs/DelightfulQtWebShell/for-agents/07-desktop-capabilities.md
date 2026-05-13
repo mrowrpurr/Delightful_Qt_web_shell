@@ -4,7 +4,7 @@ The template includes two bridges: **TodoBridge** (the example — learn from it
 
 Both bridges extend `app_shell::Bridge` and use def_type DTOs for all method signatures. No QObject inheritance, no Q_INVOKABLE, no QVariant. One bridge class serves both desktop (QWebChannel) and WASM transports.
 
-Full API: `web/shared/api/system-bridge.ts` (TypeScript interface) and `lib/bridges/qt/include/system_bridge.hpp` (C++ implementation). DTOs: `lib/bridges/qt/include/system_dtos.hpp`.
+Full API: `@app/bridge/lib/bridges/system-bridge.ts` (TypeScript interface) and `app/bridges/system/include/system_bridge.hpp` (C++ implementation). DTOs: `app/bridges/system/include/system_dtos.hpp`.
 
 ## SystemBridge
 
@@ -84,7 +84,7 @@ The app ships a full theming and editor customization system. All settings are p
 
 1000+ shadcn themes live in `themes.json`, applied to both React (CSS variables) and Qt (QSS stylesheets). Both sides stay in sync via the bridge. See [08-theming.md](08-theming.md) for the full architecture — StyleManager, QSS generator, live reload, dark/light switching, and the live theme editor.
 
-Custom theme effects go beyond CSS variables: wallpaper backgrounds (Dragon), animated SVG overlays (Tron), canvas-drawn grids (Tron Moving), and glow CSS (Synthwave). These are managed in `apps/main/src/theme-effects.ts`.
+Custom theme effects go beyond CSS variables: wallpaper backgrounds (Dragon), animated SVG overlays (Tron), canvas-drawn grids (Tron Moving), and glow CSS (Synthwave). These are managed in `@app/theming/lib/theme-effects.ts` (effects) and `@app/theming/styles/effects.css` (the glow + wallpaper CSS rules).
 
 ### Fonts
 
@@ -96,8 +96,8 @@ Monaco editor with vim mode (`monaco-vim`). A shared instance is configured in `
 
 ### Key Files
 
-- `shared/lib/themes.ts` — theme loading and application
-- `shared/lib/fonts.ts` — font injection and application
-- `shared/lib/monaco-theme.ts` — Monaco theme derivation from CSS vars
-- `shared/lib/tron-grid.ts` — animated canvas grid effect
-- `apps/main/src/theme-effects.ts` — custom wallpaper/animation effects
+- `@app/theming/lib/themes.ts` — theme loading and application
+- `@app/theming/lib/fonts.ts` — font injection and application
+- `@app/monaco/lib/monaco-theme.ts` — Monaco theme derivation from CSS vars
+- `@app/theming/lib/tron-grid.ts` — animated canvas grid effect
+- `@app/theming/lib/theme-effects.ts` — custom wallpaper/animation effects
