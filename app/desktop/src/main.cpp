@@ -4,6 +4,7 @@
 #include "application.hpp"
 #include "dock_manager.hpp"
 #include "logging.hpp"
+#include "shell/single_instance.hpp"
 #include "shell/tray.hpp"
 #include "shell/url_protocol.hpp"
 #include "system_bridge.hpp"
@@ -24,9 +25,12 @@ int main(int argc, char* argv[]) {
 
     Application app(argc, argv);
 
-    // If another instance is already running, it was signaled to activate.
-    // This process exits cleanly — the user sees the existing window raise.
-    if (!app.isPrimaryInstance()) return 0;
+    // ── Single-instance guard ───────────────────────────────────────────
+    // If another instance is already running, the ctor forwards this
+    // process's args / activation to it and isPrimary() returns false —
+    // we exit cleanly and the user sees the existing window raise.
+    auto* singleInstance = new app_shell::SingleInstance(&app);
+    if (!singleInstance->isPrimary()) return 0;
 
     // ── URL protocol ────────────────────────────────────────────────────
     // Lets users open the app from a browser via <slug>:// links. The prompt
@@ -34,15 +38,57 @@ int main(int argc, char* argv[]) {
     auto* urlProtocol = new app_shell::UrlProtocol(&app);
     urlProtocol->promptIfNeeded();
 
+    // Restore saved windows, or create one default window.
+    auto windows = app.dockManager()->restoreWindows();
+    if (windows.isEmpty())
+        windows.append(new MainWindow(app));
+
+    // Shared "raise / activate the visible main window" handler — invoked
+    // by both SingleInstance::activationRequested (second-instance launch)
+    // and Tray::activated (tray-icon click or Show Window menu item).
+    auto raise = [&windows]() {
+        for (auto* w : QApplication::topLevelWidgets()) {
+            if (auto* mw = qobject_cast<MainWindow*>(w); mw && mw->isVisible()) {
+                mw->raise();
+                mw->activateWindow();
+                return;
+            }
+        }
+        // No visible windows — show the first one
+        if (!windows.isEmpty()) {
+            windows.first()->show();
+            windows.first()->raise();
+            windows.first()->activateWindow();
+        }
+    };
+
+    QObject::connect(singleInstance, &app_shell::SingleInstance::activationRequested,
+                     windows.first(), raise);
+
+    // Forward args to the SystemBridge so React can see them.
+    // Handles: first launch args, second-instance args, and URL protocol activations.
+    auto* systemBridge = static_cast<SystemBridge*>(
+        app.registry()->get("system"));
+    if (systemBridge) {
+        QObject::connect(singleInstance, &app_shell::SingleInstance::argsReceived,
+                         &app, [systemBridge](const QStringList& args) {
+            systemBridge->handleAppLaunchArgs(args);
+        });
+
+        // Pass the primary instance's own args on first launch
+        QStringList args = app.arguments().mid(1);
+        if (!args.isEmpty())
+            systemBridge->handleAppLaunchArgs(args);
+    }
+
     // ── System tray ─────────────────────────────────────────────────────
     // The framework's Tray subsystem is a thin QObject wrapper around
     // QSystemTrayIcon + a top-level QMenu. Everything below is demo content
     // — replace with your own when forking this template.
     auto* tray = new app_shell::Tray(&app);
-    QObject::connect(tray, &app_shell::Tray::activated,
-                     &app, &Application::activationRequested);
+    QObject::connect(tray, &app_shell::Tray::activated, &app, raise);
 
-    tray->addItem("&Show Window", [&app]{ app.activationRequested(); });
+    tray->addItem("&Show Window", raise);
     tray->addLabel(QString("%1 %2").arg(APP_NAME).arg(APP_VERSION));
     tray->addSeparator();
 
@@ -85,44 +131,6 @@ int main(int argc, char* argv[]) {
     tray->addSeparator();
     tray->addItem("&Quit", [&app]{ app.requestQuit(); });
     tray->show();
-
-    // Restore saved windows, or create one default window.
-    auto windows = app.dockManager()->restoreWindows();
-    if (windows.isEmpty())
-        windows.append(new MainWindow(app));
-
-    // When another instance tries to launch, raise any visible MainWindow.
-    QObject::connect(&app, &Application::activationRequested, windows.first(), [&windows]() {
-        for (auto* w : QApplication::topLevelWidgets()) {
-            if (auto* mw = qobject_cast<MainWindow*>(w); mw && mw->isVisible()) {
-                mw->raise();
-                mw->activateWindow();
-                return;
-            }
-        }
-        // No visible windows — show the first one
-        if (!windows.isEmpty()) {
-            windows.first()->show();
-            windows.first()->raise();
-            windows.first()->activateWindow();
-        }
-    });
-
-    // Forward args to the SystemBridge so React can see them.
-    // Handles: first launch args, second-instance args, and URL protocol activations.
-    auto* systemBridge = static_cast<SystemBridge*>(
-        app.registry()->get("system"));
-    if (systemBridge) {
-        QObject::connect(&app, &Application::appLaunchArgsReceived,
-                         &app, [systemBridge](const QStringList& args) {
-            systemBridge->handleAppLaunchArgs(args);
-        });
-
-        // Pass the primary instance's own args on first launch
-        QStringList args = app.arguments().mid(1);
-        if (!args.isEmpty())
-            systemBridge->handleAppLaunchArgs(args);
-    }
 
     // Show all windows. First one gets the anti-flash treatment.
     for (int i = 0; i < windows.size(); ++i) {

@@ -10,8 +10,6 @@
 #include <QEvent>
 #include <QFileOpenEvent>
 #include <QIcon>
-#include <QLocalServer>
-#include <QLocalSocket>
 #include <QPalette>
 #include <QSettings>
 #include <QStandardPaths>
@@ -19,6 +17,7 @@
 #include <QWebEngineProfile>
 
 #include "dock_manager.hpp"
+#include "shell/single_instance.hpp"
 #include "style_manager.hpp"
 #include "widgets/scheme_handler.hpp"
 
@@ -61,10 +60,6 @@ App::App(int& argc, char** argv)
     parser.addOption(devOption);
     parser.parse(arguments());
     devMode_ = parser.isSet(devOption);
-
-    // ── Single instance guard ────────────────────────────────
-    setupSingleInstance();
-    if (!isPrimary_) return;
 
     // ── Dark theme ───────────────────────────────────────────
     styleHints()->setColorScheme(Qt::ColorScheme::Dark);
@@ -127,55 +122,16 @@ void App::requestQuit() {
     quit();
 }
 
-void App::setupSingleInstance() {
-    QString serverName = APP_SLUG;
-
-    QLocalSocket socket;
-    socket.connectToServer(serverName);
-    if (socket.waitForConnected(500)) {
-        QStringList allArgs = arguments().mid(1);
-        if (allArgs.isEmpty()) {
-            socket.write("activate\n");
-        } else {
-            for (const auto& arg : allArgs)
-                socket.write(("arg:" + arg + "\n").toUtf8());
-        }
-        socket.waitForBytesWritten(1000);
-        socket.disconnectFromServer();
-        isPrimary_ = false;
-        return;
-    }
-
-    QLocalServer::removeServer(serverName);
-
-    instanceServer_ = new QLocalServer(this);
-    instanceServer_->listen(serverName);
-    connect(instanceServer_, &QLocalServer::newConnection, this, [this]() {
-        auto* client = instanceServer_->nextPendingConnection();
-        connect(client, &QLocalSocket::readyRead, this, [this, client]() {
-            QString data = QString::fromUtf8(client->readAll());
-            QStringList lines = data.split('\n', Qt::SkipEmptyParts);
-            QStringList args;
-            for (const auto& line : lines) {
-                if (line.startsWith("arg:"))
-                    args.append(line.mid(4));
-            }
-            if (!args.isEmpty())
-                emit appLaunchArgsReceived(args);
-            emit activationRequested();
-            client->deleteLater();
-        });
-    });
-}
-
 bool App::event(QEvent* event) {
     if (event->type() == QEvent::FileOpen) {
         auto* openEvent = static_cast<QFileOpenEvent*>(event);
         QString payload = openEvent->url().toString();
         if (payload.isEmpty())
             payload = openEvent->file();
-        if (!payload.isEmpty())
-            emit appLaunchArgsReceived({payload});
+        if (!payload.isEmpty()) {
+            if (auto* si = findChild<SingleInstance*>())
+                si->deliverExternalArgs({payload});
+        }
         return true;
     }
     return QApplication::event(event);

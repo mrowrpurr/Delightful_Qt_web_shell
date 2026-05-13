@@ -16,7 +16,6 @@
 
 class AppLifecycle;
 class DockManager;
-class QLocalServer;
 class QWebEngineProfile;
 class StyleManager;
 
@@ -48,33 +47,25 @@ public:
     // metadata but Qt widgets want a real raster format.
     QString brandingImagePath() const { return brandingImagePath_; }
 
-    bool isPrimaryInstance() const { return isPrimary_; }
-
 public slots:
     // Cleanly shut down all docks and windows, then quit.
     // Use this instead of QApplication::quit() so cleanup runs
     // while the event loop is still alive.
     void requestQuit();
 
-signals:
-    void activationRequested();
-    void appLaunchArgsReceived(const QStringList& args);
-
 protected:
-    // macOS delivers URL scheme activations via QEvent::FileOpen.
+    // macOS delivers URL scheme activations via QEvent::FileOpen. Forwarded
+    // to the SingleInstance subsystem (if present) so external activations
+    // route through the same path as a second-instance launch.
     bool event(QEvent* event) override;
 
 private:
-    void setupSingleInstance();
-
     bool devMode_ = false;
-    bool isPrimary_ = true;
     QString iconPath_ = ":/icon.ico";
     QString brandingImagePath_ = ":/icon.png";
     QWebEngineProfile* profile_ = nullptr;
     BridgeRegistry registry_;
     AppLifecycle* lifecycle_ = nullptr;
-    QLocalServer* instanceServer_ = nullptr;
     StyleManager* styleManager_ = nullptr;
     DockManager* dockManager_ = nullptr;
 };
