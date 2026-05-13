@@ -1,6 +1,6 @@
 import { test, expect, afterEach } from 'bun:test'
-import { createWsConnection } from '../../../../web/shared/api/bridge-transport'
-import type { TodoBridge } from '../../../../web/shared/api/bridge'
+import { createWsConnection } from '@app/bridge/lib/transport/bridge-transport'
+import type { TodoBridge } from '@app/bridge/lib/bridges/todo-bridge'
 
 // Each test spins up its own WebSocket server on a random port.
 // The connection is established and we verify the JSON-RPC protocol.
