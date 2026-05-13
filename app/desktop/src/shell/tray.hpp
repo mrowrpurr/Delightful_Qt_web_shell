@@ -60,6 +60,10 @@ signals:
 private:
     App* app_;
     QSystemTrayIcon* icon_ = nullptr;
+    // QMenu has no parent — QMenu's ctor requires a QWidget* parent and
+    // Tray is a QObject, so Qt's parent/child tree can't manage this
+    // lifetime. Manual delete in the dtor is the Qt-idiomatic fallback
+    // (see Qt's own Systray example).
     QMenu* menu_ = nullptr;
 };
 

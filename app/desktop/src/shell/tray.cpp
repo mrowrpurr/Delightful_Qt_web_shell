@@ -20,7 +20,7 @@ Tray::Tray(App* parent)
     icon_ = new QSystemTrayIcon(QIcon(parent->iconPath()), this);
     icon_->setToolTip(QApplication::applicationName());
 
-    menu_ = new QMenu;
+    menu_ = new QMenu;  // no parent — Tray (QObject) can't be a QWidget parent
     icon_->setContextMenu(menu_);
 
     connect(icon_, &QSystemTrayIcon::activated, this,
@@ -33,7 +33,6 @@ Tray::Tray(App* parent)
 }
 
 Tray::~Tray() {
-    // QMenu has no parent — owned by Tray, cleaned up here.
     delete menu_;
 }
 
