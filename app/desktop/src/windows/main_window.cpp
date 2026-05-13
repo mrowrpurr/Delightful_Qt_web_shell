@@ -402,10 +402,10 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     // Hide-to-tray on the last visible window — but only when WindowLifecycle
     // is present (consumer opted into multi-window lifecycle). Without it,
     // every close is a plain close.
-    auto* registry = app_.findChild<app_shell::WindowLifecycle*>();
-    int visibleCount = registry ? registry->visibleWindowCount() : 0;
+    auto* lifecycle = app_.findChild<app_shell::WindowLifecycle*>();
+    int visibleCount = lifecycle ? lifecycle->visibleWindowCount() : 0;
 
-    if (registry && visibleCount <= 1 && QSystemTrayIcon::isSystemTrayAvailable()) {
+    if (lifecycle && visibleCount <= 1 && QSystemTrayIcon::isSystemTrayAvailable()) {
         hide();
         event->ignore();
     } else {
