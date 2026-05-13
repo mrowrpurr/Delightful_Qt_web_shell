@@ -62,8 +62,16 @@
         "vite": "^6.3.5",
       },
     },
+    "web/apps/app": {
+      "name": "@app/app",
+      "version": "0.0.0",
+    },
     "web/apps/demo": {
       "name": "@app/demo",
+      "version": "0.0.0",
+    },
+    "web/apps/settings": {
+      "name": "@app/settings",
       "version": "0.0.0",
     },
     "web/packages/bridge": {
@@ -94,11 +102,15 @@
   "packages": {
     "@adobe/css-tools": ["@adobe/css-tools@4.4.4", "", {}, "sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg=="],
 
+    "@app/app": ["@app/app@workspace:web/apps/app"],
+
     "@app/bridge": ["@app/bridge@workspace:web/packages/bridge"],
 
     "@app/demo": ["@app/demo@workspace:web/apps/demo"],
 
     "@app/monaco": ["@app/monaco@workspace:web/packages/monaco"],
+
+    "@app/settings": ["@app/settings@workspace:web/apps/settings"],
 
     "@app/theming": ["@app/theming@workspace:web/packages/theming"],
 

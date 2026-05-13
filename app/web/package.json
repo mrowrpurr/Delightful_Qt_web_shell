@@ -5,8 +5,12 @@
   "scripts": {
     "dev:demo": "cd apps/demo && vite",
     "build:demo": "cd apps/demo && tsc -b && vite build",
-    "build": "bun run build:demo",
-    "typecheck": "cd apps/demo && tsc -b --noEmit",
+    "dev:settings": "cd apps/settings && vite",
+    "build:settings": "cd apps/settings && tsc -b && vite build",
+    "dev:app": "cd apps/app && vite",
+    "build:app": "cd apps/app && tsc -b && vite build",
+    "build": "bun run build:demo && bun run build:settings && bun run build:app",
+    "typecheck": "cd apps/demo && tsc -b --noEmit && cd ../settings && tsc -b --noEmit && cd ../app && tsc -b --noEmit",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
