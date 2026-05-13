@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { HashRouter, Routes, Route } from 'react-router'
+import { Routes, Route } from 'react-router'
+import { HashRouter } from '@app/router/lib/hash-router'
 import App from './App'
 
 // Empty slate: no Tailwind, no @app/ui, no @app/theming.

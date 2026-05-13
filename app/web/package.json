@@ -17,6 +17,7 @@
   "dependencies": {
     "@app/bridge": "workspace:*",
     "@app/monaco": "workspace:*",
+    "@app/router": "workspace:*",
     "@app/theming": "workspace:*",
     "@app/ui": "workspace:*",
     "@base-ui/react": "^1.4.1",

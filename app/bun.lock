@@ -21,6 +21,7 @@
       "dependencies": {
         "@app/bridge": "workspace:*",
         "@app/monaco": "workspace:*",
+        "@app/router": "workspace:*",
         "@app/theming": "workspace:*",
         "@app/ui": "workspace:*",
         "@base-ui/react": "^1.4.1",
@@ -87,6 +88,10 @@
         "monaco-vim": "^0.4.4",
       },
     },
+    "web/packages/router": {
+      "name": "@app/router",
+      "version": "0.0.0",
+    },
     "web/packages/theming": {
       "name": "@app/theming",
       "version": "0.0.0",
@@ -109,6 +114,8 @@
     "@app/demo": ["@app/demo@workspace:web/apps/demo"],
 
     "@app/monaco": ["@app/monaco@workspace:web/packages/monaco"],
+
+    "@app/router": ["@app/router@workspace:web/packages/router"],
 
     "@app/settings": ["@app/settings@workspace:web/apps/settings"],
 
