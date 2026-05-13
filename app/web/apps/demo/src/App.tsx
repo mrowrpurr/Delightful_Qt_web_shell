@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { Routes, Route, Link, useLocation } from 'react-router'
+import { Routes, Route, Link, useLocation } from 'react-router-dom'
 import { SidebarSlotProvider } from '@app/ui/hooks/use-sidebar-slot'
 import { signalReady } from '@app/bridge/lib/transport/bridge'
 import {
