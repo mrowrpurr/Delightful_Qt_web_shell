@@ -13,10 +13,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@app/ui/components/sidebar'
-import { applyTheme, loadTheme, setDarkMode as persistDarkMode } from '@app/theming/lib/themes'
-import { getSystemBridge } from '@app/bridge/lib/bridges/system-bridge'
 import { Toaster } from '@app/ui/components/sonner'
-import { applyThemeEffects } from '@app/theming/lib/theme-effects'
 import DocsTab from './tabs/DocsTab'
 import TodosTab from './tabs/TodosTab'
 import FileBrowserTab from './tabs/FileBrowserTab'
@@ -25,46 +22,6 @@ import EditorTab from './tabs/EditorTab'
 import SettingsTab from './tabs/SettingsTab'
 import ComponentsTab from './tabs/ComponentsTab'
 import ChatTab from './tabs/ChatTab'
-
-// Global listener for Qt theme changes — always active regardless of which tab is visible.
-let qtThemeCleanup: (() => void) | null = null
-let qtSyncGuard = false
-
-async function setupQtThemeListener() {
-  try {
-    const system = await getSystemBridge()
-    qtThemeCleanup = system.qtThemeChanged(async () => {
-      if (qtSyncGuard) return
-      qtSyncGuard = true
-      try {
-        const state = await system.getQtTheme()
-        const theme = await loadTheme(state.displayName)
-
-        persistDarkMode(state.isDark)
-
-        if (theme) {
-          applyTheme(theme, state.isDark)
-          applyThemeEffects(theme.name)
-          localStorage.setItem('theme-name', theme.name)
-
-          // Sync editor if it follows app theme
-          if (localStorage.getItem('editor-use-app-theme') !== 'false') {
-            localStorage.setItem('editor-theme-name', theme.name)
-          }
-          window.dispatchEvent(new CustomEvent('editor-theme-changed'))
-        }
-
-        // Notify SettingsTab to refresh its state (if mounted)
-        window.dispatchEvent(new CustomEvent('qt-theme-synced'))
-      } finally {
-        qtSyncGuard = false
-      }
-    })
-  } catch {
-    // WASM/browser mode — no bridge
-  }
-}
-setupQtThemeListener()
 
 const TAB_TITLES: Record<string, string> = {
   docs: '📖 Docs',

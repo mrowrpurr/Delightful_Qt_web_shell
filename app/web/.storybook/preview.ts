@@ -1,6 +1,6 @@
 import type { Preview } from '@storybook/react-vite'
 import { addons } from 'storybook/preview-api'
-import '../shared/styles/globals.css'
+import '@app/ui/styles/globals.css'
 
 // Storybook is a dev tool, not the production load path — it imports themes.json
 // directly so the addon panel has the full data to search/select. The desktop app

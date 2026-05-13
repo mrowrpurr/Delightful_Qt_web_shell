@@ -4,7 +4,22 @@ import type * as monaco from 'monaco-editor'
 import { initVimMode, VimMode } from 'monaco-vim'
 import { buildMonacoTheme, buildMonacoThemeFromVars } from '@app/monaco/lib/monaco-theme'
 import { isDarkMode, loadTheme } from '@app/theming/lib/themes'
-import { getEditorFont, injectGoogleFont } from '@app/theming/lib/fonts'
+import { injectGoogleFont } from '@app/theming/lib/fonts'
+
+// Editor reads its own theme/font keys when the user has opted out of "follow app";
+// otherwise it follows app-wide keys. The toggles live in <EditorAppearancePanel>.
+const getEffectiveEditorThemeName = (): string | null => {
+  const followApp = localStorage.getItem('editor-use-app-theme') !== 'false'
+  return followApp
+    ? localStorage.getItem('theme-name')
+    : localStorage.getItem('editor-theme-name')
+}
+const getEffectiveEditorFont = (): string | null => {
+  const followApp = localStorage.getItem('editor-use-app-font') !== 'false'
+  return followApp
+    ? localStorage.getItem('app-font-family')
+    : localStorage.getItem('editor-font-family')
+}
 import { toast } from 'sonner'
 import { Button } from '@app/ui/components/button'
 import { getSystemBridge } from '@app/bridge/lib/bridges/system-bridge'
@@ -57,7 +72,7 @@ export default function EditorTab() {
 
   const applyEditorTheme = useCallback(async () => {
     if (!monacoRef.current) return
-    const editorThemeName = localStorage.getItem('editor-theme-name')
+    const editorThemeName = getEffectiveEditorThemeName()
     const dark = isDarkMode()
     const transparency = parseInt(localStorage.getItem('editor-transparency') ?? '0', 10)
 
@@ -157,7 +172,7 @@ export default function EditorTab() {
     applyEditorTheme()
 
     // Apply editor font if set
-    const editorFont = getEditorFont()
+    const editorFont = getEffectiveEditorFont()
     if (editorFont) {
       injectGoogleFont(editorFont)
       editor.updateOptions({ fontFamily: `"${editorFont}", monospace` })
@@ -219,7 +234,7 @@ export default function EditorTab() {
     const onThemeChanged = () => applyEditorTheme()
     const onFontChanged = () => {
       if (!editorRef.current) return
-      const font = getEditorFont()
+      const font = getEffectiveEditorFont()
       editorRef.current.updateOptions({
         fontFamily: font ? `"${font}", monospace` : 'monospace',
       })

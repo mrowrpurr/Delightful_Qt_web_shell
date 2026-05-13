@@ -1,0 +1,34 @@
+/* Page + surface transparency knobs — set on :root, default to 1 (fully opaque).
+   `--page-opacity` controls the page background (.bg-page utility, used by app
+   roots and SidebarInset). `--surface-opacity` folds into card and sidebar tokens
+   in @app/ui/styles/theme.css so any `bg-card` / `bg-sidebar` consumer picks it up.
+   Floating UI (Popover, Dialog, Drawer) is intentionally not affected so it stays
+   readable regardless of slider position. */
+:root {
+  --page-opacity: 1;
+  --surface-opacity: 1;
+}
+
+/* Page-level surface — translucent under --page-opacity so wallpaper themes
+   bleed through. */
+@layer utilities {
+  .bg-page {
+    background-color: oklch(from var(--background) l c h / var(--page-opacity, 1));
+  }
+}
+
+/* Synthwave-style glow for primary text + buttons. Opt-in via the .theme-glow
+   class on a parent element (themes can apply it via theme-effects.ts). */
+.theme-glow h1, .theme-glow h2, .theme-glow .text-primary {
+  text-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary), 0 0 40px var(--color-primary);
+}
+.theme-glow button[class*="bg-primary"] {
+  box-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary);
+}
+
+/* Wallpaper themes — make body fully transparent when html element has a
+   background image set (Dragon, Tron, etc.) so the wallpaper shows through. */
+html:has(> [style*="background"]) body,
+html[style*="background"] body {
+  background: transparent !important;
+}

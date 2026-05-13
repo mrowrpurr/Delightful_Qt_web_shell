@@ -1,29 +1,5 @@
-@import "tailwindcss";
-@import "@app/ui/styles/theme.css";
-
-/* Transparency knobs — set on :root, defaulted to 1 (fully opaque).
-   `--page-opacity` controls the page background (.bg-page utility, used by
-   the App root div + SidebarInset). `--surface-opacity` folds into card and
-   sidebar tokens so any `bg-card` / `bg-sidebar` consumer picks it up.
-   Floating UI (Popover, Dialog, Drawer, etc.) is intentionally not affected
-   so it stays readable regardless of slider position. */
-:root {
-  --page-opacity: 1;
-  --surface-opacity: 1;
-}
-
-body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-}
-
-/* Page-level surface — translucent under --page-opacity so wallpaper themes
-   bleed through. Used by the App root div and SidebarInset. */
-@layer utilities {
-  .bg-page {
-    background-color: oklch(from var(--background) l c h / var(--page-opacity, 1));
-  }
-}
+@import "@app/ui/styles/globals.css";
+@import "@app/theming/styles/effects.css";
 
 /* ── Markdown rendering (for DocsTab) ─────────────────── */
 
@@ -46,17 +22,3 @@ body {
 .markdown-body td { padding: 0.4rem 0.6rem; border: 1px solid var(--color-border); color: var(--color-muted-foreground); }
 .markdown-body hr { border: none; border-top: 1px solid var(--color-border); margin: 1.5rem 0; }
 .markdown-body img { max-width: 100%; border-radius: 4px; }
-
-/* ── Special theme effects ─────────────────────────────── */
-.theme-glow h1, .theme-glow h2, .theme-glow .text-primary {
-  text-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary), 0 0 40px var(--color-primary);
-}
-.theme-glow button[class*="bg-primary"] {
-  box-shadow: 0 0 10px var(--color-primary), 0 0 20px var(--color-primary);
-}
-
-/* Wallpaper themes — make surfaces semi-transparent */
-html:has(> [style*="background"]) body,
-html[style*="background"] body {
-  background: transparent !important;
-}
