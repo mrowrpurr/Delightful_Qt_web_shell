@@ -1,10 +1,8 @@
-// app_shell::App — the framework's application class.
+// app_shell::App — the framework's QApplication subclass.
 //
-// Owns app-level concerns: identity, web profile, bridge registry, lifecycle,
-// theming, dock manager. Opt-in subsystems (Tray, UrlProtocol, SingleInstance,
-// WindowLifecycle, ...) are QObject children parented to App and constructed
-// by the consumer in main(). Retrieve any of them anywhere via
-// app.findChild<T*>().
+// Holds identity (org / app name / version), the QWebEngineProfile, the
+// bridge registry, and the style + dock managers. Forwards macOS URL
+// scheme activations delivered via QEvent::FileOpen.
 
 #pragma once
 
