@@ -1,9 +1,9 @@
 // Qt desktop shell — the entry point.
 // Everything interesting lives in the classes this file wires together.
 
-#include "application.hpp"
 #include "dock_manager.hpp"
 #include "logging.hpp"
+#include "shell/app.hpp"
 #include "shell/single_instance.hpp"
 #include "shell/tray.hpp"
 #include "shell/url_protocol.hpp"
@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
     // Qt enforces this — it's a hard requirement, not a suggestion.
     SchemeHandler::registerUrlScheme();
 
-    Application app(argc, argv);
+    app_shell::App app(argc, argv);
 
     // ── Single-instance guard ───────────────────────────────────────────
     // If another instance is already running, the ctor forwards this

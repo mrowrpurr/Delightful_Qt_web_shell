@@ -1,7 +1,4 @@
 // app_shell::App — see app.hpp for overview.
-//
-// Phase 1 of the native refactor: contains all logic that previously lived in
-// the god-class Application. Later phases peel features off into opt-in services.
 
 #include "shell/app.hpp"
 

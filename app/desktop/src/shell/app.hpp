@@ -1,11 +1,10 @@
 // app_shell::App — the framework's application class.
 //
 // Owns app-level concerns: identity, web profile, bridge registry, lifecycle,
-// single-instance guard, URL protocol, system tray, theming, dock manager.
-//
-// Phase 1 of the native refactor: this class replaces the god-class Application.
-// Application is kept as a thin transitional subclass while later phases peel
-// hardcoded features off into opt-in services.
+// theming, dock manager. Opt-in subsystems (Tray, UrlProtocol, SingleInstance,
+// WindowRegistry, ...) are QObject children parented to App and constructed
+// by the consumer in main(). Retrieve any of them anywhere via
+// app.findChild<T*>().
 
 #pragma once
 
