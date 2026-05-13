@@ -25,8 +25,17 @@ target("desktop")
         add_files("resources/app.rc")
     elseif is_plat("macosx") then
         set_filename(APP_NAME)
+        -- url_protocol_windows.cpp got picked up by the src/**.cpp glob — kick it out.
+        remove_files("src/shell/url_protocol_windows.cpp")
+        -- The .mm Objective-C++ file isn't matched by the .cpp glob; add explicitly.
+        add_files("src/shell/url_protocol_macos.mm")
+        add_frameworks("CoreServices", "Foundation")
     else
         set_filename(APP_SLUG)
+        -- URL protocol is implemented on Windows and macOS only.
+        -- Other platforms: provide your own url_protocol_<platform>.cpp
+        -- defining isRegistered / registerProtocol / unregisterProtocol.
+        remove_files("src/shell/url_protocol_windows.cpp")
     end
     add_packages("qlementine-icons", "libsass")
     add_frameworks(
@@ -153,9 +162,34 @@ target("desktop")
     end)
 
     -- Write the binary path so Playwright desktop tests can find and launch it.
+    -- Also inject URL protocol declaration into the macOS .app's Info.plist —
+    -- without it, LaunchServices can't route <slug>:// URLs to this bundle.
     after_build(function(target)
         local abs_exe = path.absolute(target:targetfile())
         -- Write to template root so tests (which run from there) can find it
         os.mkdir(path.join(_TEMPLATE_ROOT, "build"))
         io.writefile(path.join(_TEMPLATE_ROOT, "build", ".desktop-binary.txt"), abs_exe)
+
+        if is_plat("macosx") then
+            local plist_path = path.join(target:targetdir(),
+                                          target:basename() .. ".app",
+                                          "Contents", "Info.plist")
+            if os.isfile(plist_path) then
+                local scheme = _APP_SLUG:lower()
+                local bundle_id = _APP_ORG .. "." .. _APP_SLUG
+                -- plutil -replace removes any existing key first, so this is idempotent.
+                local url_types_json = string.format(
+                    [=[[{"CFBundleURLName":"%s","CFBundleURLSchemes":["%s"]}]]=],
+                    bundle_id, scheme)
+                os.vrunv("plutil", {"-replace", "CFBundleURLTypes",
+                                     "-json", url_types_json, plist_path})
+                os.vrunv("plutil", {"-replace", "CFBundleIdentifier",
+                                     "-string", bundle_id, plist_path})
+                print("✅ Injected CFBundleURLTypes (" .. scheme .. ") + CFBundleIdentifier ("
+                      .. bundle_id .. ") into " .. plist_path)
+            else
+                print("⚠️  Info.plist not found at " .. plist_path
+                      .. " — URL protocol will not work until plist is fixed")
+            end
+        end
     end)
