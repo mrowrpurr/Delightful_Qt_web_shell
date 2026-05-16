@@ -56,13 +56,13 @@ Tick a sub-box when its commit lands green (`xmake build desktop` + `xmake build
 
 ## Phase 5 — `MainWindow` untangle
 
-- [ ] **Phase 5 complete**
-  - [ ] **13. Bare `MainWindowBase` + `MainWindow` preset composing window-scoped subsystems** — preset's ctor `new`s `WebShell` (central) + `MenuBar` + `StatusBar` + `DevToolsShortcut` + `ReactiveTitle` + `PersistedGeometry` as children of `this`; behavior identical to today
-  - [ ] **14. Extract `WebShell` as the dedicated window-scoped subsystem owning `QWebEngineView`** — `DevToolsShortcut` and `ReactiveTitle` find it via `window->findChild<WebShell*>()` instead of `MainWindow` knowing `WebShellWidget` directly
-  - [ ] **15. `DockManager` accepts any `QWidget`** — no longer constructs `WebShellWidget` itself
-  - [ ] **16. Docks carry their host as a property** — `DockManager` ↔ `MainWindow` `topLevelWidgets()` iteration dies
-  - [ ] **17. `undockTab` uses `tabData()` quintptr** — `windowTitle()` string-match dies
-  - [ ] **18. `LoadingOverlay` reads its devtools shortcut from the menu** (or generalizes the message); the hardcoded "F12" literal dies
+- [x] **Phase 5 complete**
+  - [x] **13. Bare `MainWindowBase` + `MainWindow` preset** — `MainWindowBase` holds `App&` + `app()` accessor; `MainWindow` inherits and composes the standard set; commit `9203bd5`
+  - [x] **14. MainWindow no longer knows WebShellWidget** — finds `QWebEngineView` via `findChild`, invokes `toggleDevTools` via `QMetaObject`; commit `3646202`
+  - [x] **15. `DockManager` accepts any `QWidget`** — takes a `WidgetFactory` (std::function), content URL stored as dock property; commit `07ae473`
+  - [x] **16. Docks carry their host as a property** — all `topLevelWidgets()` iterations in DockManager replaced by `"hostWindow"` property; commit `07ae473`
+  - [x] **17. `undockTab` uses `tabData()` quintptr** — `windowTitle()` string-match and dead `dragTabTitle_` field removed; commit `69f7b99`
+  - [x] **18. LoadingOverlay generalizes the message** — "open developer tools" instead of hardcoded "F12"; commit `69f7b99`
 
 ---
 

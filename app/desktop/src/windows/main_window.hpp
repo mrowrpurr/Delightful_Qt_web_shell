@@ -1,18 +1,15 @@
-// MainWindow — the primary application window.
+// MainWindow — the standard preset window.
 //
-// This is thin on purpose. It wires together:
-//   - menu bar   (from menus/)
-//   - tool bar   (from menus/)
-//   - status bar (from widgets/)
-//   - Tabified QDockWidgets (content-agnostic — any QWidget via DockManager)
+// Inherits MainWindowBase (bare) and installs the full set of standard
+// subsystems: menu bar, tool bar, status bar, tabified docks.
 //
-// Business logic, bridges, and app-level concerns live in app_shell::App.
-// Dock lifecycle and persistence live in DockManager.
-// Window-level concerns (geometry, zoom, active dock UI) live here.
+// Consumers who want different behavior can inherit MainWindowBase directly
+// and compose their own setup. This class is a recipe, not a requirement.
 
 #pragma once
 
-#include <QMainWindow>
+#include "main_window_base.hpp"
+
 #include <QList>
 #include <QUrl>
 
@@ -23,9 +20,7 @@ class QWebEngineView;
 class StatusBar;
 struct MenuActions;
 
-namespace app_shell { class App; }
-
-class MainWindow : public QMainWindow {
+class MainWindow : public MainWindowBase {
     Q_OBJECT
 
 public:
@@ -62,7 +57,6 @@ private:
     // than dereferencing whatever Qt handed us.
     QDockWidget* dockForTab(QTabBar* tabBar, int index) const;
 
-    app_shell::App& app_;
     QList<QDockWidget*> docks_;
     QDockWidget* activeDock_ = nullptr;
     StatusBar* statusBar_ = nullptr;
