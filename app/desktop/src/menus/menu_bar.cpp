@@ -73,7 +73,7 @@ MenuActions buildMenuBar(app_shell::App& app, QMainWindow* window) {
     out.save->setShortcut(QKeySequence("Ctrl+S"));
     out.save->setToolTip("Save file (Ctrl+S)");
     {
-        auto* sysBridge = static_cast<SystemBridge*>(app.registry()->get("system"));
+        auto* sysBridge = app.bridge<SystemBridge>();
         QObject::connect(out.save, &QAction::triggered, window, [window, sysBridge]() {
             if (sysBridge && sysBridge->has_listeners("saveRequested")) {
                 // React is listening — let it handle the save

@@ -47,10 +47,10 @@ Tick a sub-box when its commit lands green (`xmake build desktop` + `xmake build
 
 ## Phase 4 — Typed bridge access
 
-- [ ] **Phase 4 complete**
-  - [ ] **10. Add `app.addBridge<T>(name)` and `app.bridge<T>()`** — both APIs available; old fishing pattern still compiles
-  - [ ] **11. Migrate every fishing-cast site to typed `app.bridge<T>()`** — no `static_cast<*Bridge*>(shell()->bridges().value(...))` anywhere
-  - [ ] **12. Extract `register_my_bridges(app)`** — single registration function called from `application.cpp` and `test_server.cpp` both
+- [x] **Phase 4 complete**
+  - [x] **10. Add `app.addBridge<T>(name)` and `app.bridge<T>()`** — both APIs available; old fishing pattern still compiles; commit `31f60cd`
+  - [x] **11. Migrate every fishing-cast site to typed `app.bridge<T>()`** — 4 sites across `main.cpp`, `main_window.cpp`, `menu_bar.cpp`, `web_shell_widget.cpp`; commit `31f60cd`
+  - [x] **12. Extract `register_bridges(registry)`** — shared header at `app/bridges/register_bridges.hpp` called from `app.cpp` and `test_server.cpp`; commit `31f60cd`
 
 ---
 

@@ -111,8 +111,7 @@ MainWindow::MainWindow(app_shell::App& app, const QString& windowId, QWidget* pa
     wireToActiveDock();
 
     // ── Wire React → native dialog ──────────────────────────
-    auto* systemBridge = static_cast<SystemBridge*>(
-        app_.registry()->get("system"));
+    auto* systemBridge = app_.bridge<SystemBridge>();
     if (systemBridge) {
         systemBridge->on_signal("openDialogRequested", [this](const nlohmann::json&) {
             QTimer::singleShot(0, this, [this]() {

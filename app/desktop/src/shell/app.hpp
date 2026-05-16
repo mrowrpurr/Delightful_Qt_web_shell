@@ -28,6 +28,13 @@ public:
     QWebEngineProfile* webProfile() const { return profile_; }
     BridgeRegistry* registry() { return &registry_; }
     const BridgeRegistry* registry() const { return &registry_; }
+
+    // Typed bridge registration + retrieval.
+    template<typename T>
+    void addBridge(const std::string& name, T* bridge) { registry_.add(name, bridge); }
+
+    template<typename T>
+    T* bridge() const { return registry_.get<T>(); }
     AppLifecycle* lifecycle() const { return lifecycle_; }
     StyleManager* styleManager() const { return styleManager_; }
     DockManager* dockManager() const { return dockManager_; }

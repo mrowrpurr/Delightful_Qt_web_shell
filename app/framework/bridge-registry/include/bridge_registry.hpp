@@ -9,6 +9,7 @@
 
 #include <map>
 #include <string>
+#include <typeindex>
 
 #include "bridge.hpp"
 
@@ -16,10 +17,24 @@ namespace app_shell {
 
 class BridgeRegistry {
     std::map<std::string, Bridge*> bridges_;
+    std::map<std::type_index, Bridge*> typed_;
 
 public:
-    void add(const std::string& name, Bridge* b) { bridges_[name] = b; }
+    // Register a bridge by name (wire protocol) and type (compile-time retrieval).
+    template<typename T>
+    void add(const std::string& name, T* bridge) {
+        bridges_[name] = bridge;
+        typed_[std::type_index(typeid(T))] = bridge;
+    }
 
+    // Retrieve by type — no casting, no string lookup.
+    template<typename T>
+    T* get() const {
+        auto it = typed_.find(std::type_index(typeid(T)));
+        return it == typed_.end() ? nullptr : static_cast<T*>(it->second);
+    }
+
+    // Retrieve by name (wire protocol — used by transports).
     Bridge* get(const std::string& name) const {
         auto it = bridges_.find(name);
         return it == bridges_.end() ? nullptr : it->second;

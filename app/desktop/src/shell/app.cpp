@@ -20,9 +20,7 @@
 
 #include <oclero/qlementine/icons/QlementineIcons.hpp>
 
-// @scaffold:include
-#include "system_bridge.hpp"
-#include "todo_bridge.hpp"
+#include "register_bridges.hpp"
 #include "app_lifecycle.hpp"
 
 namespace app_shell {
@@ -83,13 +81,10 @@ App::App(int& argc, char** argv)
 
     // ── Bridges + lifecycle ──────────────────────────────────
     lifecycle_ = new AppLifecycle(this);
-    // @scaffold:bridge
-    auto* todoBridge = new TodoBridge;
-    registry_.add("todos", todoBridge);
-    auto* systemBridge = new SystemBridge;
-    registry_.add("system", systemBridge);
+    register_bridges(registry_);
 
     // ── Wire StyleManager ↔ SystemBridge ──────────────────────
+    auto* systemBridge = registry_.get<SystemBridge>();
     connect(styleManager_, &StyleManager::themeChanged, this, [this, systemBridge]() {
         systemBridge->updateQtThemeState(
             styleManager_->currentDisplayName(), styleManager_->isDarkMode());

@@ -193,8 +193,7 @@ bool WebShellWidget::eventFilter(QObject* obj, QEvent* event) {
                 paths.append(url.toLocalFile());
         }
         if (!paths.isEmpty()) {
-            auto* bridge = static_cast<SystemBridge*>(
-                registry_->get("system"));
+            auto* bridge = registry_->get<SystemBridge>();
             if (bridge)
                 bridge->handleFilesDropped(paths);
         }

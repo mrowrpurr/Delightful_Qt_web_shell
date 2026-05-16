@@ -6,9 +6,7 @@
 #include <QCoreApplication>
 #include <QCommandLineParser>
 
-// @scaffold:include
-#include "system_bridge.hpp"
-#include "todo_bridge.hpp"
+#include "register_bridges.hpp"
 #include "expose_as_ws.hpp"
 #include "app_lifecycle.hpp"
 #include "bridge_registry.hpp"
@@ -23,16 +21,9 @@ int main(int argc, char* argv[]) {
 
     int port = parser.value("port").toInt();
 
-    // Register your bridges here — must match desktop/src/main.cpp.
-    // If you add a bridge in main.cpp but forget here, browser-mode dev
-    // and Playwright tests will silently be missing that bridge.
     app_shell::BridgeRegistry registry;
     AppLifecycle lifecycle;
-    // @scaffold:bridge
-    auto* todoBridge = new TodoBridge;
-    registry.add("todos", todoBridge);
-    auto* systemBridge = new SystemBridge;
-    registry.add("system", systemBridge);
+    register_bridges(registry);
     auto* server = expose_as_ws(&registry, &lifecycle, port);
     if (!server) return 1;
 
