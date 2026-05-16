@@ -2,7 +2,6 @@
 
 #include "dock_manager.hpp"
 #include "shell/app.hpp"
-#include "widgets/web_shell_widget.hpp"
 #include "windows/main_window.hpp"
 
 #include <algorithm>
@@ -58,15 +57,16 @@ QDockWidget* DockManager::createDock(const QUrl& contentUrl, MainWindow* host,
                                      const QString& dockId) {
     QUrl url = contentUrl.isEmpty() ? app_.appUrl("demo") : contentUrl;
 
-    auto* widget = new WebShellWidget(
-        app_.webProfile(), app_.registry(), app_.lifecycle(), url,
-        app_.brandingImagePath(), WebShellWidget::FullOverlay);
+    Q_ASSERT_X(widgetFactory_, "DockManager::createDock",
+               "setWidgetFactory() must be called before creating docks");
+    auto* widget = widgetFactory_(url);
 
     auto* dock = new QDockWidget(APP_NAME);
     QString id = dockId.isEmpty()
         ? QUuid::createUuid().toString(QUuid::WithoutBraces)
         : dockId;
     dock->setObjectName(id);
+    dock->setProperty("contentUrl", url);
     dock->setWidget(widget);
     dock->setAllowedAreas(Qt::AllDockWidgetAreas);
     dock->setFeatures(
@@ -79,8 +79,10 @@ QDockWidget* DockManager::createDock(const QUrl& contentUrl, MainWindow* host,
 
     // Add to host MainWindow BEFORE saving — otherwise isFloating()
     // returns true because the dock has no parent yet.
-    if (host)
+    if (host) {
+        dock->setProperty("hostWindow", QVariant::fromValue(static_cast<QObject*>(host)));
         host->addDock(dock);
+    }
 
     saveDock(dock);
 
@@ -111,14 +113,8 @@ void DockManager::closeDock(QDockWidget* dock) {
     }
 
     // Notify the host MainWindow so it can update its local tracking.
-    for (auto* w : QApplication::topLevelWidgets()) {
-        if (auto* mw = qobject_cast<MainWindow*>(w)) {
-            if (mw->docks().contains(dock)) {
-                mw->removeDock(dock);
-                break;
-            }
-        }
-    }
+    if (auto* host = qobject_cast<MainWindow*>(dock->property("hostWindow").value<QObject*>()))
+        host->removeDock(dock);
 
     emit dockClosed(dock);
     dock->deleteLater();
@@ -231,15 +227,10 @@ void DockManager::shutdownAll() {
     for (auto* dock : docksToClose) {
         log(QString("  detaching dock %1 floating=%2").arg(dock->objectName()).arg(dock->isFloating()));
 
-        // Find the host MainWindow and cleanly remove the dock from it.
-        for (auto* w : QApplication::topLevelWidgets()) {
-            if (auto* mw = qobject_cast<MainWindow*>(w)) {
-                if (mw->docks().contains(dock)) {
-                    mw->removeDockWidget(dock);
-                    mw->removeDock(dock);
-                    break;
-                }
-            }
+        // Cleanly remove the dock from its host MainWindow.
+        if (auto* host = qobject_cast<MainWindow*>(dock->property("hostWindow").value<QObject*>())) {
+            host->removeDockWidget(dock);
+            host->removeDock(dock);
         }
 
         dock->hide();
@@ -264,25 +255,18 @@ void DockManager::shutdownAll() {
 
 void DockManager::saveDock(QDockWidget* dock) {
     QElapsedTimer t; t.start();
-    auto* widget = qobject_cast<WebShellWidget*>(dock->widget());
     QSettings s(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
     qint64 settingsOpenMs = t.elapsed();
 
     QString key = "dock/" + dock->objectName();
-    QString url = widget ? widget->view()->url().toString() : QString();
+    QString url = dock->property("contentUrl").toUrl().toString();
     bool floating = dock->isFloating();
     int order = docks_.indexOf(dock);
 
-    // Find the host MainWindow for this dock.
+    // Read the host from the dock's property (set at createDock time).
     QString windowId;
-    for (auto* w : QApplication::topLevelWidgets()) {
-        if (auto* mw = qobject_cast<MainWindow*>(w)) {
-            if (mw->docks().contains(dock)) {
-                windowId = mw->windowId();
-                break;
-            }
-        }
-    }
+    if (auto* host = qobject_cast<MainWindow*>(dock->property("hostWindow").value<QObject*>()))
+        windowId = host->windowId();
 
     log(QString("saveDock: %1 floating=%2 order=%3 window=%4 url=%5")
         .arg(dock->objectName()).arg(floating).arg(order).arg(windowId, url));
@@ -310,13 +294,12 @@ void DockManager::removeDockState(const QString& id) {
 // ── Wire persistence signals ─────────────────────────────────
 
 void DockManager::wirePersistence(QDockWidget* dock) {
-    auto* widget = qobject_cast<WebShellWidget*>(dock->widget());
-
-    // URL changed → save immediately.
-    if (widget) {
-        connect(widget->view(), &QWebEngineView::urlChanged,
+    // If the dock's content has a QWebEngineView, track URL changes for persistence.
+    if (auto* view = dock->widget()->findChild<QWebEngineView*>()) {
+        connect(view, &QWebEngineView::urlChanged,
                 this, [this, dock](const QUrl& url) {
             if (restoring_ || quitting_) return;
+            dock->setProperty("contentUrl", url);
             qDebug() << "[DockManager] urlChanged"
                      << "id=" << dock->objectName()
                      << "url=" << url.toString();

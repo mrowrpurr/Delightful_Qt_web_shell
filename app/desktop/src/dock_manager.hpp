@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <functional>
+
 #include <QDockWidget>
 #include <QEvent>
 #include <QHash>
@@ -25,7 +27,15 @@ class DockManager : public QObject {
     Q_OBJECT
 
 public:
+    // Factory that creates the widget for a new dock given a content URL.
+    // Set via setWidgetFactory() — DockManager never constructs WebShellWidget itself.
+    using WidgetFactory = std::function<QWidget*(const QUrl& url)>;
+
     explicit DockManager(app_shell::App& app, QObject* parent = nullptr);
+
+    // Set the factory that creates dock content widgets.
+    // Must be called before createDock(). DockManager is content-agnostic.
+    void setWidgetFactory(WidgetFactory factory) { widgetFactory_ = std::move(factory); }
 
     // Create a new dock and register it. If host is provided, the dock
     // is added to that MainWindow; otherwise it floats independently.
@@ -75,6 +85,7 @@ private:
     static void log(const QString& msg);
 
     app_shell::App& app_;
+    WidgetFactory widgetFactory_;
     QList<QDockWidget*> docks_;
     QHash<QDockWidget*, QTimer*> saveTimers_;  // debounce timers per dock
     bool quitting_ = false;

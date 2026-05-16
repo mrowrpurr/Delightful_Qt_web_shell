@@ -17,6 +17,7 @@
 #include "shell/single_instance.hpp"
 #include "style_manager.hpp"
 #include "widgets/scheme_handler.hpp"
+#include "widgets/web_shell_widget.hpp"
 
 #include <oclero/qlementine/icons/QlementineIcons.hpp>
 
@@ -102,6 +103,11 @@ App::App(int& argc, char** argv)
 
     // ── Dock manager ─────────────────────────────────────────
     dockManager_ = new DockManager(*this, this);
+    dockManager_->setWidgetFactory([this](const QUrl& url) -> QWidget* {
+        return new WebShellWidget(
+            webProfile(), registry(), lifecycle(), url,
+            brandingImagePath(), WebShellWidget::FullOverlay);
+    });
 
     // ── Shutdown ─────────────────────────────────────────────
     connect(this, &QApplication::aboutToQuit, this, [this]() {
