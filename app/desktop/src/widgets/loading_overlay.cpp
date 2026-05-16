@@ -102,7 +102,7 @@ void LoadingOverlay::showError() {
 
     auto* errorLabel = new QLabel(this);
     errorLabel->setText(
-        "Bridge connection failed.\n\nCheck the console (F12) or restart the app.");
+        "Bridge connection failed.\n\nOpen developer tools or restart the app.");
     errorLabel->setAlignment(Qt::AlignCenter);
     errorLabel->setStyleSheet("color: #ff6b6b; font-size: 14px;");
     layout()->addWidget(errorLabel);

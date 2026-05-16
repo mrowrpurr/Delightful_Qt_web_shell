@@ -164,7 +164,6 @@ bool DockTabManager::eventFilter(QObject* obj, QEvent* event) {
                 if (idx >= 0) {
                     dragTabBar_ = tabBar;
                     dragTabIndex_ = idx;
-                    dragTabTitle_ = tabBar->tabText(idx);
                 }
             }
             break;
@@ -192,7 +191,6 @@ bool DockTabManager::eventFilter(QObject* obj, QEvent* event) {
         case QEvent::Leave:
             dragTabBar_ = nullptr;
             dragTabIndex_ = -1;
-            dragTabTitle_.clear();
             break;
         default:
             break;
@@ -208,14 +206,16 @@ void DockTabManager::undockTab(QTabBar* tabBar, int tabIndex) {
     if (!tabBar || tabIndex < 0 || tabIndex >= tabBar->count())
         return;
 
-    QString title = tabBar->tabText(tabIndex);
-
-    // Find the QDockWidget with this title.
+    // Resolve via tabData quintptr — Qt stamps each tab with the dock's pointer.
+    // Compare against live findChildren rather than dereferencing the stored value.
+    quintptr id = tabBar->tabData(tabIndex).value<quintptr>();
     QDockWidget* target = nullptr;
-    for (auto* dock : window_->findChildren<QDockWidget*>()) {
-        if (dock->windowTitle() == title) {
-            target = dock;
-            break;
+    if (id) {
+        for (auto* dock : window_->findChildren<QDockWidget*>()) {
+            if (reinterpret_cast<quintptr>(dock) == id) {
+                target = dock;
+                break;
+            }
         }
     }
     if (!target) return;

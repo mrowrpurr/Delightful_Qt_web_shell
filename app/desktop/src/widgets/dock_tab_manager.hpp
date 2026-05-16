@@ -54,5 +54,4 @@ private:
     // Drag-to-undock state.
     QTabBar* dragTabBar_ = nullptr;
     int dragTabIndex_ = -1;
-    QString dragTabTitle_;
 };
