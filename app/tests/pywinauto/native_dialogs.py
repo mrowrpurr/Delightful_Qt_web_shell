@@ -159,7 +159,10 @@ class QtMessageBox:
     (usually OK), Escape closes the dialog (Cancel/Close).
     """
 
-    def __init__(self, title_contains, timeout=3):
+    def __init__(self, title_contains, timeout=10):
+        # 10s default: pywinauto's first menu_select() call has a UIA cold-start
+        # cost (~5s on Windows) before the menu action even fires. Subsequent
+        # menu_selects are fast, but the first test bears the warmup penalty.
         self.hwnd = find_window(title_contains, timeout=timeout)
         self._title_contains = title_contains
 

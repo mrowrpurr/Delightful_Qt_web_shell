@@ -1,5 +1,7 @@
 -- Capture at parse time — globals aren't available inside on_run closures
 local _APP_NAME = APP_NAME
+local _APP_SLUG = APP_SLUG
+local _APP_ORG = APP_ORG
 local _TEMPLATE_ROOT = TEMPLATE_ROOT
 
 -- ── Vite dev servers ────────────────────────────────────────────────
@@ -86,6 +88,36 @@ target("start-desktop")
                     return
                 end
                 os.rm(pidfile)
+            end
+        end
+
+        -- Suppress the URL-protocol-register prompt by pre-writing the
+        -- QSettings ini that UrlProtocol::promptIfNeeded() checks. Without
+        -- this, a modal QMessageBox blocks the main window from ever
+        -- painting and pywinauto tests time out waiting for MainWindow.
+        local ini_dir, ini_path
+        if is_plat("windows") then
+            ini_dir = path.join(os.getenv("APPDATA") or "", _APP_ORG)
+            ini_path = path.join(ini_dir, _APP_SLUG .. ".ini")
+        elseif is_plat("linux") then
+            ini_dir = path.join(os.getenv("HOME") or "", ".config", _APP_ORG)
+            ini_path = path.join(ini_dir, _APP_SLUG .. ".ini")
+        end
+        if ini_path then
+            os.mkdir(ini_dir)
+            local existing = os.isfile(ini_path) and io.readfile(ini_path) or ""
+            if not existing:find("dontAsk%s*=%s*true") then
+                if existing:find("%[urlProtocol%]") then
+                    existing = existing:gsub("(%[urlProtocol%][^%[]*)", function(section)
+                        if section:find("dontAsk") then
+                            return section:gsub("dontAsk%s*=%s*[^\r\n]*", "dontAsk=true")
+                        end
+                        return section .. "dontAsk=true\n"
+                    end)
+                    io.writefile(ini_path, existing)
+                else
+                    io.writefile(ini_path, existing .. "\n[urlProtocol]\ndontAsk=true\n")
+                end
             end
         end
 
