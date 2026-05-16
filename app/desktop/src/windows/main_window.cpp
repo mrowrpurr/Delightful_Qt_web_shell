@@ -8,6 +8,9 @@
 //   - Business logic? → lib/
 
 #include "main_window.hpp"
+#include "devtools_shortcut.hpp"
+#include "persisted_geometry.hpp"
+#include "reactive_title.hpp"
 #include "shell/app.hpp"
 #include "shell/window_lifecycle.hpp"
 #include "dock_manager.hpp"
@@ -43,23 +46,14 @@ MainWindow::MainWindow(app_shell::App& app, const QString& windowId, QWidget* pa
 
     setWindowTitle(APP_NAME);
 
-    // ── Restore geometry or default to 900×640 centered ──────
-    QSettings settings(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
-    QString geoKey = "window/" + objectName() + "/geometry";
-    if (settings.contains(geoKey)) {
-        restoreGeometry(settings.value(geoKey).toByteArray());
-    } else {
-        resize(900, 640);
-        if (auto* screen = QApplication::primaryScreen()) {
-            QRect geo = screen->availableGeometry();
-            move((geo.width() - 900) / 2 + geo.x(),
-                 (geo.height() - 640) / 2 + geo.y());
-        }
-    }
+    // ── Window-scoped subsystems ─────────────────────────────
+    new PersistedGeometry(this, objectName());
+    reactiveTitle_ = new ReactiveTitle(this);
 
     // ── Menu bar + toolbar ───────────────────────────────────
     actions_ = new MenuActions(buildMenuBar(app, this));
     buildToolBar(app, this, *actions_);
+    devTools_ = new DevToolsShortcut(actions_->devTools, this);
 
     // ── Status bar ───────────────────────────────────────────
     statusBar_ = new StatusBar(this);
@@ -120,25 +114,6 @@ MainWindow::MainWindow(app_shell::App& app, const QString& windowId, QWidget* pa
         });
     }
 
-    // ── Save main window geometry on exit ────────────────────
-    // Dock persistence is handled by DockManager. MainWindow only
-    // saves its own geometry and zoom level.
-    connect(qApp, &QApplication::aboutToQuit, this, [this]() {
-        // Don't re-save a window that was already closed.
-        if (closed_) return;
-        QSettings s(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
-        QString key = "window/" + objectName();
-        s.setValue(key + "/geometry", saveGeometry());
-        s.setValue(key + "/dockState", saveState());
-        if (auto* view = activeView())
-            s.setValue(key + "/zoomFactor", view->zoomFactor());
-    });
-
-    // ── Restore zoom on first dock ───────────────────────────
-    if (auto* view = activeView()) {
-        QString zoomKey = "window/" + objectName() + "/zoomFactor";
-        view->setZoomFactor(settings.value(zoomKey, 1.0).toReal());
-    }
 }
 
 // ── Dock hosting ─────────────────────────────────────────────
@@ -170,15 +145,7 @@ void MainWindow::addDock(QDockWidget* dock) {
     });
 
     // ── Reactive dock title from document.title ──────────────
-    if (auto* view = dock->widget()->findChild<QWebEngineView*>()) {
-        connect(view->page(), &QWebEnginePage::titleChanged,
-                this, [dock](const QString& title) {
-            qDebug() << "[MainWindow] titleChanged"
-                     << "id=" << dock->objectName()
-                     << "title=" << title;
-            dock->setWindowTitle(title.isEmpty() ? APP_NAME : title);
-        });
-    }
+    reactiveTitle_->wireDock(dock);
 
     // ── Wire tab bar (deferred — Qt may not have created it yet) ──
     QTimer::singleShot(0, this, [this]() { wireTabBar(); });
@@ -241,7 +208,6 @@ void MainWindow::wireToActiveDock() {
     actions_->zoomIn->disconnect();
     actions_->zoomOut->disconnect();
     actions_->zoomReset->disconnect();
-    actions_->devTools->disconnect();
 
     connect(actions_->zoomIn, &QAction::triggered, view, [view]() {
         view->setZoomFactor(qMin(view->zoomFactor() + 0.1, 5.0));
@@ -253,12 +219,7 @@ void MainWindow::wireToActiveDock() {
         view->setZoomFactor(1.0);
     });
 
-    // toggleDevTools lives on the dock's content widget — invoke via QMetaObject
-    // so MainWindow doesn't need to know WebShellWidget concretely.
-    auto* widget = activeDock_->widget();
-    connect(actions_->devTools, &QAction::triggered, widget, [widget]() {
-        QMetaObject::invokeMethod(widget, "toggleDevTools");
-    });
+    devTools_->setActiveDock(activeDock_);
 
     auto updateZoom = [this, view]() {
         statusBar_->setZoomLevel(qRound(view->zoomFactor() * 100));
@@ -417,7 +378,6 @@ void MainWindow::closeEvent(QCloseEvent* event) {
             dm->closeDock(dock);
 
         // Remove this window's state from settings.
-        closed_ = true;
         QSettings s(QSettings::IniFormat, QSettings::UserScope, APP_ORG, APP_SLUG);
         s.remove("window/" + objectName());
 

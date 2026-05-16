@@ -13,10 +13,12 @@
 #include <QList>
 #include <QUrl>
 
+class DevToolsShortcut;
 class DockTabManager;
 class QDockWidget;
 class QTabBar;
 class QWebEngineView;
+class ReactiveTitle;
 class StatusBar;
 struct MenuActions;
 
@@ -62,5 +64,6 @@ private:
     StatusBar* statusBar_ = nullptr;
     MenuActions* actions_ = nullptr;
     DockTabManager* tabManager_ = nullptr;
-    bool closed_ = false;
+    DevToolsShortcut* devTools_ = nullptr;
+    ReactiveTitle* reactiveTitle_ = nullptr;
 };
