@@ -58,9 +58,10 @@ inline QJsonObject collect_bridge_meta(const app_shell::Bridge* bridge) {
 
 // ── Forward bridge signals over WebSocket ──────────────────────
 
-inline void forward_signals(app_shell::Bridge* bridge, const QString& bridgeName, QWebSocket* socket) {
+inline std::vector<std::function<void()>> forward_signals(app_shell::Bridge* bridge, const QString& bridgeName, QWebSocket* socket) {
+    std::vector<std::function<void()>> unsubscribers;
     for (const auto& signal_name : bridge->signal_names()) {
-        bridge->on_signal(signal_name, [socket, bridgeName, sig = QString::fromStdString(signal_name)](const nlohmann::json& data) {
+        auto unsub = bridge->on_signal(signal_name, [socket, bridgeName, sig = QString::fromStdString(signal_name)](const nlohmann::json& data) {
             QJsonObject msg;
             msg["bridge"] = bridgeName;
             msg["event"] = sig;
@@ -72,7 +73,9 @@ inline void forward_signals(app_shell::Bridge* bridge, const QString& bridgeName
                     socket->sendTextMessage(text);
             }, Qt::QueuedConnection);
         });
+        unsubscribers.push_back(std::move(unsub));
     }
+    return unsubscribers;
 }
 
 // ── expose_as_ws ─────────────────────────────────────────────────────
@@ -160,11 +163,21 @@ inline QWebSocketServer* expose_as_ws(app_shell::BridgeRegistry* registry,
             });
 
         // ── Forward signals ──────────────────────────────────────
-        for (const auto& [name, bridge_ptr] : registry->all())
-            forward_signals(bridge_ptr, QString::fromStdString(name), socket);
+        auto* unsubscribers = new std::vector<std::function<void()>>();
+        for (const auto& [name, bridge_ptr] : registry->all()) {
+            auto unsubs = forward_signals(bridge_ptr, QString::fromStdString(name), socket);
+            unsubscribers->insert(unsubscribers->end(),
+                std::make_move_iterator(unsubs.begin()),
+                std::make_move_iterator(unsubs.end()));
+        }
 
         // ── Cleanup ──────────────────────────────────────────────
-        QObject::connect(socket, &QWebSocket::disconnected, socket, &QWebSocket::deleteLater);
+        QObject::connect(socket, &QWebSocket::disconnected, socket, [unsubscribers, socket]() {
+            for (auto& unsub : *unsubscribers)
+                unsub();
+            delete unsubscribers;
+            socket->deleteLater();
+        });
     });
 
     qInfo() << "Bridge WebSocket server listening on port" << port;

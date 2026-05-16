@@ -6,8 +6,6 @@ import fs from 'fs'
 //
 //   DESKTOP=1 npx playwright test    → launches Qt .exe, connects via CDP
 //   npx playwright test              → normal Playwright browser + Vite dev server
-//
-// Requires: playwright-core patch (patches/playwright-core@*.patch)
 
 const isDesktop = process.env.DESKTOP === '1'
 
@@ -23,90 +21,87 @@ function getExePath(): string {
 type Fixtures = { page: Page; goHome: () => Promise<void>; goToTodos: () => Promise<void> }
 
 const desktopTest = base.extend<Fixtures>({
-      page: async ({}, use) => {
-        let qtProcess: ChildProcess | null = null
-        let browser: Browser | null = null
+  page: async ({}, use) => {
+    let qtProcess: ChildProcess | null = null
+    let browser: Browser | null = null
 
-        try {
-          // Launch the real Qt app with CDP enabled
-          qtProcess = spawn(getExePath(), [], {
-            env: { ...process.env, QTWEBENGINE_REMOTE_DEBUGGING: '9222' },
-            stdio: 'ignore',
-          })
+    try {
+      qtProcess = spawn(getExePath(), [], {
+        env: { ...process.env, QTWEBENGINE_REMOTE_DEBUGGING: '9222' },
+        stdio: 'ignore',
+      })
 
-          // Wait for CDP to be available
-          await new Promise<void>((resolve, reject) => {
-            qtProcess!.on('error', (err) => reject(new Error(`Failed to launch Qt app: ${err.message}`)))
-            const start = Date.now()
-            const poll = async () => {
-              try {
-                const res = await fetch('http://localhost:9222/json')
-                const pages = await res.json() as Array<{ webSocketDebuggerUrl: string }>
-                if (pages.length > 0) return resolve()
-              } catch {}
-              if (Date.now() - start > 30_000) return reject(new Error('Qt app CDP timeout'))
-              setTimeout(poll, 250)
-            }
-            poll()
-          })
-
-          // Connect Playwright to the running Qt app
-          browser = await chromium.connectOverCDP('http://localhost:9222')
-
-          // Find the actual app page (skip devtools:// and blank pages)
-          const findAppPage = (): Page | undefined =>
-            browser!.contexts().flatMap(c => c.pages()).find(p => {
-              const url = p.url()
-              return url !== 'about:blank' && !url.startsWith('devtools://')
-            })
-
-          const start = Date.now()
-          let page: Page | undefined
-          while (Date.now() - start < 10_000) {
-            page = findAppPage()
-            if (page) break
-            await new Promise(r => setTimeout(r, 500))
-          }
-          if (!page) {
-            const allPages = browser!.contexts().flatMap(c => c.pages()).map(p => p.url())
-            throw new Error(`No app page found in Qt after 10s. Is the app running? Pages seen: ${JSON.stringify(allPages)}`)
-          }
-
-          await use(page)
-        } finally {
-          await browser?.close().catch(() => {})
-          qtProcess?.kill()
+      await new Promise<void>((resolve, reject) => {
+        qtProcess!.on('error', (err) => reject(new Error(`Failed to launch Qt app: ${err.message}`)))
+        const start = Date.now()
+        const poll = async () => {
+          try {
+            const res = await fetch('http://localhost:9222/json')
+            const pages = await res.json() as Array<{ webSocketDebuggerUrl: string }>
+            if (pages.length > 0) return resolve()
+          } catch {}
+          if (Date.now() - start > 30_000) return reject(new Error('Qt app CDP timeout'))
+          setTimeout(poll, 250)
         }
-      },
-      goHome: async ({ page }, use) => {
-        await use(async () => {
-          // Wait for the tabbed app to load (tab bar visible = React mounted)
-          await expect(page.getByRole('button', { name: /Docs/ })).toBeVisible({ timeout: 10_000 })
+        poll()
+      })
+
+      browser = await chromium.connectOverCDP('http://localhost:9222')
+
+      const findAppPage = (): Page | undefined =>
+        browser!.contexts().flatMap(c => c.pages()).find(p => {
+          const url = p.url()
+          return url !== 'about:blank' && !url.startsWith('devtools://')
         })
-      },
-      goToTodos: async ({ page }, use) => {
-        await use(async () => {
-          await expect(page.getByRole('button', { name: /Todos/ })).toBeVisible({ timeout: 10_000 })
-          await page.getByRole('button', { name: /Todos/ }).click()
-        })
-      },
+
+      const start = Date.now()
+      let page: Page | undefined
+      while (Date.now() - start < 10_000) {
+        page = findAppPage()
+        if (page) break
+        await new Promise(r => setTimeout(r, 500))
+      }
+      if (!page) {
+        const allPages = browser!.contexts().flatMap(c => c.pages()).map(p => p.url())
+        throw new Error(`No app page found in Qt after 10s. Pages seen: ${JSON.stringify(allPages)}`)
+      }
+
+      await use(page)
+    } finally {
+      await browser?.close().catch(() => {})
+      qtProcess?.kill()
+    }
+  },
+  goHome: async ({ page }, use) => {
+    await use(async () => {
+      await expect(page.locator('[data-testid="sidebar-trigger"]')).toBeVisible({ timeout: 10_000 })
     })
+  },
+  goToTodos: async ({ page }, use) => {
+    await use(async () => {
+      await expect(page.locator('[data-testid="sidebar-trigger"]')).toBeVisible({ timeout: 10_000 })
+      await page.locator('[data-testid="sidebar-todos"]').click()
+      await expect(page.getByTestId('new-list-input')).toBeVisible({ timeout: 5_000 })
+    })
+  },
+})
 
 const browserTest = base.extend<Fixtures>({
-      goHome: async ({ page }, use) => {
-        await use(async () => {
-          await page.goto('/')
-          await expect(page.getByRole('button', { name: /Docs/ })).toBeVisible({ timeout: 10_000 })
-        })
-      },
-      goToTodos: async ({ page }, use) => {
-        await use(async () => {
-          await page.goto('/')
-          await expect(page.getByRole('button', { name: /Todos/ })).toBeVisible({ timeout: 10_000 })
-          await page.getByRole('button', { name: /Todos/ }).click()
-        })
-      },
+  goHome: async ({ page }, use) => {
+    await use(async () => {
+      await page.goto('/')
+      await expect(page.locator('[data-testid="sidebar-trigger"]')).toBeVisible({ timeout: 10_000 })
     })
+  },
+  goToTodos: async ({ page }, use) => {
+    await use(async () => {
+      await page.goto('/')
+      await expect(page.locator('[data-testid="sidebar-trigger"]')).toBeVisible({ timeout: 10_000 })
+      await page.locator('[data-testid="sidebar-todos"]').click()
+      await expect(page.getByTestId('new-list-input')).toBeVisible({ timeout: 5_000 })
+    })
+  },
+})
 
 export const test = isDesktop ? desktopTest : browserTest
 
