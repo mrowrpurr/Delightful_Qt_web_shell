@@ -5,10 +5,11 @@
 #include "logging.hpp"
 #include "shell/app.hpp"
 #include "single_instance.hpp"
+#include "style_manager.hpp"
 #include "tray.hpp"
 #include "url_protocol.hpp"
 #include "window_lifecycle.hpp"
-#include "system_bridge.hpp"
+#include "register_bridges.hpp"
 #include "widgets/scheme_handler.hpp"
 #include "windows/main_window.hpp"
 
@@ -25,6 +26,27 @@ int main(int argc, char* argv[]) {
     SchemeHandler::registerUrlScheme();
 
     app_shell::App app(argc, argv);
+
+    // ── Bridges ──────────────────────────────────────────────────────────
+    register_bridges(*app.registry());
+
+    // Wire StyleManager ↔ SystemBridge for theme sync.
+    auto* systemBridge = app.bridge<SystemBridge>();
+    auto* sm = app.styleManager();
+    QObject::connect(sm, &StyleManager::themeChanged, &app, [sm, systemBridge]() {
+        systemBridge->updateQtThemeState(
+            sm->currentDisplayName(), sm->isDarkMode());
+        QString filePath = sm->currentThemeFilePath();
+        systemBridge->setQtThemeFilePath(
+            filePath.toStdString(), filePath.startsWith(":/"));
+    });
+    systemBridge->on_signal("qtThemeRequested", [&app, sm](const nlohmann::json& data) {
+        auto displayName = QString::fromStdString(data["displayName"].get<std::string>());
+        bool isDark = data["isDark"].get<bool>();
+        QMetaObject::invokeMethod(&app, [sm, displayName, isDark]() {
+            sm->applyThemeByDisplayName(displayName, isDark);
+        }, Qt::QueuedConnection);
+    });
 
     // ── Single-instance guard ───────────────────────────────────────────
     // If another instance is already running, the ctor forwards this
@@ -78,7 +100,6 @@ int main(int argc, char* argv[]) {
 
     // Forward args to the SystemBridge so React can see them.
     // Handles: first launch args, second-instance args, and URL protocol activations.
-    auto* systemBridge = app.bridge<SystemBridge>();
     if (systemBridge) {
         QObject::connect(singleInstance, &app_shell::SingleInstance::argsReceived,
                          &app, [systemBridge](const QStringList& args) {

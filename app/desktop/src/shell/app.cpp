@@ -21,7 +21,6 @@
 
 #include <oclero/qlementine/icons/QlementineIcons.hpp>
 
-#include "register_bridges.hpp"
 #include "app_lifecycle.hpp"
 
 namespace app_shell {
@@ -80,26 +79,8 @@ App::App(int& argc, char** argv)
         profile_->installUrlSchemeHandler("app", handler);
     }
 
-    // ── Bridges + lifecycle ──────────────────────────────────
+    // ── Lifecycle ──────────────────────────────────────────────
     lifecycle_ = new AppLifecycle(this);
-    register_bridges(registry_);
-
-    // ── Wire StyleManager ↔ SystemBridge ──────────────────────
-    auto* systemBridge = registry_.get<SystemBridge>();
-    connect(styleManager_, &StyleManager::themeChanged, this, [this, systemBridge]() {
-        systemBridge->updateQtThemeState(
-            styleManager_->currentDisplayName(), styleManager_->isDarkMode());
-        QString filePath = styleManager_->currentThemeFilePath();
-        systemBridge->setQtThemeFilePath(
-            filePath.toStdString(), filePath.startsWith(":/"));
-    });
-    systemBridge->on_signal("qtThemeRequested", [this](const nlohmann::json& data) {
-        auto displayName = QString::fromStdString(data["displayName"].get<std::string>());
-        bool isDark = data["isDark"].get<bool>();
-        QMetaObject::invokeMethod(this, [this, displayName, isDark]() {
-            styleManager_->applyThemeByDisplayName(displayName, isDark);
-        }, Qt::QueuedConnection);
-    });
 
     // ── Dock manager ─────────────────────────────────────────
     dockManager_ = new DockManager(*this, this);
