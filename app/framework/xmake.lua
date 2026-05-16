@@ -7,4 +7,5 @@ if is_plat("wasm") then
 else
     includes("app-lifecycle/xmake.lua")
     includes("qt-transport/xmake.lua")
+    includes("capabilities/xmake.lua")
 end

@@ -13,7 +13,7 @@ local WEB_APPS = {"demo", "settings", "app"}
 target("desktop")
     set_kind("binary")
     add_rules("qt.widgetapp")
-    add_deps("app.bridges.system", "app.framework.qt-transport", "app.framework.app-lifecycle")
+    add_deps("app.bridges.system", "app.framework.qt-transport", "app.framework.app-lifecycle", "app.framework.capabilities")
     add_files("src/**.cpp", "src/**.hpp")
     add_files(
         "resources/resources.qrc",
@@ -25,17 +25,8 @@ target("desktop")
         add_files("resources/app.rc")
     elseif is_plat("macosx") then
         set_filename(APP_NAME)
-        -- url_protocol_windows.cpp got picked up by the src/**.cpp glob — kick it out.
-        remove_files("src/shell/url_protocol_windows.cpp")
-        -- The .mm Objective-C++ file isn't matched by the .cpp glob; add explicitly.
-        add_files("src/shell/url_protocol_macos.mm")
-        add_frameworks("CoreServices", "Foundation")
     else
         set_filename(APP_SLUG)
-        -- URL protocol is implemented on Windows and macOS only.
-        -- Other platforms: provide your own url_protocol_<platform>.cpp
-        -- defining isRegistered / registerProtocol / unregisterProtocol.
-        remove_files("src/shell/url_protocol_windows.cpp")
     end
     add_packages("qlementine-icons", "libsass")
     add_frameworks(

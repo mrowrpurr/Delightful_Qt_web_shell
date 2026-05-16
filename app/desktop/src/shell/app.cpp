@@ -14,7 +14,7 @@
 #include <QWebEngineProfile>
 
 #include "dock_manager.hpp"
-#include "shell/single_instance.hpp"
+#include "single_instance.hpp"
 #include "style_manager.hpp"
 #include "widgets/scheme_handler.hpp"
 #include "widgets/web_shell_widget.hpp"

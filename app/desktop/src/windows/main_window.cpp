@@ -12,7 +12,7 @@
 #include "persisted_geometry.hpp"
 #include "reactive_title.hpp"
 #include "shell/app.hpp"
-#include "shell/window_lifecycle.hpp"
+#include "window_lifecycle.hpp"
 #include "dock_manager.hpp"
 #include "menus/menu_bar.hpp"
 #include "widgets/dock_tab_manager.hpp"
@@ -48,7 +48,7 @@ MainWindow::MainWindow(app_shell::App& app, const QString& windowId, QWidget* pa
 
     // ── Window-scoped subsystems ─────────────────────────────
     new PersistedGeometry(this, objectName());
-    reactiveTitle_ = new ReactiveTitle(this);
+    reactiveTitle_ = new ReactiveTitle(this, APP_NAME);
 
     // ── Menu bar + toolbar ───────────────────────────────────
     actions_ = new MenuActions(buildMenuBar(app, this));

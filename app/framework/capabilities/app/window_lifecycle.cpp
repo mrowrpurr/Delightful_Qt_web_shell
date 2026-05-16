@@ -1,6 +1,6 @@
 // app_shell::WindowLifecycle — see window_lifecycle.hpp for overview.
 
-#include "shell/window_lifecycle.hpp"
+#include "window_lifecycle.hpp"
 
 #include <QApplication>
 #include <QSettings>

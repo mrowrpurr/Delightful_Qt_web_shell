@@ -16,17 +16,21 @@ class ReactiveTitle : public QObject {
     Q_OBJECT
 
 public:
-    explicit ReactiveTitle(QMainWindow* window)
-        : QObject(window) {}
+    explicit ReactiveTitle(QMainWindow* window, const QString& fallbackTitle)
+        : QObject(window), fallbackTitle_(fallbackTitle) {}
 
     // Call this when a dock is added to the window.
     void wireDock(QDockWidget* dock) {
         if (!dock->widget()) return;
         if (auto* view = dock->widget()->findChild<QWebEngineView*>()) {
+            QString fallback = fallbackTitle_;
             connect(view->page(), &QWebEnginePage::titleChanged,
-                    this, [dock](const QString& title) {
-                dock->setWindowTitle(title.isEmpty() ? APP_NAME : title);
+                    this, [dock, fallback](const QString& title) {
+                dock->setWindowTitle(title.isEmpty() ? fallback : title);
             });
         }
     }
+
+private:
+    QString fallbackTitle_;
 };

@@ -17,7 +17,7 @@
 
 #include "menu_bar.hpp"
 #include "shell/app.hpp"
-#include "shell/url_protocol.hpp"
+#include "url_protocol.hpp"
 #include "dialogs/about_dialog.hpp"
 #include "dialogs/demo_widget_dialog.hpp"
 #include "dialogs/web_dialog.hpp"

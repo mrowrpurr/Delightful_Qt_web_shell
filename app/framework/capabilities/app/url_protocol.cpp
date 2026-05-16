@@ -6,7 +6,7 @@
 //   - url_protocol_windows.cpp  (HKCU\Software\Classes registry)
 //   - url_protocol_macos.mm     (LaunchServices + Info.plist)
 
-#include "shell/url_protocol.hpp"
+#include "url_protocol.hpp"
 
 #include <QApplication>
 #include <QCheckBox>

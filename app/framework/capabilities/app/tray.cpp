@@ -1,6 +1,6 @@
 // app_shell::Tray — see tray.hpp for overview.
 
-#include "shell/tray.hpp"
+#include "tray.hpp"
 
 #include <QAction>
 #include <QApplication>

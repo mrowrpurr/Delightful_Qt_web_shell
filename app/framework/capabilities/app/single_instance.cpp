@@ -1,6 +1,6 @@
 // app_shell::SingleInstance — see single_instance.hpp for overview.
 
-#include "shell/single_instance.hpp"
+#include "single_instance.hpp"
 
 #include <QApplication>
 #include <QLocalServer>

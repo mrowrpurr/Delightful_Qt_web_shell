@@ -3,7 +3,7 @@
 // Writes/reads HKCU\Software\Classes\<scheme>, the per-user registry
 // location for URL protocol handlers. No admin rights required.
 
-#include "shell/url_protocol.hpp"
+#include "url_protocol.hpp"
 
 #include <QApplication>
 #include <QDir>

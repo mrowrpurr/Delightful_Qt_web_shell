@@ -19,7 +19,7 @@
 // which requires finding one. For now unregisterProtocol() is a
 // best-effort no-op with a logged note.
 
-#include "shell/url_protocol.hpp"
+#include "url_protocol.hpp"
 
 #include <QApplication>
 #include <QDebug>
