@@ -4,7 +4,7 @@
 //   - menu bar   (from menus/)
 //   - tool bar   (from menus/)
 //   - status bar (from widgets/)
-//   - Tabified QDockWidgets with WebShellWidgets (main app docks)
+//   - Tabified QDockWidgets (content-agnostic — any QWidget via DockManager)
 //
 // Business logic, bridges, and app-level concerns live in app_shell::App.
 // Dock lifecycle and persistence live in DockManager.
@@ -19,8 +19,8 @@
 class DockTabManager;
 class QDockWidget;
 class QTabBar;
+class QWebEngineView;
 class StatusBar;
-class WebShellWidget;
 struct MenuActions;
 
 namespace app_shell { class App; }
@@ -52,7 +52,7 @@ protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
 
 private:
-    WebShellWidget* activeTab() const;
+    QWebEngineView* activeView() const;
     void wireToActiveDock();
     void wireTabBar();
 

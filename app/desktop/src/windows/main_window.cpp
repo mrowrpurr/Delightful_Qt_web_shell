@@ -14,7 +14,6 @@
 #include "menus/menu_bar.hpp"
 #include "widgets/dock_tab_manager.hpp"
 #include "widgets/status_bar.hpp"
-#include "widgets/web_shell_widget.hpp"
 
 #include <QCloseEvent>
 #include <QContextMenuEvent>
@@ -131,14 +130,14 @@ MainWindow::MainWindow(app_shell::App& app, const QString& windowId, QWidget* pa
         QString key = "window/" + objectName();
         s.setValue(key + "/geometry", saveGeometry());
         s.setValue(key + "/dockState", saveState());
-        if (auto* tab = activeTab())
-            s.setValue(key + "/zoomFactor", tab->view()->zoomFactor());
+        if (auto* view = activeView())
+            s.setValue(key + "/zoomFactor", view->zoomFactor());
     });
 
     // ── Restore zoom on first dock ───────────────────────────
-    if (auto* tab = activeTab()) {
+    if (auto* view = activeView()) {
         QString zoomKey = "window/" + objectName() + "/zoomFactor";
-        tab->view()->setZoomFactor(settings.value(zoomKey, 1.0).toReal());
+        view->setZoomFactor(settings.value(zoomKey, 1.0).toReal());
     }
 }
 
@@ -171,9 +170,8 @@ void MainWindow::addDock(QDockWidget* dock) {
     });
 
     // ── Reactive dock title from document.title ──────────────
-    auto* widget = qobject_cast<WebShellWidget*>(dock->widget());
-    if (widget) {
-        connect(widget->view()->page(), &QWebEnginePage::titleChanged,
+    if (auto* view = dock->widget()->findChild<QWebEngineView*>()) {
+        connect(view->page(), &QWebEnginePage::titleChanged,
                 this, [dock](const QString& title) {
             qDebug() << "[MainWindow] titleChanged"
                      << "id=" << dock->objectName()
@@ -237,9 +235,8 @@ void MainWindow::wireTabBar() {
 // ── Active dock wiring ───────────────────────────────────────
 
 void MainWindow::wireToActiveDock() {
-    auto* tab = activeTab();
-    if (!tab) return;
-    auto* view = tab->view();
+    auto* view = activeView();
+    if (!view) return;
 
     actions_->zoomIn->disconnect();
     actions_->zoomOut->disconnect();
@@ -255,8 +252,12 @@ void MainWindow::wireToActiveDock() {
     connect(actions_->zoomReset, &QAction::triggered, view, [view]() {
         view->setZoomFactor(1.0);
     });
-    connect(actions_->devTools, &QAction::triggered, tab, [tab]() {
-        tab->toggleDevTools();
+
+    // toggleDevTools lives on the dock's content widget — invoke via QMetaObject
+    // so MainWindow doesn't need to know WebShellWidget concretely.
+    auto* widget = activeDock_->widget();
+    connect(actions_->devTools, &QAction::triggered, widget, [widget]() {
+        QMetaObject::invokeMethod(widget, "toggleDevTools");
     });
 
     auto updateZoom = [this, view]() {
@@ -266,9 +267,9 @@ void MainWindow::wireToActiveDock() {
     updateZoom();
 }
 
-WebShellWidget* MainWindow::activeTab() const {
-    if (activeDock_)
-        return qobject_cast<WebShellWidget*>(activeDock_->widget());
+QWebEngineView* MainWindow::activeView() const {
+    if (activeDock_ && activeDock_->widget())
+        return activeDock_->widget()->findChild<QWebEngineView*>();
     return nullptr;
 }
 

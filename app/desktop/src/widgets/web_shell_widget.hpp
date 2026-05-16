@@ -55,7 +55,7 @@ public:
     QWebEngineView* view() const { return view_; }
 
     // Toggle the developer tools window (F12)
-    void toggleDevTools();
+    Q_INVOKABLE void toggleDevTools();
 
 protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
