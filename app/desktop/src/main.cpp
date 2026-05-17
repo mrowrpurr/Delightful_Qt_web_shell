@@ -10,7 +10,6 @@
 #include "url_protocol.hpp"
 #include "window_lifecycle.hpp"
 #include "system_bridge.hpp"
-#include "theme_bridge.hpp"
 #include "todo_bridge.hpp"
 #include "widgets/scheme_handler.hpp"
 #include "windows/main_window.hpp"
@@ -32,10 +31,9 @@ int main(int argc, char* argv[]) {
     // ── Bridges ──────────────────────────────────────────────────────────
     app.addBridge<TodoBridge>("todos");
     app.addBridge<SystemBridge>("system");
-    app.addBridge<ThemeBridge>("theme");
 
     // ── Theming ──────────────────────────────────────────────────────────
-    // Owns StyleManager + wires it to ThemeBridge for React ↔ Qt sync.
+    // Owns StyleManager, registers ThemeBridge, wires them together.
     new app_shell::Theming(app, "default-dark");
 
     // ── Single-instance guard ───────────────────────────────────────────

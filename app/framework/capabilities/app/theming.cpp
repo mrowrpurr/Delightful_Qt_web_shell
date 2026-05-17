@@ -28,9 +28,9 @@ Theming::Theming(App& app, const QString& baseline)
     sm_ = new StyleManager(&app);
     sm_->applyTheme(baseline);
 
-    // ── Wire StyleManager ↔ ThemeBridge ───────────────────────────
-    auto* themeBridge = app.bridge<ThemeBridge>();
-    if (themeBridge) {
+    // ── ThemeBridge — auto-registered, wired to StyleManager ────
+    auto* themeBridge = app.addBridge<ThemeBridge>("theme");
+    {
         QObject::connect(sm_, &StyleManager::themeChanged, &app, [this, themeBridge]() {
             themeBridge->updateQtThemeState(
                 sm_->currentDisplayName().toStdString(), sm_->isDarkMode());
