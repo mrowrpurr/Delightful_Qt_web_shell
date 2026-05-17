@@ -5,7 +5,7 @@
 #include "logging.hpp"
 #include "shell/app.hpp"
 #include "single_instance.hpp"
-#include "style_manager.hpp"
+#include "theming.hpp"
 #include "tray.hpp"
 #include "url_protocol.hpp"
 #include "window_lifecycle.hpp"
@@ -34,23 +34,9 @@ int main(int argc, char* argv[]) {
     app.addBridge<SystemBridge>("system");
     app.addBridge<ThemeBridge>("theme");
 
-    // Wire StyleManager ↔ ThemeBridge for theme sync.
-    auto* themeBridge = app.bridge<ThemeBridge>();
-    auto* sm = app.styleManager();
-    QObject::connect(sm, &StyleManager::themeChanged, &app, [sm, themeBridge]() {
-        themeBridge->updateQtThemeState(
-            sm->currentDisplayName().toStdString(), sm->isDarkMode());
-        QString filePath = sm->currentThemeFilePath();
-        themeBridge->setQtThemeFilePath(
-            filePath.toStdString(), filePath.startsWith(":/"));
-    });
-    themeBridge->on_signal("qtThemeRequested", [&app, sm](const nlohmann::json& data) {
-        auto displayName = QString::fromStdString(data["displayName"].get<std::string>());
-        bool isDark = data["isDark"].get<bool>();
-        QMetaObject::invokeMethod(&app, [sm, displayName, isDark]() {
-            sm->applyThemeByDisplayName(displayName, isDark);
-        }, Qt::QueuedConnection);
-    });
+    // ── Theming ──────────────────────────────────────────────────────────
+    // Owns StyleManager + wires it to ThemeBridge for React ↔ Qt sync.
+    new app_shell::Theming(app, "default-dark");
 
     // ── Single-instance guard ───────────────────────────────────────────
     // If another instance is already running, the ctor forwards this

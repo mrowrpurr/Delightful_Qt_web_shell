@@ -6,7 +6,7 @@ target("app.framework.capabilities")
     -- the desktop src tree. This dependency inverts in Phase 6 when App
     -- moves to framework/shell/.
     add_includedirs("../../desktop/src")
-    add_deps("app.framework.bridge-registry")
+    add_deps("app.framework.bridge-registry", "app.bridges.theme")
     add_files("app/*.cpp", "app/*.hpp", "window/*.hpp")
     remove_files("app/url_protocol_windows.cpp")
     if is_plat("windows") then

@@ -1,8 +1,8 @@
 // app_shell::App — the framework's QApplication subclass.
 //
 // Holds identity (org / app name / version), the QWebEngineProfile, the
-// bridge registry, and the style + dock managers. Forwards macOS URL
-// scheme activations delivered via QEvent::FileOpen.
+// bridge registry, and the dock manager. Forwards macOS URL scheme
+// activations delivered via QEvent::FileOpen.
 
 #pragma once
 
@@ -42,7 +42,7 @@ public:
     template<typename T>
     T* bridge() const { return registry_.get<T>(); }
     AppLifecycle* lifecycle() const { return lifecycle_; }
-    StyleManager* styleManager() const { return styleManager_; }
+    StyleManager* styleManager() const;
     DockManager* dockManager() const { return dockManager_; }
 
     QUrl appUrl(const QString& appName) const;
@@ -76,7 +76,6 @@ private:
     QWebEngineProfile* profile_ = nullptr;
     BridgeRegistry registry_;
     AppLifecycle* lifecycle_ = nullptr;
-    StyleManager* styleManager_ = nullptr;
     DockManager* dockManager_ = nullptr;
 };
 

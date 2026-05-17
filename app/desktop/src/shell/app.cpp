@@ -7,15 +7,13 @@
 #include <QEvent>
 #include <QFileOpenEvent>
 #include <QIcon>
-#include <QPalette>
 #include <QSettings>
 #include <QStandardPaths>
-#include <QStyleHints>
 #include <QWebEngineProfile>
 
 #include "dock_manager.hpp"
 #include "single_instance.hpp"
-#include "style_manager.hpp"
+#include "theming.hpp"
 #include "widgets/scheme_handler.hpp"
 #include "widgets/web_shell_widget.hpp"
 
@@ -24,9 +22,6 @@
 #include "app_lifecycle.hpp"
 
 namespace app_shell {
-
-// Must match --bg in App.css — prevents white flash before web content loads.
-static constexpr QColor kBackground{0x24, 0x24, 0x24};
 
 App::App(int& argc, char** argv)
     : QApplication(argc, argv)
@@ -56,17 +51,6 @@ App::App(int& argc, char** argv)
     parser.parse(arguments());
     devMode_ = parser.isSet(devOption);
 
-    // ── Dark theme ───────────────────────────────────────────
-    styleHints()->setColorScheme(Qt::ColorScheme::Dark);
-    QPalette darkPalette;
-    darkPalette.setColor(QPalette::Window, kBackground);
-    darkPalette.setColor(QPalette::Base, kBackground);
-    setPalette(darkPalette);
-
-    // ── Style manager ──────────────────────────────────────────
-    styleManager_ = new StyleManager(this);
-    styleManager_->applyTheme("default-dark");
-
     // ── Web profile ──────────────────────────────────────────
     profile_ = new QWebEngineProfile(APP_SLUG, this);
     QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
@@ -94,6 +78,12 @@ App::App(int& argc, char** argv)
     connect(this, &QApplication::aboutToQuit, this, [this]() {
         dockManager_->shutdownAll();
     });
+}
+
+StyleManager* App::styleManager() const {
+    if (auto* theming = findChild<Theming*>())
+        return theming->styleManager();
+    return nullptr;
 }
 
 void App::requestQuit() {
