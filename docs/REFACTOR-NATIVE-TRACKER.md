@@ -39,9 +39,9 @@ Tick a sub-box when its commit lands green (`xmake build desktop` + `xmake build
 
 ## Phase 3 — Theming
 
-- [ ] **Phase 3 complete**
-  - [ ] **8. Carve `ThemeBridge` from `SystemBridge`** — theme methods/signals move to `app/bridges/theme/`; JS-side updates to `getBridge<ThemeBridge>('theme')`; `SystemBridge` becomes pure stateless OS I/O
-  - [ ] **9. Extract `Theming`** — `QObject` subsystem parented to `App`; demo constructs it; skip the construction → no StyleManager, no libsass, no watcher, no `ThemeBridge` registered
+- [x] **Phase 3 complete**
+  - [x] **8. Carve `ThemeBridge` from `SystemBridge`** — theme methods/signals moved to `app/bridges/theme/`; JS-side uses `getBridge<ThemeBridge>('theme')`; `SystemBridge` is pure stateless OS I/O; Catch2 + Bun tests added; commit `5b5c18a`
+  - [x] **9. Extract `Theming`** — `QObject` subsystem parented to `App`; registers ThemeBridge, creates StyleManager, wires them; skip the construction → no StyleManager, no libsass, no watcher, no ThemeBridge; commits `ca4659a`, `e7c5a0d`, `cbb9b07`
 
 ---
 
