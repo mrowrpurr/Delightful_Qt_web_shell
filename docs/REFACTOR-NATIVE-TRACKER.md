@@ -69,7 +69,7 @@ Tick a sub-box when its commit lands green (`xmake build desktop` + `xmake build
 ## Phase 6 — Apps split + xmake consolidation
 
 - [ ] **Phase 6 complete**
-  - [ ] **19. Consolidate framework into one `app-shell` static-lib xmake target** — transport-qt vs transport-wasm becomes platform-conditional `add_files` inside it; bridges keep their own targets (`set_kind("object")` for WASM is non-negotiable)
+  - [x] **19. Consolidate framework into one `app-shell` static-lib xmake target** — 6 targets merged into one `app-shell` static lib (desktop) + one `app-shell-wasm` headeronly (WASM); files reorganized into `bridge/`, `core/`, `transport/`, `docks/`, `widgets/`, `capabilities/`; `AppLifecycle` renamed to `ReadySignal`; bridges keep their own targets; demo content tangles in `menu_bar.cpp` and `main_window.cpp` marked with `TODO(Phase 6.20)`
   - [ ] **20. Create `app/apps/demo/`** — move the desktop binary's xmake target there; demo content lives entirely under `app/apps/demo/`
   - [ ] **21. Create `app/apps/main/` slate** — ~5–10 line `main.cpp`, registers nothing by default, opens a single `MainWindow`; both binaries build by default
 

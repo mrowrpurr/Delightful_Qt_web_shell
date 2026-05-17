@@ -1,4 +1,4 @@
-// AppLifecycle — the Qt↔JS ready handshake.
+// ReadySignal — the Qt↔JS ready handshake.
 //
 // React calls `_lifecycle.appReady()` from the web side after mounting. That
 // call lands here as a Q_INVOKABLE, which fires the `ready()` Qt signal. The
@@ -13,7 +13,7 @@
 #include <QJsonObject>
 #include <QObject>
 
-class AppLifecycle : public QObject {
+class ReadySignal : public QObject {
     Q_OBJECT
 
 public:

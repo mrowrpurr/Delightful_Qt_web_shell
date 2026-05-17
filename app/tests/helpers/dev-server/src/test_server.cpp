@@ -10,7 +10,7 @@
 #include "theme_bridge.hpp"
 #include "todo_bridge.hpp"
 #include "expose_as_ws.hpp"
-#include "app_lifecycle.hpp"
+#include "ready_signal.hpp"
 #include "bridge_registry.hpp"
 
 int main(int argc, char* argv[]) {
@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
     int port = parser.value("port").toInt();
 
     app_shell::BridgeRegistry registry;
-    AppLifecycle lifecycle;
+    ReadySignal lifecycle;
     registry.add("todos", new TodoBridge);
     registry.add("system", new SystemBridge);
 

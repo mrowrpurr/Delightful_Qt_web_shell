@@ -25,7 +25,7 @@
 #include <QWidget>
 
 namespace app_shell { class BridgeRegistry; }
-class AppLifecycle;
+class ReadySignal;
 class LoadingOverlay;
 class QWebEngineView;
 class QWebEngineProfile;
@@ -45,7 +45,7 @@ public:
     // parent              — parent widget (MainWindow, QDialog, etc.)
     WebShellWidget(QWebEngineProfile* profile,
                    app_shell::BridgeRegistry* registry,
-                   AppLifecycle* lifecycle,
+                   ReadySignal* lifecycle,
                    const QUrl& contentUrl,
                    const QString& brandingImagePath,
                    OverlayStyle overlayStyle = FullOverlay,

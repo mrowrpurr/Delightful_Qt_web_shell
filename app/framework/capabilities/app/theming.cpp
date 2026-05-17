@@ -5,7 +5,7 @@
 #include <QPalette>
 #include <QStyleHints>
 
-#include "shell/app.hpp"
+#include "app.hpp"
 #include "style_manager.hpp"
 #include "theme_bridge.hpp"
 

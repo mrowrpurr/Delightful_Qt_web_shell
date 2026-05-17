@@ -1,6 +1,6 @@
 // app_shell::App — see app.hpp for overview.
 
-#include "shell/app.hpp"
+#include "app.hpp"
 
 #include <QCommandLineOption>
 #include <QCommandLineParser>
@@ -14,12 +14,12 @@
 #include "dock_manager.hpp"
 #include "single_instance.hpp"
 #include "theming.hpp"
-#include "widgets/scheme_handler.hpp"
-#include "widgets/web_shell_widget.hpp"
+#include "scheme_handler.hpp"
+#include "web_shell_widget.hpp"
 
 #include <oclero/qlementine/icons/QlementineIcons.hpp>
 
-#include "app_lifecycle.hpp"
+#include "ready_signal.hpp"
 
 namespace app_shell {
 
@@ -64,7 +64,7 @@ App::App(int& argc, char** argv)
     }
 
     // ── Lifecycle ──────────────────────────────────────────────
-    lifecycle_ = new AppLifecycle(this);
+    lifecycle_ = new ReadySignal(this);
 
     // ── Dock manager ─────────────────────────────────────────
     dockManager_ = new DockManager(*this, this);

@@ -1,7 +1,6 @@
 target("app.bridges.theme")
     set_kind("headeronly")
-    add_deps("app.framework.bridge", {public = true})
-    add_includedirs("include", {public = true})
+    add_includedirs("include", "../../framework/bridge", {public = true})
     add_packages("def_type", {public = true})
 
 target("test-theme-bridge")

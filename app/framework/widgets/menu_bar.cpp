@@ -16,11 +16,11 @@
 //   toolBar->addAction(actions.myAction);
 
 #include "menu_bar.hpp"
-#include "shell/app.hpp"
+#include "app.hpp"
 #include "url_protocol.hpp"
-#include "dialogs/about_dialog.hpp"
-#include "dialogs/demo_widget_dialog.hpp"
-#include "dialogs/web_dialog.hpp"
+#include "about_dialog.hpp"
+#include "demo_widget_dialog.hpp"
+#include "web_dialog.hpp"
 #include "style_manager.hpp"
 #include "system_bridge.hpp"
 
@@ -152,15 +152,13 @@ MenuActions buildMenuBar(app_shell::App& app, QMainWindow* window) {
 
     windowsMenu->addSeparator();
 
-    // React-in-a-dialog — demonstrates WebShellWidget inside a QDialog.
-    // Same bridges, same React app, different container.
+    // TODO(Phase 6.20): move these demo menu items into the demo app.
+    // The demo app adds them via window->menuBar() after construction.
     auto* webDialogAction = windowsMenu->addAction("&React Dialog...");
     QObject::connect(webDialogAction, &QAction::triggered, window, [&app, window]() {
         WebDialog dlg(app, window);
         dlg.exec();
     });
-
-    // Demo Widget — gallery of Qt widgets for theme preview.
     auto* demoAction = windowsMenu->addAction("&Demo Widget...");
     QObject::connect(demoAction, &QAction::triggered, window, [window]() {
         auto* demo = new DemoWidgetDialog(nullptr);
@@ -201,6 +199,7 @@ MenuActions buildMenuBar(app_shell::App& app, QMainWindow* window) {
     // ── Help ─────────────────────────────────────────────────
     auto* helpMenu = menuBar->addMenu("&Help");
 
+    // TODO(Phase 6.20): move About into the demo app.
     auto* aboutAction = helpMenu->addAction("&About");
     QObject::connect(aboutAction, &QAction::triggered, window, [&app, window]() {
         AboutDialog dlg(app.brandingImagePath(), window);

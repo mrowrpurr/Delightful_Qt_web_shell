@@ -25,11 +25,11 @@
 
 #include "json_adapter.hpp"
 #include "bridge_registry.hpp"
-#include "app_lifecycle.hpp"
+#include "ready_signal.hpp"
 
-// ── appReady dispatch — calls into AppLifecycle ──
+// ── appReady dispatch ──
 
-inline QJsonValue invoke_lifecycle_method(AppLifecycle* lifecycle, const QString& method_name) {
+inline QJsonValue invoke_lifecycle_method(ReadySignal* lifecycle, const QString& method_name) {
     if (method_name == "appReady") {
         QMetaObject::invokeMethod(lifecycle, "appReady", Qt::DirectConnection);
         return QJsonObject{{"ok", true}};
@@ -81,7 +81,7 @@ inline std::vector<std::function<void()>> forward_signals(app_shell::Bridge* bri
 // ── expose_as_ws ─────────────────────────────────────────────────────
 
 inline QWebSocketServer* expose_as_ws(app_shell::BridgeRegistry* registry,
-                                      AppLifecycle* lifecycle,
+                                      ReadySignal* lifecycle,
                                       int port,
                                       QObject* parent = nullptr) {
     auto* server = new QWebSocketServer(

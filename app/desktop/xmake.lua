@@ -13,13 +13,17 @@ local WEB_APPS = {"demo", "settings", "app"}
 target("desktop")
     set_kind("binary")
     add_rules("qt.widgetapp")
-    add_deps("app.bridges.system", "app.bridges.theme", "app.framework.qt-transport", "app.framework.app-lifecycle", "app.framework.capabilities")
+    add_deps("app-shell", "app.bridges.system", "app.bridges.todos")
     add_files("src/**.cpp", "src/**.hpp")
     add_files(
         "resources/resources.qrc",
         "web_dist_resources.cpp"
     )
     add_includedirs("src")
+    add_defines('APP_NAME="' .. APP_NAME:gsub('"', '\\"') .. '"')
+    add_defines('APP_SLUG="' .. APP_SLUG:gsub('"', '\\"') .. '"')
+    add_defines('APP_ORG="' .. APP_ORG:gsub('"', '\\"') .. '"')
+    add_defines('APP_VERSION="' .. APP_VERSION:gsub('"', '\\"') .. '"')
     if is_plat("windows") then
         set_filename(APP_NAME .. ".exe")
         add_files("resources/app.rc")
@@ -27,23 +31,6 @@ target("desktop")
         set_filename(APP_NAME)
     else
         set_filename(APP_SLUG)
-    end
-    add_packages("qlementine-icons", "libsass")
-    add_frameworks(
-        "QtWidgets", "QtGui",
-        "QtWebEngineCore", "QtWebEngineWidgets", "QtWebChannel",
-        "QtNetwork"  -- QLocalServer/QLocalSocket for single-instance guard
-    )
-    add_defines('APP_NAME="' .. APP_NAME:gsub('"', '\\"') .. '"')
-    add_defines('APP_SLUG="' .. APP_SLUG:gsub('"', '\\"') .. '"')
-    add_defines('APP_ORG="' .. APP_ORG:gsub('"', '\\"') .. '"')
-    add_defines('APP_VERSION="' .. APP_VERSION:gsub('"', '\\"') .. '"')
-
-    -- Point at the repo's styles folder for live SCSS reload during development.
-    -- Not set in CI (no STYLES_DEV_PATH define → falls back to QRC embedded themes).
-    if not os.getenv("CI") then
-        local styles_path = path.join(TEMPLATE_ROOT, "desktop", "styles"):gsub("\\", "/")
-        add_defines('STYLES_DEV_PATH="' .. styles_path .. '"')
     end
 
     before_build(function(target)

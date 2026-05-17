@@ -5,7 +5,7 @@ target("dev-server")
     set_kind("binary")
     set_default(false)
     add_rules("qt.console")
-    add_deps("app.bridges.system", "app.bridges.theme", "app.framework.qt-transport", "app.framework.app-lifecycle")
+    add_deps("app-shell", "app.bridges.system")
     add_files("src/test_server.cpp")
 
     -- Write the binary path so Playwright can run it directly.

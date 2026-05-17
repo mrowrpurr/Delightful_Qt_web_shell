@@ -1,6 +1,5 @@
 target("app.bridges.todos")
     set_kind("headeronly")
-    add_deps("app.framework.bridge", {public = true})
     add_deps("todos", {public = true})
-    add_includedirs("include", {public = true})
+    add_includedirs("include", "../../framework/bridge", {public = true})
     add_packages("def_type", {public = true})

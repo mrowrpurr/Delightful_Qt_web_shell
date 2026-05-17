@@ -5,8 +5,8 @@
 // instead of the main App. One build, multiple UIs.
 
 #include "web_dialog.hpp"
-#include "shell/app.hpp"
-#include "widgets/web_shell_widget.hpp"
+#include "app.hpp"
+#include "web_shell_widget.hpp"
 
 #include <QVBoxLayout>
 

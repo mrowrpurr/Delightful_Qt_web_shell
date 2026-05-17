@@ -27,7 +27,7 @@
 #include <ApplicationServices/ApplicationServices.h>
 #import <Foundation/Foundation.h>
 
-#include "shell/app.hpp"
+#include "app.hpp"
 
 namespace app_shell {
 

@@ -1,8 +1,8 @@
 // DockManager — see dock_manager.hpp for overview.
 
 #include "dock_manager.hpp"
-#include "shell/app.hpp"
-#include "windows/main_window.hpp"
+#include "app.hpp"
+#include "main_window.hpp"
 
 #include <algorithm>
 

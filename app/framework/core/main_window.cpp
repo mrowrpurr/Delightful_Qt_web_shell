@@ -11,12 +11,12 @@
 #include "devtools_shortcut.hpp"
 #include "persisted_geometry.hpp"
 #include "reactive_title.hpp"
-#include "shell/app.hpp"
+#include "app.hpp"
 #include "window_lifecycle.hpp"
 #include "dock_manager.hpp"
-#include "menus/menu_bar.hpp"
-#include "widgets/dock_tab_manager.hpp"
-#include "widgets/status_bar.hpp"
+#include "menu_bar.hpp"
+#include "dock_tab_manager.hpp"
+#include "status_bar.hpp"
 
 #include <QCloseEvent>
 #include <QContextMenuEvent>
@@ -32,7 +32,7 @@
 #include <QWebEnginePage>
 #include <QWebEngineView>
 
-#include "dialogs/web_dialog.hpp"
+#include "web_dialog.hpp"
 #include "system_bridge.hpp"
 
 MainWindow::MainWindow(app_shell::App& app, const QString& windowId, QWidget* parent)
@@ -103,7 +103,8 @@ MainWindow::MainWindow(app_shell::App& app, const QString& windowId, QWidget* pa
     // ── Initial zoom/devtools wiring ─────────────────────────
     wireToActiveDock();
 
-    // ── Wire React → native dialog ──────────────────────────
+    // TODO(Phase 6.20): move this SystemBridge wiring into the demo app.
+    // The demo app wires it after constructing MainWindow.
     auto* systemBridge = app.bridge<SystemBridge>();
     if (systemBridge) {
         systemBridge->on_signal("openDialogRequested", [this](const nlohmann::json&) {

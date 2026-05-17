@@ -3,7 +3,7 @@
 
 #include "dock_manager.hpp"
 #include "logging.hpp"
-#include "shell/app.hpp"
+#include "app.hpp"
 #include "single_instance.hpp"
 #include "theming.hpp"
 #include "tray.hpp"
@@ -11,8 +11,8 @@
 #include "window_lifecycle.hpp"
 #include "system_bridge.hpp"
 #include "todo_bridge.hpp"
-#include "widgets/scheme_handler.hpp"
-#include "windows/main_window.hpp"
+#include "scheme_handler.hpp"
+#include "main_window.hpp"
 
 #include <QAction>
 #include <QMenu>

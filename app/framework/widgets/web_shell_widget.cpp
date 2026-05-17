@@ -25,7 +25,7 @@
 
 #include "bridge_channel_adapter.hpp"
 #include "system_bridge.hpp"
-#include "app_lifecycle.hpp"
+#include "ready_signal.hpp"
 #include "bridge_registry.hpp"
 
 // Must match --bg in App.css and LoadingOverlay
@@ -52,7 +52,7 @@ protected:
 
 WebShellWidget::WebShellWidget(QWebEngineProfile* profile,
                                app_shell::BridgeRegistry* registry,
-                               AppLifecycle* lifecycle,
+                               ReadySignal* lifecycle,
                                const QUrl& contentUrl,
                                const QString& brandingImagePath,
                                OverlayStyle overlayStyle,
@@ -85,7 +85,7 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile,
         qDebug() << "[load-time]" << this << "loadFinished at"
                  << loadTimer->elapsed() << "ms ok=" << ok;
     });
-    connect(lifecycle, &AppLifecycle::ready, this, [this, loadTimer]() {
+    connect(lifecycle, &ReadySignal::ready, this, [this, loadTimer]() {
         qDebug() << "[load-time]" << this << "react ready (signalReady) at"
                  << loadTimer->elapsed() << "ms";
     });
@@ -151,7 +151,7 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile,
     overlay_ = new LoadingOverlay(style, brandingImagePath, this);
 
     // Dismiss the overlay when the React app signals it's ready
-    connect(lifecycle, &AppLifecycle::ready, this, [this]() {
+    connect(lifecycle, &ReadySignal::ready, this, [this]() {
         if (overlay_) {
             overlay_->dismiss();
             overlay_ = nullptr;  // dismiss() calls deleteLater

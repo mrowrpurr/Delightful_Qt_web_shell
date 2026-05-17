@@ -13,7 +13,7 @@
 
 #include "bridge_registry.hpp"
 
-class AppLifecycle;
+class ReadySignal;
 class DockManager;
 class QWebEngineProfile;
 class StyleManager;
@@ -41,7 +41,7 @@ public:
 
     template<typename T>
     T* bridge() const { return registry_.get<T>(); }
-    AppLifecycle* lifecycle() const { return lifecycle_; }
+    ReadySignal* lifecycle() const { return lifecycle_; }
     StyleManager* styleManager() const;
     DockManager* dockManager() const { return dockManager_; }
 
@@ -75,7 +75,7 @@ private:
     QString brandingImagePath_ = ":/icon.png";
     QWebEngineProfile* profile_ = nullptr;
     BridgeRegistry registry_;
-    AppLifecycle* lifecycle_ = nullptr;
+    ReadySignal* lifecycle_ = nullptr;
     DockManager* dockManager_ = nullptr;
 };
 

@@ -9,7 +9,7 @@
 #include <QDir>
 #include <QSettings>
 
-#include "shell/app.hpp"
+#include "app.hpp"
 
 namespace app_shell {
 

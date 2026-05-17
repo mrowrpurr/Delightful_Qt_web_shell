@@ -8,7 +8,7 @@
 #include <QMenu>
 #include <QSystemTrayIcon>
 
-#include "shell/app.hpp"
+#include "app.hpp"
 
 namespace app_shell {
 

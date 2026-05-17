@@ -7,8 +7,8 @@
 #include <QStringList>
 #include <QWidget>
 
-#include "shell/app.hpp"
-#include "windows/main_window.hpp"
+#include "app.hpp"
+#include "main_window.hpp"
 
 namespace app_shell {
 
