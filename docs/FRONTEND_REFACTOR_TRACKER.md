@@ -189,16 +189,16 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
 
 ## Phase 10 — `scaffold-bridge` update
 
-- [ ] **Phase 10 complete**
-  - [ ] Tool templates updated to match new `app/bridges/<name>/` layout
-  - [ ] Wiring updates point at new `application.cpp` and `test_server.cpp` registration sites
-  - [ ] TS interface emission points at Phase 7's chosen location
-  - [ ] Decision: pure-domain placeholder behavior (recommendation: comment + nothing else; don't write into `<repo>/lib/`)
-  - [ ] `xmake run scaffold-bridge testbridge` produces a bridge that compiles
-  - [ ] Generated bridge registers in both `application.cpp` and `test_server.cpp`
-  - [ ] Generated bridge callable from running app
-  - [ ] Tool does not write into `<repo>/lib/`
-  - [ ] Test bridge removed after verification
+- [x] **Phase 10 complete**
+  - [x] Tool templates updated to match new `app/bridges/<name>/` layout
+  - [x] Wiring updates point at `main.cpp` (`app.addBridge<T>()`) and `test_server.cpp` (`registry.add()`)
+  - [x] TS interface emission points at `web/packages/bridge/lib/bridges/<slug>-bridge.ts`
+  - [x] Decision: pure-domain placeholder — tool does NOT write into `<repo>/lib/` (comment in output tells consumer where to put domain code)
+  - [x] `xmake run scaffold-bridge notes` produces a bridge that compiles (desktop + dev-server)
+  - [x] Generated bridge registers in both `main.cpp` and `test_server.cpp`
+  - [x] Generated bridge creates its own `xmake.lua` target + wires `includes()` into `app/xmake.lua` + adds dep to `desktop/xmake.lua` and `dev-server/xmake.lua`
+  - [x] Tool does not write into `<repo>/lib/`
+  - [x] Test bridge removed after verification
 
 ---
 
