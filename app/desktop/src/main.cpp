@@ -9,7 +9,8 @@
 #include "tray.hpp"
 #include "url_protocol.hpp"
 #include "window_lifecycle.hpp"
-#include "register_bridges.hpp"
+#include "system_bridge.hpp"
+#include "todo_bridge.hpp"
 #include "widgets/scheme_handler.hpp"
 #include "windows/main_window.hpp"
 
@@ -28,7 +29,8 @@ int main(int argc, char* argv[]) {
     app_shell::App app(argc, argv);
 
     // ── Bridges ──────────────────────────────────────────────────────────
-    register_bridges(*app.registry());
+    app.addBridge<TodoBridge>("todos");
+    app.addBridge<SystemBridge>("system");
 
     // Wire StyleManager ↔ SystemBridge for theme sync.
     auto* systemBridge = app.bridge<SystemBridge>();

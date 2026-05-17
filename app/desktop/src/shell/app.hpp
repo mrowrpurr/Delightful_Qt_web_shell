@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <utility>
+
 #include <QApplication>
 #include <QUrl>
 
@@ -30,8 +32,12 @@ public:
     const BridgeRegistry* registry() const { return &registry_; }
 
     // Typed bridge registration + retrieval.
-    template<typename T>
-    void addBridge(const std::string& name, T* bridge) { registry_.add(name, bridge); }
+    template<typename T, typename... Args>
+    T* addBridge(const std::string& name, Args&&... args) {
+        auto* bridge = new T(std::forward<Args>(args)...);
+        registry_.add(name, bridge);
+        return bridge;
+    }
 
     template<typename T>
     T* bridge() const { return registry_.get<T>(); }

@@ -1,7 +1,7 @@
-// register_bridges — single registration point for all app bridges.
+// register_bridges — registers the same bridges as the desktop app.
 //
-// Called from both the desktop app (app.cpp) and the test server
-// (test_server.cpp) so they always have the same set of bridges.
+// Used by test_server.cpp so headless dev/test has the same bridges.
+// The desktop app uses app.addBridge<T>("name") directly in main.cpp.
 
 #pragma once
 
