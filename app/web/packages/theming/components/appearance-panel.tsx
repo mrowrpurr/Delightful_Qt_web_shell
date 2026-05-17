@@ -2,15 +2,15 @@ import { useState, useEffect, useCallback } from 'react'
 import { applyTheme, loadTheme, isDarkMode, setDarkMode } from '../lib/themes'
 import { applyFont } from '../lib/fonts'
 import { applyThemeEffects } from '../lib/theme-effects'
-import { getSystemBridge } from '@app/bridge/lib/bridges/system-bridge'
+import { getThemeBridge } from '@app/bridge/lib/bridges/theme-bridge'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@app/ui/components/card'
 import { ThemePicker } from './theme-picker'
 import { FontPicker } from './font-picker'
 import { DarkModeToggle } from './dark-mode-toggle'
 import { TransparencySlider } from './transparency-slider'
 
-let systemBridge: Awaited<ReturnType<typeof getSystemBridge>> | null = null
-getSystemBridge().then(b => { systemBridge = b }).catch(() => {})
+let themeBridge: Awaited<ReturnType<typeof getThemeBridge>> | null = null
+getThemeBridge().then(b => { themeBridge = b }).catch(() => {})
 
 // Notify editor consumers — if an editor exists in this app, it listens for these
 // and re-applies its theme/font. Apps without an editor simply ignore them.
@@ -39,8 +39,8 @@ export function AppearancePanel() {
     if (theme) applyTheme(theme, newDark)
     applyThemeEffects(appTheme)
     notifyEditorTheme()
-    if (systemBridge) {
-      systemBridge.setQtTheme({ displayName: appTheme, isDark: newDark }).catch(() => {})
+    if (themeBridge) {
+      themeBridge.setQtTheme({ displayName: appTheme, isDark: newDark }).catch(() => {})
     }
   }, [appTheme])
 
@@ -50,8 +50,8 @@ export function AppearancePanel() {
     if (theme) applyTheme(theme, dark)
     applyThemeEffects(name)
     notifyEditorTheme()
-    if (systemBridge) {
-      systemBridge.setQtTheme({ displayName: name, isDark: dark }).catch(() => {})
+    if (themeBridge) {
+      themeBridge.setQtTheme({ displayName: name, isDark: dark }).catch(() => {})
     }
   }, [dark])
 

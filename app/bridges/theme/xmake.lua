@@ -1,0 +1,13 @@
+target("app.bridges.theme")
+    set_kind("headeronly")
+    add_deps("app.framework.bridge", {public = true})
+    add_includedirs("include", {public = true})
+    add_packages("def_type", {public = true})
+
+target("test-theme-bridge")
+    set_kind("binary")
+    set_default(false)
+    add_deps("app.bridges.theme")
+    add_files("tests/unit/theme_bridge_test.cpp")
+    add_packages("catch2")
+    set_rundir("$(projectdir)")

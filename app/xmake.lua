@@ -43,6 +43,7 @@ includes("framework/xmake.lua")
 -- ── Domain bridges ──────────────────────────────────────────────────
 
 includes("bridges/todos/xmake.lua")
+includes("bridges/theme/xmake.lua")
 
 -- ── Platform-specific targets ───────────────────────────────────────
 

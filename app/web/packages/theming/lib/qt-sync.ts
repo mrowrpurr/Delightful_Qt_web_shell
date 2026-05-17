@@ -1,7 +1,7 @@
 // Qt theme sync — keeps React in lockstep with Qt-side theme changes.
 //
 // Qt owns the chrome (toolbar dropdown, dark/light toggle in QSS). When the
-// user changes the theme there, Qt emits `qtThemeChanged` via SystemBridge.
+// user changes the theme there, Qt emits `qtThemeChanged` via ThemeBridge.
 // This module subscribes to that signal, pulls the new theme, applies it on
 // the React side, persists it to localStorage, and dispatches
 // `editor-theme-changed` (so editor consumers can refresh) and `qt-theme-synced`
@@ -15,7 +15,7 @@
 
 import { applyTheme, loadTheme, setDarkMode as persistDarkMode } from './themes'
 import { applyThemeEffects } from './theme-effects'
-import { getSystemBridge } from '@app/bridge/lib/bridges/system-bridge'
+import { getThemeBridge } from '@app/bridge/lib/bridges/theme-bridge'
 
 let cleanup: (() => void) | null = null
 let guard = false
@@ -24,12 +24,12 @@ export async function setupQtThemeListener(): Promise<() => void> {
   if (cleanup) return cleanup
 
   try {
-    const system = await getSystemBridge()
-    cleanup = system.qtThemeChanged(async () => {
+    const themeBridge = await getThemeBridge()
+    cleanup = themeBridge.qtThemeChanged(async () => {
       if (guard) return
       guard = true
       try {
-        const state = await system.getQtTheme()
+        const state = await themeBridge.getQtTheme()
         const theme = await loadTheme(state.displayName)
 
         persistDarkMode(state.isDark)

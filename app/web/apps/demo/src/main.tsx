@@ -59,10 +59,10 @@ if (!usedFastPath) {
 // Sync React's persisted theme state to Qt on startup, then subscribe to
 // Qt-side theme changes so the toolbar dropdown stays in lockstep with React.
 // React owns the persisted truth (localStorage); Qt owns the live chrome.
-import { getSystemBridge } from '@app/bridge/lib/bridges/system-bridge'
+import { getThemeBridge } from '@app/bridge/lib/bridges/theme-bridge'
 import { setupQtThemeListener } from '@app/theming/lib/qt-sync'
-getSystemBridge().then(system => {
-  system.setQtTheme({ displayName: savedThemeName, isDark: isDarkMode() })
+getThemeBridge().then(theme => {
+  theme.setQtTheme({ displayName: savedThemeName, isDark: isDarkMode() })
 }).catch(() => {}) // WASM/browser mode — no bridge
 setupQtThemeListener()
 

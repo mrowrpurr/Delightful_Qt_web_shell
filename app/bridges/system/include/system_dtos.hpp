@@ -37,8 +37,3 @@ struct CloseFileHandleRequest   { std::string handle; };
 // ── Dropped files / CLI args ─────────────────────────────
 struct StringListResponse       { std::vector<std::string> items; };
 
-// ── Theme control ────────────────────────────────────────
-struct ThemeState                { std::string displayName; bool isDark = false; };
-struct SetQtThemeRequest        { std::string displayName; bool isDark; };
-struct GetQtThemeResponse       { std::string displayName; bool isDark; };
-struct GetQtThemeFilePathResponse { std::string path; bool embedded = false; };

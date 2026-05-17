@@ -7,6 +7,7 @@
 #include <QCommandLineParser>
 
 #include "system_bridge.hpp"
+#include "theme_bridge.hpp"
 #include "todo_bridge.hpp"
 #include "expose_as_ws.hpp"
 #include "app_lifecycle.hpp"
@@ -26,6 +27,17 @@ int main(int argc, char* argv[]) {
     AppLifecycle lifecycle;
     registry.add("todos", new TodoBridge);
     registry.add("system", new SystemBridge);
+
+    auto* themeBridge = new ThemeBridge;
+    registry.add("theme", themeBridge);
+    // Self-wire: qtThemeRequested echoes back as qtThemeChanged so the full
+    // signal round-trip is testable without a StyleManager.
+    themeBridge->on_signal("qtThemeRequested", [themeBridge](const nlohmann::json& data) {
+        auto displayName = data["displayName"].get<std::string>();
+        bool isDark = data["isDark"].get<bool>();
+        themeBridge->updateQtThemeState(displayName, isDark);
+    });
+
     auto* server = expose_as_ws(&registry, &lifecycle, port);
     if (!server) return 1;
 

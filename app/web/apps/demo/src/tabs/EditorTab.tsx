@@ -23,10 +23,13 @@ const getEffectiveEditorFont = (): string | null => {
 import { toast } from 'sonner'
 import { Button } from '@app/ui/components/button'
 import { getSystemBridge } from '@app/bridge/lib/bridges/system-bridge'
+import { getThemeBridge } from '@app/bridge/lib/bridges/theme-bridge'
 
-// Lazy-init bridge
+// Lazy-init bridges
 let systemBridge: Awaited<ReturnType<typeof getSystemBridge>> | null = null
 getSystemBridge().then(b => { systemBridge = b }).catch(() => {})
+let themeBridge: Awaited<ReturnType<typeof getThemeBridge>> | null = null
+getThemeBridge().then(b => { themeBridge = b }).catch(() => {})
 
 // Register vim ex commands globally
 ;(VimMode as any).Vim.defineEx('write', 'w', () => {
@@ -107,9 +110,9 @@ export default function EditorTab() {
 
   // Load the current QSS theme file into the editor
   const loadThemeFile = useCallback(async () => {
-    if (!systemBridge) return
+    if (!themeBridge || !systemBridge) return
     try {
-      const fileInfo = await systemBridge.getQtThemeFilePath()
+      const fileInfo = await themeBridge.getQtThemeFilePath()
       if ('embedded' in fileInfo) {
         setEditingTheme(false)
         setThemeFilePath(null)

@@ -41,10 +41,10 @@ if (!usedFastPath) {
 
 // Tell Qt our persisted theme (settings is one place a user can change it),
 // then subscribe so any other window changing theme keeps us in sync.
-import { getSystemBridge } from '@app/bridge/lib/bridges/system-bridge'
+import { getThemeBridge } from '@app/bridge/lib/bridges/theme-bridge'
 import { setupQtThemeListener } from '@app/theming/lib/qt-sync'
-getSystemBridge().then(system => {
-  system.setQtTheme({ displayName: savedThemeName, isDark: isDarkMode() })
+getThemeBridge().then(theme => {
+  theme.setQtTheme({ displayName: savedThemeName, isDark: isDarkMode() })
 }).catch(() => {}) // WASM/browser mode — no bridge
 setupQtThemeListener()
 

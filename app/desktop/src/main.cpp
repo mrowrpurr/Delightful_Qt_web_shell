@@ -10,6 +10,7 @@
 #include "url_protocol.hpp"
 #include "window_lifecycle.hpp"
 #include "system_bridge.hpp"
+#include "theme_bridge.hpp"
 #include "todo_bridge.hpp"
 #include "widgets/scheme_handler.hpp"
 #include "windows/main_window.hpp"
@@ -31,18 +32,19 @@ int main(int argc, char* argv[]) {
     // ── Bridges ──────────────────────────────────────────────────────────
     app.addBridge<TodoBridge>("todos");
     app.addBridge<SystemBridge>("system");
+    app.addBridge<ThemeBridge>("theme");
 
-    // Wire StyleManager ↔ SystemBridge for theme sync.
-    auto* systemBridge = app.bridge<SystemBridge>();
+    // Wire StyleManager ↔ ThemeBridge for theme sync.
+    auto* themeBridge = app.bridge<ThemeBridge>();
     auto* sm = app.styleManager();
-    QObject::connect(sm, &StyleManager::themeChanged, &app, [sm, systemBridge]() {
-        systemBridge->updateQtThemeState(
-            sm->currentDisplayName(), sm->isDarkMode());
+    QObject::connect(sm, &StyleManager::themeChanged, &app, [sm, themeBridge]() {
+        themeBridge->updateQtThemeState(
+            sm->currentDisplayName().toStdString(), sm->isDarkMode());
         QString filePath = sm->currentThemeFilePath();
-        systemBridge->setQtThemeFilePath(
+        themeBridge->setQtThemeFilePath(
             filePath.toStdString(), filePath.startsWith(":/"));
     });
-    systemBridge->on_signal("qtThemeRequested", [&app, sm](const nlohmann::json& data) {
+    themeBridge->on_signal("qtThemeRequested", [&app, sm](const nlohmann::json& data) {
         auto displayName = QString::fromStdString(data["displayName"].get<std::string>());
         bool isDark = data["isDark"].get<bool>();
         QMetaObject::invokeMethod(&app, [sm, displayName, isDark]() {
@@ -102,6 +104,7 @@ int main(int argc, char* argv[]) {
 
     // Forward args to the SystemBridge so React can see them.
     // Handles: first launch args, second-instance args, and URL protocol activations.
+    auto* systemBridge = app.bridge<SystemBridge>();
     if (systemBridge) {
         QObject::connect(singleInstance, &app_shell::SingleInstance::argsReceived,
                          &app, [systemBridge](const QStringList& args) {

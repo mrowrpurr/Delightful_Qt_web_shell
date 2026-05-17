@@ -22,10 +22,6 @@ class SystemBridge : public app_shell::Bridge {
     QStringList droppedFiles_;
     QStringList receivedArgs_;
     QMap<QString, QFile*> openFiles_;
-    std::string qtDisplayName_;
-    bool qtIsDark_ = true;
-    std::string qtThemeFilePath_;
-    bool qtThemeEmbedded_ = false;
 
 public:
     SystemBridge() {
@@ -43,13 +39,8 @@ public:
         method("closeFileHandle",  &SystemBridge::closeFileHandle);
         method("getDroppedFiles",  &SystemBridge::getDroppedFiles);
         method("getAppLaunchArgs",  &SystemBridge::getAppLaunchArgs);
-        method("setQtTheme",       &SystemBridge::setQtTheme);
-        method("getQtTheme",       &SystemBridge::getQtTheme);
-        method("getQtThemeFilePath", &SystemBridge::getQtThemeFilePath);
         method("openDialog",       &SystemBridge::openDialog);
 
-        signal("qtThemeChanged");
-        signal("qtThemeRequested");
         signal("filesDropped");
         signal("appLaunchArgsReceived");
         signal("saveRequested");
@@ -234,40 +225,6 @@ public:
         return resp;
     }
 
-    // ── Theme control ────────────────────────────────────────
-
-    OkResponse setQtTheme(SetQtThemeRequest req) {
-        ThemeState payload{.displayName = req.displayName, .isDark = req.isDark};
-        emit_signal("qtThemeRequested", payload);
-        return {};
-    }
-
-    GetQtThemeResponse getQtTheme() const {
-        GetQtThemeResponse resp;
-        resp.displayName = qtDisplayName_;
-        resp.isDark = qtIsDark_;
-        return resp;
-    }
-
-    // Called by Application when Qt theme changes.
-    void updateQtThemeState(const QString& displayName, bool isDark) {
-        qtDisplayName_ = displayName.toStdString();
-        qtIsDark_ = isDark;
-        ThemeState payload{.displayName = qtDisplayName_, .isDark = qtIsDark_};
-        emit_signal("qtThemeChanged", payload);
-    }
-
-    GetQtThemeFilePathResponse getQtThemeFilePath() const {
-        GetQtThemeFilePathResponse resp;
-        resp.path = qtThemeFilePath_;
-        resp.embedded = qtThemeEmbedded_;
-        return resp;
-    }
-
-    void setQtThemeFilePath(const std::string& path, bool embedded) {
-        qtThemeFilePath_ = path;
-        qtThemeEmbedded_ = embedded;
-    }
 
     // ── Native dialogs ───────────────────────────────────────
 
