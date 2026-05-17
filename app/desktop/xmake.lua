@@ -74,7 +74,6 @@ target("desktop")
             local all_qrc_lines = {'<RCC>'}
 
             os.execv("bun", {"install"}, {curdir = _TEMPLATE_ROOT})
-            os.execv("bun", {"install"}, {curdir = web_dir})
 
             for _, app_name in ipairs(WEB_APPS) do
                 local app_dir = path.join(web_dir, "apps", app_name)
