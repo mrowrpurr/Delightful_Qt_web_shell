@@ -11,8 +11,8 @@
 
 namespace app_shell {
 
-// Must match --bg in App.css — prevents white flash before web content loads.
-static constexpr QColor kBackground{0x09, 0x09, 0x0b};
+// Must match the HTML <html style="background:#242424"> — prevents white flash.
+static constexpr QColor kBackground{0x24, 0x24, 0x24};
 
 Theming::Theming(App& app, const QString& baseline)
     : QObject(&app)
