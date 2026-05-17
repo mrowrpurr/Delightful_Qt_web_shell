@@ -3,6 +3,5 @@ target("app.bridges.system")
     add_rules("qt.static")
     add_files("src/*.cpp", "include/**.hpp")
     add_includedirs("include", {public = true})
-    add_includedirs("..", {public = true})  -- app/bridges/ for register_bridges.hpp
     add_deps("app.bridges.todos")
     add_frameworks("QtCore", "QtGui", "QtWidgets", {public = true})

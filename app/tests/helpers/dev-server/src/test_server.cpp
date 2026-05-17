@@ -6,7 +6,8 @@
 #include <QCoreApplication>
 #include <QCommandLineParser>
 
-#include "register_bridges.hpp"
+#include "system_bridge.hpp"
+#include "todo_bridge.hpp"
 #include "expose_as_ws.hpp"
 #include "app_lifecycle.hpp"
 #include "bridge_registry.hpp"
@@ -23,7 +24,8 @@ int main(int argc, char* argv[]) {
 
     app_shell::BridgeRegistry registry;
     AppLifecycle lifecycle;
-    register_bridges(registry);
+    registry.add("todos", new TodoBridge);
+    registry.add("system", new SystemBridge);
     auto* server = expose_as_ws(&registry, &lifecycle, port);
     if (!server) return 1;
 
