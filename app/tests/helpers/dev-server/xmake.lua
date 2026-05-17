@@ -6,11 +6,7 @@ target("dev-server")
     set_default(false)
     add_rules("qt.console")
     add_deps("app.bridges.system", "app.framework.qt-transport", "app.framework.app-lifecycle")
-    add_files(
-        "src/test_server.cpp",
-        "include/type_test_bridge.hpp"
-    )
-    add_includedirs("include")
+    add_files("src/test_server.cpp")
 
     -- Write the binary path so Playwright can run it directly.
     -- Running via `xmake run` creates a grandchild process that orphans
