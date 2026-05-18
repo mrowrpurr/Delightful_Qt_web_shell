@@ -5,19 +5,21 @@ local _APP_SLUG    = APP_SLUG
 local _APP_ORG     = APP_ORG
 local _APP_VERSION = APP_VERSION
 
+
 -- ── Web apps to build and embed ──────────────────────────────────────
 -- Each entry becomes a separate Vite build + Qt resource bundle.
 -- Add/remove entries here to control which web apps ship in the binary.
 local WEB_APPS = {"demo", "settings", "app"}
 
-target("desktop")
+target("demo")
     set_kind("binary")
     add_rules("qt.widgetapp")
     add_deps("app-shell", "app.bridges.system", "app.bridges.todos")
     add_files("src/**.cpp", "src/**.hpp")
     add_files(
         "resources/resources.qrc",
-        "web_dist_resources.cpp"
+        "web_dist_resources.cpp",
+        path.join(os.projectdir(), "app/framework/styles/styles_resources.cpp")
     )
     add_includedirs("src")
     add_defines('APP_NAME="' .. APP_NAME:gsub('"', '\\"') .. '"')
@@ -25,15 +27,18 @@ target("desktop")
     add_defines('APP_ORG="' .. APP_ORG:gsub('"', '\\"') .. '"')
     add_defines('APP_VERSION="' .. APP_VERSION:gsub('"', '\\"') .. '"')
     if is_plat("windows") then
-        set_filename(APP_NAME .. ".exe")
+        set_filename(APP_SLUG .. "-demo.exe")
         add_files("resources/app.rc")
     elseif is_plat("macosx") then
-        set_filename(APP_NAME)
+        set_filename(APP_SLUG .. "-demo")
     else
-        set_filename(APP_SLUG)
+        set_filename(APP_SLUG .. "-demo")
     end
 
     before_build(function(target)
+        import("build_helpers").compile_styles_qrc(target)
+
+        -- ── Build web apps ───────────────────────────────────────
         local base = os.scriptdir()
         local web_dir = path.join(_TEMPLATE_ROOT, "web")
         local qrc_path = path.join(base, "web_dist.qrc")
@@ -83,17 +88,13 @@ target("desktop")
             -- Write a single qrc containing all web apps
             io.writefile(qrc_path, table.concat(all_qrc_lines, "\n") .. "\n")
 
-            -- Compile the .qrc into a .cpp via rcc
-            --    Windows: bin/rcc.exe    macOS/Linux: libexec/rcc (since Qt 6.1)
             local qt_dir = target:data("qt.dir") or get_config("qt")
             local rcc
             if is_host("windows") then
                 rcc = path.join(qt_dir, "bin", "rcc.exe")
             else
                 rcc = path.join(qt_dir, "libexec", "rcc")
-                if not os.isfile(rcc) then
-                    rcc = path.join(qt_dir, "bin", "rcc")
-                end
+                if not os.isfile(rcc) then rcc = path.join(qt_dir, "bin", "rcc") end
             end
             os.runv(rcc, {"-o", cpp_path, qrc_path})
         end

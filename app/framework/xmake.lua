@@ -39,10 +39,6 @@ else
         end
 
         -- ── Include directories (public — consumers inherit) ────
-        -- TODO: menu_bar.cpp includes about_dialog.hpp and demo_widget_dialog.hpp
-        -- from the demo app. This tangle breaks in Phase 6.20 when demo content
-        -- moves to app/apps/demo/ and menu_bar takes callbacks instead.
-        add_includedirs(path.join(TEMPLATE_ROOT, "desktop/src"), path.join(TEMPLATE_ROOT, "desktop/src/dialogs"))
         add_includedirs(
             "bridge",
             "core",
@@ -77,9 +73,17 @@ else
 
         -- Point at the repo's styles folder for live SCSS reload.
         if not os.getenv("CI") then
-            local styles_path = path.join(TEMPLATE_ROOT, "desktop", "styles"):gsub("\\", "/")
+            local styles_path = path.join(os.scriptdir(), "styles"):gsub("\\", "/")
             add_defines('STYLES_DEV_PATH="' .. styles_path .. '"')
         end
+
+        -- ── Embedded QSS themes ──────────────────────────────────
+        -- StyleManager falls back to :/styles/<theme>.qss at runtime.
+        -- The QRC resources must live in the final binary (not a static lib)
+        -- to avoid dead-stripping of the static initializer that registers them.
+        -- Consumers add framework/styles/styles_resources.cpp to their own
+        -- target's add_files(). The before_build hook in each app target calls
+        -- build_helpers.compile_styles_qrc() to generate the QRC + cpp.
 
     -- ── Test targets ────────────────────────────────────────────
 
