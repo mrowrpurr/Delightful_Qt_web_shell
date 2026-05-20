@@ -40,33 +40,33 @@ target("storybook")
 
 -- ── Desktop with DevTools ────────────────────────────────────────────
 
-target("dev-desktop")
+target("dev-demo")
     set_kind("phony")
     set_default(false)
-    add_deps("desktop")
+    add_deps("demo")
     on_run(function(target)
-        local desktop = target:dep("desktop")
+        local demo = target:dep("demo")
         local envs = os.getenvs()
         envs["QTWEBENGINE_REMOTE_DEBUGGING"] = "9222"
-        os.execv(desktop:targetfile(), {"--dev"}, {envs = envs})
+        os.execv(demo:targetfile(), {"--dev"}, {envs = envs})
     end)
 
--- ── Background desktop launch (for agents) ────────────────────────────
+-- ── Background demo launch (for agents) ────────────────────────────
 --
--- xmake run start-desktop   → launches the app in background with CDP on :9222
--- xmake run stop-desktop    → kills the background app
+-- xmake run start-demo   → launches the app in background with CDP on :9222
+-- xmake run stop-demo    → kills the background app
 --
 -- NOTE: runs in PRODUCTION mode (embedded resources, no Vite HMR).
--- For dev mode with HMR, use: xmake run dev-desktop
+-- For dev mode with HMR, use: xmake run dev-demo
 -- Agents: use these to launch/quit the app without a human.
 
-target("start-desktop")
+target("start-demo")
     set_kind("phony")
     set_default(false)
-    add_deps("desktop")
+    add_deps("demo")
     on_run(function(target)
-        local desktop = target:dep("desktop")
-        local exe = desktop:targetfile()
+        local demo = target:dep("demo")
+        local exe = demo:targetfile()
         local pidfile = path.join(os.projectdir(), "build", ".desktop-pid.txt")
 
         -- Check if already running
@@ -124,7 +124,7 @@ target("start-desktop")
         -- Launch in background
         local envs = os.getenvs()
         envs["QTWEBENGINE_REMOTE_DEBUGGING"] = "9222"
-        print(">>> Starting desktop app with CDP on :9222 ...")
+        print(">>> Starting demo app with CDP on :9222 ...")
 
         if is_plat("windows") then
             -- Windows: write a temp .bat that launches the exe in background.
@@ -152,7 +152,7 @@ target("start-desktop")
                     local pid = output:match('"[^"]+","(%d+)"')
                     if pid then io.writefile(pidfile, pid) end
                 end
-                print("Desktop app started! CDP ready on http://localhost:9222")
+                print("Demo app started! CDP ready on http://localhost:9222")
                 return
             end
             os.sleep(500)
@@ -160,7 +160,7 @@ target("start-desktop")
         print("WARNING: app launched but CDP not responding after 30s")
     end)
 
-target("stop-desktop")
+target("stop-demo")
     set_kind("phony")
     set_default(false)
     on_run(function()
@@ -170,7 +170,7 @@ target("stop-desktop")
             if is_plat("windows") then
                 os.execv("taskkill", {"/IM", _APP_NAME .. ".exe", "/F"}, {try = true})
             end
-            print("Desktop app stopped.")
+            print("Demo app stopped.")
             return
         end
         local pid = io.readfile(pidfile):trim()
@@ -180,7 +180,7 @@ target("stop-desktop")
             os.execv("kill", {pid}, {try = true})
         end
         os.rm(pidfile)
-        print("Desktop app stopped (PID " .. pid .. ")")
+        print("Demo app stopped (PID " .. pid .. ")")
     end)
 
 -- ── CDP CLI (drive Qt app via Chrome DevTools Protocol) ─────────────

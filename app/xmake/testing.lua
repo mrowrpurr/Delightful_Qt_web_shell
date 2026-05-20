@@ -12,7 +12,7 @@ target("test-pywinauto")
     set_kind("phony")
     set_default(false)
     on_run(function()
-        print(">>> uv run pytest tests/pywinauto/ (requires running desktop app)")
+        print(">>> uv run pytest tests/pywinauto/ (requires running demo app)")
         local base = _TEMPLATE_ROOT
         os.execv("uv", {"run", "pytest", "tests/pywinauto/", "-v"}, {curdir = base})
     end)
@@ -30,11 +30,11 @@ target("test-browser")
 
 -- ── Playwright e2e tests (real Qt desktop app) ──────────────────────
 
-target("test-desktop")
+target("test-demo")
     set_kind("phony")
     set_default(false)
     on_run(function()
-        print(">>> npx playwright test (desktop)")
+        print(">>> npx playwright test (demo via CDP)")
         local base = _TEMPLATE_ROOT
         os.execv("npx", {"playwright", "test"}, {curdir = base, envs = {DESKTOP = "1"}})
     end)
@@ -96,13 +96,13 @@ target("test-bun")
 
 -- ── Run all tests ───────────────────────────────────────────────────
 -- Runs everything: Catch2 + Bun + Playwright browser + pywinauto.
--- Launches the desktop app for pywinauto and always cleans up,
--- even if tests fail (try/finally around start/stop-desktop).
+-- Launches the demo app for pywinauto and always cleans up,
+-- even if tests fail (try/finally around start/stop-demo).
 
 target("test-all")
     set_kind("phony")
     set_default(false)
-    add_deps("desktop")
+    add_deps("demo")
     on_run(function()
         print(">>> Catch2: TodoStore unit tests")
         os.execv("xmake", {"run", "test-todo-store"})
@@ -113,8 +113,8 @@ target("test-all")
         print(">>> Playwright: e2e tests (browser + C++ backend)")
         os.execv("xmake", {"run", "test-browser"})
         print("")
-        print(">>> pywinauto: native Qt tests (launching desktop app...)")
-        os.execv("xmake", {"run", "start-desktop"})
+        print(">>> pywinauto: native Qt tests (launching demo app...)")
+        os.execv("xmake", {"run", "start-demo"})
         local ok, err = try {
             function()
                 os.execv("xmake", {"run", "test-pywinauto"})
@@ -122,7 +122,7 @@ target("test-all")
             end,
             catch { function(e) return false, e end }
         }
-        os.execv("xmake", {"run", "stop-desktop"})
+        os.execv("xmake", {"run", "stop-demo"})
         if not ok then
             raise("pywinauto tests failed: " .. tostring(err))
         end

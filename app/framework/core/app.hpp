@@ -47,6 +47,10 @@ public:
 
     QUrl appUrl(const QString& appName) const;
 
+    // The web app name used by MainWindow/DockManager when no URL is specified.
+    QString defaultWebApp() const { return defaultWebApp_; }
+    void setDefaultWebApp(const QString& name) { defaultWebApp_ = name; }
+
     // The window/tray icon (a Windows .ico bundle on Windows, a PNG elsewhere).
     // Framework reads the icon through this accessor so consumers can rename
     // their icon without editing framework code.
@@ -71,6 +75,7 @@ protected:
 
 private:
     bool devMode_ = false;
+    QString defaultWebApp_ = "app";
     QString iconPath_ = ":/icon.ico";
     QString brandingImagePath_ = ":/icon.png";
     QWebEngineProfile* profile_ = nullptr;

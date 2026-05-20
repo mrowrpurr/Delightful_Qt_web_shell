@@ -3,8 +3,8 @@
  * Generates theme outputs from the source themes.json:
  *
  *   Qt side (per theme):
- *     desktop/styles/compiled/<slug>-dark.qss
- *     desktop/styles/compiled/<slug>-light.qss
+ *     framework/styles/compiled/<slug>-dark.qss
+ *     framework/styles/compiled/<slug>-light.qss
  *
  *   Web side (per theme + index):
  *     web/packages/theming/data/themes/<slug>.ts   — { light, dark } CSS vars (one chunk per theme)
@@ -12,7 +12,7 @@
  *
  * The web outputs let main.tsx skip parsing the 3MB themes.json at startup.
  *
- * Uses desktop/styles/shared/widgets.qss.template as the widget map,
+ * Uses framework/styles/shared/widgets.qss.template as the widget map,
  * replacing $variable references with actual color values.
  *
  * Run:  bun run tools/generate-qss-themes.ts
@@ -23,8 +23,8 @@ import { join, resolve } from 'path'
 
 const ROOT = resolve(import.meta.dir, '..')
 const THEMES_JSON = join(ROOT, 'web/packages/theming/data/themes.json')
-const TEMPLATE_PATH = join(ROOT, 'desktop/styles/shared/widgets.qss.template')
-const COMPILED_DIR = join(ROOT, 'desktop/styles/compiled')
+const TEMPLATE_PATH = join(ROOT, 'framework/styles/shared/widgets.qss.template')
+const COMPILED_DIR = join(ROOT, 'framework/styles/compiled')
 const WEB_THEMES_DIR = join(ROOT, 'web/packages/theming/data/themes')
 const WEB_INDEX_PATH = join(ROOT, 'web/packages/theming/data/themes-index.ts')
 
@@ -217,7 +217,7 @@ writeFileSync(join(COMPILED_DIR, 'theme-names.json'), JSON.stringify(slugToName,
 // Write the web-side index module
 writeFileSync(WEB_INDEX_PATH, generateIndexModule(indexEntries))
 
-console.log(`\n✅ Qt:  ${generated * 2} QSS files + theme-names.json in desktop/styles/compiled/`)
+console.log(`\n✅ Qt:  ${generated * 2} QSS files + theme-names.json in framework/styles/compiled/`)
 console.log(`✅ Web: ${generated} per-theme modules in web/packages/theming/data/themes/`)
 console.log(`✅ Web: themes-index.ts with ${indexEntries.length} entries`)
 if (skipped > 0) console.log(`   (${skipped} themes skipped — empty name)`)

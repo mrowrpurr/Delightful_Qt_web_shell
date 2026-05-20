@@ -1,7 +1,7 @@
 // StyleManager — loads and applies QSS themes to the application.
 //
 // Theme sources, checked in order:
-//   1. STYLES_DEV_PATH define (dev only) — points at desktop/styles/ in the repo
+//   1. STYLES_DEV_PATH define (dev only) — points at framework/styles/ in the repo
 //   2. AppData/Local/<app>/styles/ — power user override folder
 //   3. QRC :/styles/<theme>.qss — embedded compiled themes (default)
 //

@@ -13,9 +13,13 @@
 #include "todo_bridge.hpp"
 #include "scheme_handler.hpp"
 #include "main_window.hpp"
+#include "web_dialog.hpp"
+#include "dialogs/about_dialog.hpp"
+#include "dialogs/demo_widget_dialog.hpp"
 
 #include <QAction>
 #include <QMenu>
+#include <QMenuBar>
 #include <QMessageBox>
 #include <QTimer>
 
@@ -27,6 +31,7 @@ int main(int argc, char* argv[]) {
     SchemeHandler::registerUrlScheme();
 
     app_shell::App app(argc, argv);
+    app.setDefaultWebApp("demo");
 
     // ── Bridges ──────────────────────────────────────────────────────────
     app.addBridge<TodoBridge>("todos");
@@ -99,6 +104,57 @@ int main(int argc, char* argv[]) {
         QStringList args = app.arguments().mid(1);
         if (!args.isEmpty())
             systemBridge->handleAppLaunchArgs(args);
+    }
+
+    // ── Demo menu items ─────────────────────────────────────────────────
+    // These are demo-only — the framework's menu bar has the standard items,
+    // the demo app adds its showcase items on top.
+    for (auto* win : windows) {
+        auto* windowsMenu = win->menuBar()->findChild<QMenu*>("windowsMenu");
+        if (!windowsMenu) {
+            // Find "Windows" menu by title if objectName isn't set
+            for (auto* menu : win->menuBar()->findChildren<QMenu*>()) {
+                if (menu->title().contains("Windows")) { windowsMenu = menu; break; }
+            }
+        }
+        if (windowsMenu) {
+            windowsMenu->addSeparator();
+            auto* webDialogAction = windowsMenu->addAction("&React Dialog...");
+            QObject::connect(webDialogAction, &QAction::triggered, win, [&app, win]() {
+                WebDialog dlg(app, win);
+                dlg.exec();
+            });
+            auto* demoAction = windowsMenu->addAction("&Demo Widget...");
+            QObject::connect(demoAction, &QAction::triggered, win, []() {
+                auto* demo = new DemoWidgetDialog(nullptr);
+                demo->setAttribute(Qt::WA_DeleteOnClose);
+                demo->show();
+            });
+        }
+
+        auto* helpMenu = win->menuBar()->findChild<QMenu*>("helpMenu");
+        if (!helpMenu) {
+            for (auto* menu : win->menuBar()->findChildren<QMenu*>()) {
+                if (menu->title().contains("Help")) { helpMenu = menu; break; }
+            }
+        }
+        if (helpMenu) {
+            auto* aboutAction = helpMenu->addAction("&About");
+            QObject::connect(aboutAction, &QAction::triggered, win, [&app, win]() {
+                AboutDialog dlg(app.brandingImagePath(), win);
+                dlg.exec();
+            });
+        }
+
+        // Wire SystemBridge openDialogRequested → WebDialog for this window.
+        if (systemBridge) {
+            systemBridge->on_signal("openDialogRequested", [win, &app](const nlohmann::json&) {
+                QTimer::singleShot(0, win, [win, &app]() {
+                    WebDialog dlg(app, win);
+                    dlg.exec();
+                });
+            });
+        }
     }
 
     // ── System tray ─────────────────────────────────────────────────────

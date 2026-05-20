@@ -20,6 +20,8 @@ add_rules("mode.release", "mode.releasedbg", "mode.debug")
 set_defaultmode("releasedbg")
 set_languages("c++23")
 
+add_moduledirs("xmake/modules")
+
 if is_plat("windows") then
   local runtime = is_mode("debug", "check") and "MDd" or "MD"
   set_runtimes(runtime)
@@ -51,7 +53,8 @@ if is_plat("wasm") then
     includes("wasm/xmake.lua")
 else
     includes("bridges/system/xmake.lua")
-    includes("desktop/xmake.lua")
+    includes("apps/demo/xmake.lua")
+    includes("apps/main/xmake.lua")
     includes("tests/helpers/dev-server/xmake.lua")
     includes("xmake/setup.lua")
     includes("xmake/scaffold-bridge.lua")

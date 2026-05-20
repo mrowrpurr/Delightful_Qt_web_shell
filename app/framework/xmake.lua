@@ -52,8 +52,8 @@ else
         )
 
         -- ── Dependencies ────────────────────────────────────────
-        -- TODO: MainWindow preset references SystemBridge for openDialogRequested.
-        -- This is demo content tangled into the framework — untangle in Phase 6.20.
+        -- SystemBridge: used by WebShellWidget (drag-drop) and MenuBar (save).
+        -- ThemeBridge: used by Theming subsystem.
         add_deps("app.bridges.system", "app.bridges.theme", {public = true})
         add_packages("def_type", "qlementine-icons", "libsass", {public = true})
 

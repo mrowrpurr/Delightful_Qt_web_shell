@@ -55,7 +55,7 @@ DockManager::DockManager(app_shell::App& app, QObject* parent)
 
 QDockWidget* DockManager::createDock(const QUrl& contentUrl, MainWindow* host,
                                      const QString& dockId) {
-    QUrl url = contentUrl.isEmpty() ? app_.appUrl("demo") : contentUrl;
+    QUrl url = contentUrl.isEmpty() ? app_.appUrl(app_.defaultWebApp()) : contentUrl;
 
     Q_ASSERT_X(widgetFactory_, "DockManager::createDock",
                "setWidgetFactory() must be called before creating docks");

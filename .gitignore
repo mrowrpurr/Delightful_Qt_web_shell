@@ -5,3 +5,9 @@ compile_commands/
 
 # Logs
 *.log
+
+# Generated Qt resource files (produced by before_build hooks)
+app/apps/*/web_dist.qrc
+app/apps/*/web_dist_resources.cpp
+app/framework/styles/styles.qrc
+app/framework/styles/styles_resources.cpp

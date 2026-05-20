@@ -32,9 +32,6 @@
 #include <QWebEnginePage>
 #include <QWebEngineView>
 
-#include "web_dialog.hpp"
-#include "system_bridge.hpp"
-
 MainWindow::MainWindow(app_shell::App& app, const QString& windowId, QWidget* parent)
     : MainWindowBase(app, parent)
 {
@@ -102,19 +99,6 @@ MainWindow::MainWindow(app_shell::App& app, const QString& windowId, QWidget* pa
 
     // ── Initial zoom/devtools wiring ─────────────────────────
     wireToActiveDock();
-
-    // TODO(Phase 6.20): move this SystemBridge wiring into the demo app.
-    // The demo app wires it after constructing MainWindow.
-    auto* systemBridge = app.bridge<SystemBridge>();
-    if (systemBridge) {
-        systemBridge->on_signal("openDialogRequested", [this](const nlohmann::json&) {
-            QTimer::singleShot(0, this, [this]() {
-                WebDialog dlg(this->app(), this);
-                dlg.exec();
-            });
-        });
-    }
-
 }
 
 // ── Dock hosting ─────────────────────────────────────────────

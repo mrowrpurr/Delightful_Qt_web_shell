@@ -111,14 +111,14 @@ target("scaffold-bridge")
             io.writefile(app_xmake, app_xmake_content)
         end
 
-        -- ── 5. Add dep to desktop/xmake.lua ─────────────────────
-        local desktop_xmake = path.join(root, "desktop", "xmake.lua")
-        local desktop_content = io.readfile(desktop_xmake)
-        if not desktop_content:find(target_name, 1, true) then
-            desktop_content = desktop_content:gsub(
+        -- ── 5. Add dep to apps/demo/xmake.lua ────────────────────
+        local demo_xmake = path.join(root, "apps", "demo", "xmake.lua")
+        local demo_content = io.readfile(demo_xmake)
+        if not demo_content:find(target_name, 1, true) then
+            demo_content = demo_content:gsub(
                 '(add_deps%("app%.bridges%.system")',
                 '%1, "' .. target_name .. '"')
-            io.writefile(desktop_xmake, desktop_content)
+            io.writefile(demo_xmake, demo_content)
         end
 
         -- ── 6. Add dep to dev-server xmake.lua ──────────────────
@@ -131,8 +131,8 @@ target("scaffold-bridge")
             io.writefile(devserver_xmake, devserver_content)
         end
 
-        -- ── 7. Wire into desktop main.cpp ───────────────────────
-        local main_cpp = path.join(root, "desktop", "src", "main.cpp")
+        -- ── 7. Wire into demo main.cpp ────────────────────────────
+        local main_cpp = path.join(root, "apps", "demo", "src", "main.cpp")
         local main_content = io.readfile(main_cpp)
         if not main_content:find(file_name, 1, true) then
             -- Insert #include after the last bridge include
@@ -189,9 +189,9 @@ target("scaffold-bridge")
         print("   app/web/packages/bridge/lib/bridges/" .. slug .. "-bridge.ts  ← TS interface")
         print("")
         print("   Wired into:")
-        print("     desktop/src/main.cpp          (app.addBridge<" .. class_name .. ">)")
+        print("     apps/demo/src/main.cpp        (app.addBridge<" .. class_name .. ">)")
         print("     tests/helpers/dev-server/     (registry.add)")
-        print("     desktop/xmake.lua             (add_deps)")
+        print("     apps/demo/xmake.lua           (add_deps)")
         print("     tests/helpers/dev-server/     (add_deps)")
         print("     app/xmake.lua                 (includes)")
         print("")
@@ -199,5 +199,5 @@ target("scaffold-bridge")
         print("  1. Define request/response structs in the DTOs header")
         print("  2. Write methods on the bridge class, register with method()")
         print("  3. Mirror method signatures in the TS interface")
-        print("  4. xmake build desktop")
+        print("  4. xmake build demo")
     end)

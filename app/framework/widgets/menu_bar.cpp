@@ -18,8 +18,6 @@
 #include "menu_bar.hpp"
 #include "app.hpp"
 #include "url_protocol.hpp"
-#include "about_dialog.hpp"
-#include "demo_widget_dialog.hpp"
 #include "web_dialog.hpp"
 #include "style_manager.hpp"
 #include "system_bridge.hpp"
@@ -150,22 +148,6 @@ MenuActions buildMenuBar(app_shell::App& app, QMainWindow* window) {
     out.devTools->setShortcut(QKeySequence("F12"));
 
 
-    windowsMenu->addSeparator();
-
-    // TODO(Phase 6.20): move these demo menu items into the demo app.
-    // The demo app adds them via window->menuBar() after construction.
-    auto* webDialogAction = windowsMenu->addAction("&React Dialog...");
-    QObject::connect(webDialogAction, &QAction::triggered, window, [&app, window]() {
-        WebDialog dlg(app, window);
-        dlg.exec();
-    });
-    auto* demoAction = windowsMenu->addAction("&Demo Widget...");
-    QObject::connect(demoAction, &QAction::triggered, window, [window]() {
-        auto* demo = new DemoWidgetDialog(nullptr);
-        demo->setAttribute(Qt::WA_DeleteOnClose);
-        demo->show();
-    });
-
     // ── Tools ─────────────────────────────────────────────────
     auto* toolsMenu = menuBar->addMenu("&Tools");
 
@@ -198,13 +180,6 @@ MenuActions buildMenuBar(app_shell::App& app, QMainWindow* window) {
 
     // ── Help ─────────────────────────────────────────────────
     auto* helpMenu = menuBar->addMenu("&Help");
-
-    // TODO(Phase 6.20): move About into the demo app.
-    auto* aboutAction = helpMenu->addAction("&About");
-    QObject::connect(aboutAction, &QAction::triggered, window, [&app, window]() {
-        AboutDialog dlg(app.brandingImagePath(), window);
-        dlg.exec();
-    });
 
     return out;
 }

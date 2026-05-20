@@ -57,8 +57,8 @@ jobs:
       - name: Configure xmake
         run: xmake config -y
 
-      - name: Build desktop app
-        run: xmake build desktop
+      - name: Build demo app
+        run: xmake build demo
 
       - name: Build dev-server
         run: xmake build dev-server
