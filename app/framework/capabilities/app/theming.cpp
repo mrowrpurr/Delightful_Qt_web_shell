@@ -8,11 +8,9 @@
 #include "app.hpp"
 #include "style_manager.hpp"
 #include "theme_bridge.hpp"
+#include "colors.hpp"
 
 namespace app_shell {
-
-// Must match the HTML <html style="background:#242424"> — prevents white flash.
-static constexpr QColor kBackground{0x24, 0x24, 0x24};
 
 Theming::Theming(App& app, const QString& baseline)
     : QObject(&app)
@@ -20,8 +18,8 @@ Theming::Theming(App& app, const QString& baseline)
     // ── Dark palette baseline ─────────────────────────────────────
     app.styleHints()->setColorScheme(Qt::ColorScheme::Dark);
     QPalette darkPalette;
-    darkPalette.setColor(QPalette::Window, kBackground);
-    darkPalette.setColor(QPalette::Base, kBackground);
+    darkPalette.setColor(QPalette::Window, kDefaultBackground);
+    darkPalette.setColor(QPalette::Base, kDefaultBackground);
     app.setPalette(darkPalette);
 
     // ── StyleManager ──────────────────────────────────────────────

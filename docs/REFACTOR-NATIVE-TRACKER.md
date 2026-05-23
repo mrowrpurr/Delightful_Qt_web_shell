@@ -50,7 +50,7 @@ Tick a sub-box when its commit lands green (`xmake build desktop` + `xmake build
 - [x] **Phase 4 complete**
   - [x] **10. Add `app.addBridge<T>(name)` and `app.bridge<T>()`** — both APIs available; old fishing pattern still compiles; commit `31f60cd`
   - [x] **11. Migrate every fishing-cast site to typed `app.bridge<T>()`** — 4 sites across `main.cpp`, `main_window.cpp`, `menu_bar.cpp`, `web_shell_widget.cpp`; commit `31f60cd`
-  - [x] **12. Extract `register_bridges(registry)`** — shared header at `app/bridges/register_bridges.hpp` called from `app.cpp` and `test_server.cpp`; commit `31f60cd`
+  - [x] **12. ~~Extract `register_bridges(registry)`~~** — shared header was created then deleted (`1a049bc` — "inline 2 lines, don't abstract them"); both entry points register bridges independently via `app.addBridge<T>()` (demo) and `registry.add()` (test_server); consistent but not DRY; commit `31f60cd`
 
 ---
 
@@ -68,15 +68,39 @@ Tick a sub-box when its commit lands green (`xmake build desktop` + `xmake build
 
 ## Phase 6 — Apps split + xmake consolidation
 
-- [ ] **Phase 6 complete**
-  - [x] **19. Consolidate framework into one `app-shell` static-lib xmake target** — 6 targets merged into one `app-shell` static lib (desktop) + one `app-shell-wasm` headeronly (WASM); files reorganized into `bridge/`, `core/`, `transport/`, `docks/`, `widgets/`, `capabilities/`; `AppLifecycle` renamed to `ReadySignal`; bridges keep their own targets; demo content tangles in `menu_bar.cpp` and `main_window.cpp` marked with `TODO(Phase 6.20)`
-  - [ ] **20. Create `app/apps/demo/`** — move the desktop binary's xmake target there; demo content lives entirely under `app/apps/demo/`
-  - [ ] **21. Create `app/apps/main/` slate** — ~5–10 line `main.cpp`, registers nothing by default, opens a single `MainWindow`; both binaries build by default
+- [x] **Phase 6 complete**
+  - [x] **19. Consolidate framework into one `app-shell` static-lib xmake target** — 6 targets merged into one `app-shell` static lib (desktop) + one `app-shell-wasm` headeronly (WASM); files reorganized into `bridge/`, `core/`, `transport/`, `docks/`, `widgets/`, `capabilities/`; `AppLifecycle` renamed to `ReadySignal`; bridges keep their own targets; commit `5a61166`
+  - [x] **20. Create `app/apps/demo/`** — demo binary with its own xmake target, `main.cpp` (224 lines), demo dialogs (`about_dialog`, `demo_widget_dialog`), tray items (Alpha/Beta/Gamma); all demo content lives under `app/apps/demo/`, zero in framework; commit `1ea962d`
+  - [x] **21. Create `app/apps/main/` slate** — 19-line `main.cpp` (App + Theming + one MainWindow), its own xmake target `desktop`; commit `1ea962d`
 
 ---
 
 ## Phase 7 — Sweep
 
 - [ ] **Phase 7 complete**
-  - [ ] **22. Unify `kBackground`** — three duplicates with **inconsistent hex values** (`0x24,0x24,0x24` vs `0x09,0x09,0x0b`) collapse to one source of truth matching `--bg` in `App.css`
-  - [ ] **23. Update agent + human docs** — `app/docs/DelightfulQtWebShell/for-{agents,humans}/` reference the new API; no stale `Application::` or fishing-cast snippets remain
+  - [x] **22. Unify `kBackground`** — three duplicates collapsed into `app_shell::kDefaultBackground` in `framework/core/colors.hpp` (`#242424`, matching `index.html`); `loading_overlay.cpp` fixed from wrong `#09090b` to correct value
+  - [ ] **23. Update agent + human docs** — stale references found across 8+ doc files:
+    - `Application::` old class name → `app_shell::App` (1 hit: `for-agents/02-architecture.md`)
+    - `application.cpp` deleted file (8 hits across 5 files: `03-adding-features`, `06-gotchas`, `07-desktop-capabilities`, `for-humans/03-tutorial`, `for-humans/06-gotchas`)
+    - `desktop/src/` old paths (5 hits across 4 files: `01-getting-started`, `03-adding-features`, `08-theming`, `for-humans/01-getting-started`, `for-humans/08-theming`)
+    - `app/README.md` links point at `docs/DelightfulQtWebShell/` but actual path is `app/docs/DelightfulQtWebShell/`
+
+---
+
+## Open Questions
+
+### `app.cpp` hardcodes demo dev port
+
+`app/framework/core/app.cpp:112` has `{"demo", 5173}` in the framework's `appUrl()` dev port map. Demo-specific config baked into framework code — breaks the "no demo in framework" principle. Consider making dev ports registerable by each app target.
+
+### QRC generators use absolute paths
+
+`build_helpers.lua` and the web dist QRC generators in `app/apps/{demo,main}/xmake.lua` write absolute paths into generated `.qrc` files. This makes them machine-specific and non-portable. The QRC format supports relative paths — switching would make the QRCs portable and remove the need to gitignore them.
+
+### Demo menu items wired via title matching
+
+The demo's `main.cpp` finds "Windows" and "Help" menus by iterating `findChildren<QMenu*>()` and matching on `menu->title().contains("Windows")`. Fragile — if someone renames the menu title, demo items silently disappear. Alternative: `buildMenuBar()` could set `objectName()` on each menu, or return menus in `MenuActions`.
+
+### CI builds only the demo target
+
+The three CI workflows (`ci.yml`, `nightly.yml`, `release.yml`) build `demo` but not `desktop` (the slate). Both targets should be verified in CI.

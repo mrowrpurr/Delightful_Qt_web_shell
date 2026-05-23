@@ -27,9 +27,7 @@
 #include "system_bridge.hpp"
 #include "ready_signal.hpp"
 #include "bridge_registry.hpp"
-
-// Must match --bg in App.css and LoadingOverlay
-static constexpr QColor kBackground{0x24, 0x24, 0x24};
+#include "colors.hpp"
 
 // QWebEnginePage subclass that pipes JS console.log into qDebug, so
 // anything logged from React lands in the same file as the Qt logs.
@@ -67,7 +65,7 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile,
     // ── Web view + page ──────────────────────────────────────
     view_ = new QWebEngineView(this);
     auto* page = new LoggingWebPage(profile, view_);
-    page->setBackgroundColor(kBackground);
+    page->setBackgroundColor(app_shell::kDefaultBackground);
     view_->setPage(page);
     layout->addWidget(view_);
 
@@ -125,7 +123,7 @@ WebShellWidget::WebShellWidget(QWebEngineProfile* profile,
     devToolsView_->setWindowTitle("Developer Tools — " APP_NAME);
     devToolsView_->resize(1024, 600);
     auto* devToolsPage = new QWebEnginePage(profile, devToolsView_);
-    devToolsPage->setBackgroundColor(kBackground);
+    devToolsPage->setBackgroundColor(app_shell::kDefaultBackground);
     devToolsView_->setPage(devToolsPage);
 
     // ── Drag & drop ─────────────────────────────────────────
