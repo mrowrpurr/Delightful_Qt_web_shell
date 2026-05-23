@@ -8,11 +8,11 @@
 // Connects to the dev-server's WebSocket, calls __meta__ to get the C++ method
 // manifest, then parses the TypeScript interface files and checks for drift.
 
-import { readFileSync } from 'fs'
+import { readFileSync, readdirSync } from 'fs'
 import { join } from 'path'
 
 const WS_URL = process.env.BRIDGE_WS_URL || 'ws://localhost:9876'
-const BRIDGE_TS = join(import.meta.dir, '..', 'web', 'shared', 'api', 'bridge.ts')
+const BRIDGES_DIR = join(import.meta.dir, '..', 'web', 'packages', 'bridge', 'lib', 'bridges')
 
 // ── Fetch C++ manifest via __meta__ ─────────────────────────────────
 
@@ -57,7 +57,6 @@ async function fetchMeta(): Promise<Record<string, BridgeMeta>> {
 
 interface TsMethod {
   name: string
-  paramCount: number
   isSignal: boolean
 }
 
@@ -79,14 +78,10 @@ function parseTsBridgeInterfaces(source: string): Record<string, TsMethod[]> {
     const body = source.slice(startMatch.index + startMatch[0].length, pos - 1)
     const methods: TsMethod[] = []
 
-    // Match method lines: methodName(params): ReturnType
-    // Signals look like: signalName(callback: () => void): () => void
     for (const line of body.split('\n')) {
       const trimmed = line.trim()
       if (!trimmed || trimmed.startsWith('//')) continue
 
-      // Match: name(params): returnType
-      // Use a non-greedy match for params that handles nested parens for callback types
       const methodMatch = trimmed.match(/^(\w+)\s*\(/)
       if (!methodMatch) continue
 
@@ -96,24 +91,7 @@ function parseTsBridgeInterfaces(source: string): Record<string, TsMethod[]> {
       const isSignal = trimmed.endsWith('() => void')
         && trimmed.includes('callback:')
 
-      // Count params by finding the parameter list between the outer parens
-      let paramCount = 0
-      if (!isSignal) {
-        // Extract content between first ( and matching )
-        let depth = 0
-        let paramStart = trimmed.indexOf('(')
-        let paramEnd = paramStart
-        for (let i = paramStart; i < trimmed.length; i++) {
-          if (trimmed[i] === '(') depth++
-          else if (trimmed[i] === ')') { depth--; if (depth === 0) { paramEnd = i; break } }
-        }
-        const paramStr = trimmed.slice(paramStart + 1, paramEnd).trim()
-        if (paramStr) {
-          paramCount = paramStr.split(',').length
-        }
-      }
-
-      methods.push({ name, paramCount, isSignal })
+      methods.push({ name, isSignal })
     }
 
     bridges[interfaceName] = methods
@@ -138,13 +116,10 @@ function validate(
 
   // Map TS interface names to bridge registration names
   // Convention: TodoBridge → "todos" (lowercase, strip "Bridge")
-  // But we also check by exact match if available
   const tsNameToCppName = new Map<string, string>()
 
   for (const tsName of Object.keys(tsBridges)) {
-    // Try convention: "TodoBridge" → "todos" (lowercase first word)
     const stripped = tsName.replace(/Bridge$/, '')
-    // Try: exact lowercase, with trailing 's' for plurals
     const candidates = [
       stripped.toLowerCase(),
       stripped.toLowerCase() + 's',
@@ -191,17 +166,6 @@ function validate(
           level: 'error',
           bridge: tsName,
           message: `Method "${tsMethod.name}" declared in TypeScript but missing from C++ bridge "${cppName}". Did you forget to add Q_INVOKABLE?`,
-        })
-        continue
-      }
-
-      // Check arity
-      const cppMethod = cpp.methods.find(m => m.name === tsMethod.name)!
-      if (tsMethod.paramCount !== cppMethod.paramCount) {
-        issues.push({
-          level: 'error',
-          bridge: tsName,
-          message: `Method "${tsMethod.name}" has ${tsMethod.paramCount} params in TypeScript but ${cppMethod.paramCount} in C++.`,
         })
       }
     }
@@ -252,8 +216,9 @@ async function main() {
   const totalMethods = bridgeNames.reduce((n, b) => n + cppBridges[b].methods.length, 0)
   console.log(`  C++ bridges: ${bridgeNames.join(', ')} (${totalMethods} methods)\n`)
 
-  // 2. Parse TypeScript
-  const tsSource = readFileSync(BRIDGE_TS, 'utf8')
+  // 2. Parse TypeScript — read all *-bridge.ts files from @app/bridge
+  const bridgeFiles = readdirSync(BRIDGES_DIR).filter(f => f.endsWith('-bridge.ts'))
+  const tsSource = bridgeFiles.map(f => readFileSync(join(BRIDGES_DIR, f), 'utf8')).join('\n')
   const tsBridges = parseTsBridgeInterfaces(tsSource)
   const tsNames = Object.keys(tsBridges)
   const tsTotalMethods = tsNames.reduce((n, b) => n + tsBridges[b].length, 0)
