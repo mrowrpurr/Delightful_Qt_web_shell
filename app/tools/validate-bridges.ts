@@ -60,14 +60,27 @@ interface TsMethod {
   isSignal: boolean
 }
 
-function parseTsBridgeInterfaces(source: string): Record<string, TsMethod[]> {
-  const bridges: Record<string, TsMethod[]> = {}
+interface TsBridge {
+  methods: TsMethod[]
+  internalSignals: Set<string>
+}
+
+function parseTsBridgeInterfaces(source: string): Record<string, TsBridge> {
+  const bridges: Record<string, TsBridge> = {}
 
   // Find interface blocks with proper brace matching (handles nested { } in types)
   const interfaceStartRe = /export\s+interface\s+(\w+Bridge)\s*\{/g
   let startMatch
   while ((startMatch = interfaceStartRe.exec(source))) {
     const interfaceName = startMatch[1]
+
+    // Look for @internal-signals comment before the interface
+    const preceding = source.slice(Math.max(0, startMatch.index - 200), startMatch.index)
+    const internalMatch = preceding.match(/@internal-signals\s+(.+)/)
+    const internalSignals = new Set(
+      internalMatch ? internalMatch[1].trim().split(/[\s,]+/) : []
+    )
+
     let depth = 1
     let pos = startMatch.index + startMatch[0].length
     while (pos < source.length && depth > 0) {
@@ -94,7 +107,7 @@ function parseTsBridgeInterfaces(source: string): Record<string, TsMethod[]> {
       methods.push({ name, isSignal })
     }
 
-    bridges[interfaceName] = methods
+    bridges[interfaceName] = { methods, internalSignals }
   }
 
   return bridges
@@ -110,7 +123,7 @@ interface Issue {
 
 function validate(
   cppBridges: Record<string, BridgeMeta>,
-  tsBridges: Record<string, TsMethod[]>,
+  tsBridges: Record<string, TsBridge>,
 ): Issue[] {
   const issues: Issue[] = []
 
@@ -133,7 +146,8 @@ function validate(
     }
   }
 
-  for (const [tsName, tsMethods] of Object.entries(tsBridges)) {
+  for (const [tsName, tsBridge] of Object.entries(tsBridges)) {
+    const { methods: tsMethods, internalSignals } = tsBridge
     const cppName = tsNameToCppName.get(tsName)
     if (!cppName) {
       issues.push({
@@ -170,7 +184,7 @@ function validate(
       }
     }
 
-    // Check each C++ method exists in TS
+    // Check each C++ method exists in TS (skip @internal-signals)
     const tsMethodNames = new Set(tsMethods.filter(m => !m.isSignal).map(m => m.name))
     const tsSignalNames = new Set(tsMethods.filter(m => m.isSignal).map(m => m.name))
 
@@ -185,6 +199,7 @@ function validate(
     }
 
     for (const signal of cpp.signals) {
+      if (internalSignals.has(signal)) continue
       if (!tsSignalNames.has(signal)) {
         issues.push({
           level: 'warning',
@@ -221,7 +236,7 @@ async function main() {
   const tsSource = bridgeFiles.map(f => readFileSync(join(BRIDGES_DIR, f), 'utf8')).join('\n')
   const tsBridges = parseTsBridgeInterfaces(tsSource)
   const tsNames = Object.keys(tsBridges)
-  const tsTotalMethods = tsNames.reduce((n, b) => n + tsBridges[b].length, 0)
+  const tsTotalMethods = tsNames.reduce((n, b) => n + tsBridges[b].methods.length, 0)
   console.log(`  TS interfaces: ${tsNames.join(', ')} (${tsTotalMethods} members)\n`)
 
   // 3. Validate
