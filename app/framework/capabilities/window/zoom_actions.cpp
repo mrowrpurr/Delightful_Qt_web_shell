@@ -95,12 +95,9 @@ bool ZoomActions::eventFilter(QObject* obj, QEvent* event) {
     if (event->type() == QEvent::Wheel && activeView_) {
         auto* we = static_cast<QWheelEvent*>(event);
 
-        // Ctrl on Windows/Linux, Cmd on macOS.
-#ifdef Q_OS_MAC
-        bool zoomModifier = we->modifiers().testFlag(Qt::MetaModifier);
-#else
+        // Qt maps Cmd to ControlModifier on macOS.
+        // This filter only runs on macOS (#ifdef guard on install).
         bool zoomModifier = we->modifiers().testFlag(Qt::ControlModifier);
-#endif
 
         if (zoomModifier) {
             int deltaY = we->angleDelta().y();
