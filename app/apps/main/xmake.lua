@@ -69,8 +69,8 @@ target("desktop")
                 table.insert(all_qrc_lines, '    <qresource prefix="/web-' .. app_name .. '">')
                 for _, f in ipairs(os.files(path.join(dist_dir, "**"))) do
                     local rel = path.relative(f, dist_dir):gsub("\\", "/")
-                    local abs = path.absolute(f):gsub("\\", "/")
-                    table.insert(all_qrc_lines, '        <file alias="' .. rel .. '">' .. abs .. '</file>')
+                    local rel_from_qrc = path.relative(f, base):gsub("\\", "/")
+                    table.insert(all_qrc_lines, '        <file alias="' .. rel .. '">' .. rel_from_qrc .. '</file>')
                 end
                 table.insert(all_qrc_lines, '    </qresource>')
             end

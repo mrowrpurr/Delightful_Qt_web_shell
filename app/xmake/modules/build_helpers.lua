@@ -7,13 +7,13 @@ function compile_styles_qrc(target)
     local lines = {'<RCC>', '    <qresource prefix="/styles">'}
     for _, f in ipairs(os.files(path.join(compiled_dir, "*.qss"))) do
         local name = path.filename(f)
-        local abs = path.absolute(f):gsub("\\", "/")
-        table.insert(lines, '        <file alias="' .. name .. '">' .. abs .. '</file>')
+        local rel = path.relative(f, styles_dir):gsub("\\", "/")
+        table.insert(lines, '        <file alias="' .. name .. '">' .. rel .. '</file>')
     end
     local names_json = path.join(compiled_dir, "theme-names.json")
     if os.isfile(names_json) then
-        local abs = path.absolute(names_json):gsub("\\", "/")
-        table.insert(lines, '        <file alias="theme-names.json">' .. abs .. '</file>')
+        local rel = path.relative(names_json, styles_dir):gsub("\\", "/")
+        table.insert(lines, '        <file alias="theme-names.json">' .. rel .. '</file>')
     end
     table.insert(lines, '    </qresource>')
     table.insert(lines, '</RCC>')
