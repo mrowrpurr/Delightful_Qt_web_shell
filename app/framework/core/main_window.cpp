@@ -68,7 +68,10 @@ MainWindow::MainWindow(app_shell::App& app, const QString& windowId, QWidget* pa
         Q_UNUSED(dock);
     }
 
-    activeDock_ = docks_.first();
+    // Use setActiveDock so status bar zoom + activeDockChanged fire.
+    // Capabilities constructed in subclass constructors will connect
+    // to activeDockChanged and call wire(parent->activeDock()) themselves.
+    setActiveDock(docks_.first());
 }
 
 // ── Dock hosting ─────────────────────────────────────────────
@@ -152,12 +155,14 @@ void MainWindow::setActiveDock(QDockWidget* dock) {
     activeDock_ = dock;
 
     // ── Status bar zoom display ──────────────────────────────
+    // Disconnect the previous view's zoomFactorChanged before connecting the new one.
+    disconnect(zoomConnection_);
     auto* view = activeView();
     if (view) {
         auto updateZoom = [this, view]() {
             statusBar_->setZoomLevel(qRound(view->zoomFactor() * 100));
         };
-        connect(view->page(), &QWebEnginePage::zoomFactorChanged, this, updateZoom);
+        zoomConnection_ = connect(view->page(), &QWebEnginePage::zoomFactorChanged, this, updateZoom);
         updateZoom();
     }
 

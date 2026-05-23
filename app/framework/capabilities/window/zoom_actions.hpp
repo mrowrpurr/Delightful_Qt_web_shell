@@ -28,6 +28,7 @@ private:
     QAction* in_    = nullptr;
     QAction* out_   = nullptr;
     QAction* reset_ = nullptr;
+    QMetaObject::Connection inConn_, outConn_, resetConn_;
 };
 
 }  // namespace app_shell

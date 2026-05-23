@@ -2,6 +2,8 @@
 
 #include "zoom_actions.hpp"
 #include "main_window.hpp"
+#include "app.hpp"
+#include "style_manager.hpp"
 #include "icon_utils.hpp"
 
 #include <QAction>
@@ -29,21 +31,21 @@ ZoomActions::ZoomActions(MainWindow* parent, QMenu* menu)
     menu->addAction(reset_);
 
     auto wire = [this](QDockWidget* dock) {
-        in_->disconnect(SIGNAL(triggered()));
-        out_->disconnect(SIGNAL(triggered()));
-        reset_->disconnect(SIGNAL(triggered()));
+        disconnect(inConn_);
+        disconnect(outConn_);
+        disconnect(resetConn_);
 
         if (!dock || !dock->widget()) return;
         auto* view = dock->widget()->findChild<QWebEngineView*>();
         if (!view) return;
 
-        connect(in_, &QAction::triggered, view, [view]() {
+        inConn_ = connect(in_, &QAction::triggered, view, [view]() {
             view->setZoomFactor(qMin(view->zoomFactor() + 0.1, 5.0));
         });
-        connect(out_, &QAction::triggered, view, [view]() {
+        outConn_ = connect(out_, &QAction::triggered, view, [view]() {
             view->setZoomFactor(qMax(view->zoomFactor() - 0.1, 0.25));
         });
-        connect(reset_, &QAction::triggered, view, [view]() {
+        resetConn_ = connect(reset_, &QAction::triggered, view, [view]() {
             view->setZoomFactor(1.0);
         });
     };
@@ -52,6 +54,17 @@ ZoomActions::ZoomActions(MainWindow* parent, QMenu* menu)
 
     if (parent->activeDock())
         wire(parent->activeDock());
+
+    // Retint icons on theme change.
+    if (auto* sm = parent->app().styleManager()) {
+        auto retint = [this, sm]() {
+            QColor c = sm->isDarkMode() ? Qt::white : QColor(40, 40, 40);
+            in_->setIcon(tintedIcon(Icons16::Action_ZoomIn, c));
+            out_->setIcon(tintedIcon(Icons16::Action_ZoomOut, c));
+            reset_->setIcon(tintedIcon(Icons16::Action_ZoomOriginal, c));
+        };
+        connect(sm, &StyleManager::themeChanged, this, retint);
+    }
 }
 
 }  // namespace app_shell

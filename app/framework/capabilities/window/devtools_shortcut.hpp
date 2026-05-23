@@ -25,4 +25,5 @@ public:
 private:
     void wireToDock(QDockWidget* dock);
     QAction* action_;
+    QMetaObject::Connection actionConn_;
 };

@@ -68,6 +68,7 @@ private:
 
     QList<QDockWidget*> docks_;
     QDockWidget* activeDock_ = nullptr;
+    QMetaObject::Connection zoomConnection_;
     StatusBar* statusBar_ = nullptr;
     DockTabManager* tabManager_ = nullptr;
     ReactiveTitle* reactiveTitle_ = nullptr;

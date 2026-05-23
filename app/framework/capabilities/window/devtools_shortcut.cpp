@@ -2,6 +2,8 @@
 
 #include "devtools_shortcut.hpp"
 #include "main_window.hpp"
+#include "app.hpp"
+#include "style_manager.hpp"
 #include "icon_utils.hpp"
 
 #include <QKeySequence>
@@ -21,13 +23,21 @@ DevToolsShortcut::DevToolsShortcut(MainWindow* parent, QMenu* menu)
 
     if (parent->activeDock())
         wireToDock(parent->activeDock());
+
+    // Retint icon on theme change.
+    if (auto* sm = parent->app().styleManager()) {
+        connect(sm, &StyleManager::themeChanged, this, [this, sm]() {
+            QColor c = sm->isDarkMode() ? Qt::white : QColor(40, 40, 40);
+            action_->setIcon(tintedIcon(Icons16::Navigation_Settings, c));
+        });
+    }
 }
 
 void DevToolsShortcut::wireToDock(QDockWidget* dock) {
-    action_->disconnect(SIGNAL(triggered()));
+    disconnect(actionConn_);
     if (!dock || !dock->widget()) return;
     auto* widget = dock->widget();
-    connect(action_, &QAction::triggered, widget, [widget]() {
+    actionConn_ = connect(action_, &QAction::triggered, widget, [widget]() {
         QMetaObject::invokeMethod(widget, "toggleDevTools");
     });
 }
