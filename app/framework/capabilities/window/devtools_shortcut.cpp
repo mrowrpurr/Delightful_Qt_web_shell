@@ -7,7 +7,7 @@
 #include <QKeySequence>
 #include <QMenu>
 
-DevToolsShortcut::DevToolsShortcut(QWidget* parent, QMenu* menu)
+DevToolsShortcut::DevToolsShortcut(MainWindow* parent, QMenu* menu)
     : QObject(parent)
 {
     action_ = new QAction(tintedIcon(Icons16::Navigation_Settings),
@@ -17,14 +17,10 @@ DevToolsShortcut::DevToolsShortcut(QWidget* parent, QMenu* menu)
     if (menu)
         menu->addAction(action_);
 
-    // Wire to active dock changes.
-    auto* win = qobject_cast<MainWindow*>(parent);
-    if (win) {
-        connect(win, &MainWindow::activeDockChanged, this, &DevToolsShortcut::wireToDock);
+    connect(parent, &MainWindow::activeDockChanged, this, &DevToolsShortcut::wireToDock);
 
-        if (win->activeDock())
-            wireToDock(win->activeDock());
-    }
+    if (parent->activeDock())
+        wireToDock(parent->activeDock());
 }
 
 void DevToolsShortcut::wireToDock(QDockWidget* dock) {

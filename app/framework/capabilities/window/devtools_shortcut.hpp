@@ -18,7 +18,7 @@ class DevToolsShortcut : public QObject {
     Q_OBJECT
 
 public:
-    explicit DevToolsShortcut(QWidget* parent, QMenu* menu = nullptr);
+    explicit DevToolsShortcut(MainWindow* parent, QMenu* menu = nullptr);
 
     QAction* action() const { return action_; }
 

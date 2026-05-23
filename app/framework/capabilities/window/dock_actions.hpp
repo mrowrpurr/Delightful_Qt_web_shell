@@ -9,7 +9,7 @@
 
 class QAction;
 class QMenu;
-class QWidget;
+class MainWindow;
 
 namespace app_shell {
 
@@ -17,7 +17,7 @@ class DockActions : public QObject {
     Q_OBJECT
 
 public:
-    explicit DockActions(QWidget* parent, QMenu* menu);
+    explicit DockActions(MainWindow* parent, QMenu* menu);
 
     QAction* newTabAction() const { return newTab_; }
     QAction* closeTabAction() const { return closeTab_; }

@@ -10,7 +10,7 @@
 
 class QAction;
 class QMenu;
-class QWidget;
+class MainWindow;
 
 namespace app_shell {
 
@@ -18,7 +18,7 @@ class ZoomActions : public QObject {
     Q_OBJECT
 
 public:
-    explicit ZoomActions(QWidget* parent, QMenu* menu);
+    explicit ZoomActions(MainWindow* parent, QMenu* menu);
 
     QAction* inAction() const { return in_; }
     QAction* outAction() const { return out_; }

@@ -11,25 +11,24 @@
 
 namespace app_shell {
 
-DockActions::DockActions(QWidget* parent, QMenu* menu)
+DockActions::DockActions(MainWindow* parent, QMenu* menu)
     : QObject(parent)
 {
-    auto* win = qobject_cast<MainWindow*>(parent);
-    auto* dm = win->app().dockManager();
+    auto* dm = parent->app().dockManager();
 
     newTab_ = new QAction(tr("&New Tab"), this);
     newTab_->setShortcut(QKeySequence("Ctrl+T"));
-    connect(newTab_, &QAction::triggered, win, [win, dm]() {
-        auto* dock = dm->createDock({}, win);
+    connect(newTab_, &QAction::triggered, parent, [parent, dm]() {
+        auto* dock = dm->createDock({}, parent);
         dock->raise();
         dock->setFocus();
     });
 
     closeTab_ = new QAction(tr("&Close Tab"), this);
     closeTab_->setShortcut(QKeySequence("Ctrl+W"));
-    connect(closeTab_, &QAction::triggered, win, [win, dm]() {
-        if (win->activeDock())
-            dm->closeDock(win->activeDock());
+    connect(closeTab_, &QAction::triggered, parent, [parent, dm]() {
+        if (parent->activeDock())
+            dm->closeDock(parent->activeDock());
     });
 
     menu->addAction(newTab_);
