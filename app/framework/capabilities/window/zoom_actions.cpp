@@ -61,9 +61,11 @@ void ZoomActions::wireToView(QWebEngineView* view) {
     disconnect(outConn_);
     disconnect(resetConn_);
 
-    // Remove event filter from previous view's focus proxy.
+    // Remove event filter from previous view's focus proxy (macOS only).
+#ifdef Q_OS_MAC
     if (activeView_ && activeView_->focusProxy())
         activeView_->focusProxy()->removeEventFilter(this);
+#endif
 
     activeView_ = view;
 
@@ -80,11 +82,13 @@ void ZoomActions::wireToView(QWebEngineView* view) {
         view->setZoomFactor(1.0);
     });
 
-    // Install event filter on the focus proxy for Ctrl/Cmd+scroll zoom.
-    // QWebEngineView delivers input events through its focusProxy(), not
-    // the view itself — without this, wheelEvent never fires.
+    // macOS only: install event filter for Cmd+scroll zoom.
+    // On Windows/Linux, Chromium handles Ctrl+scroll natively.
+    // QWebEngineView delivers input events through its focusProxy().
+#ifdef Q_OS_MAC
     if (view->focusProxy())
         view->focusProxy()->installEventFilter(this);
+#endif
 }
 
 bool ZoomActions::eventFilter(QObject* obj, QEvent* event) {
