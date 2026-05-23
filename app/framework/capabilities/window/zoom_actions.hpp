@@ -9,7 +9,9 @@
 #include <QObject>
 
 class QAction;
+class QEvent;
 class QMenu;
+class QWebEngineView;
 class MainWindow;
 
 namespace app_shell {
@@ -24,11 +26,17 @@ public:
     QAction* outAction() const { return out_; }
     QAction* resetAction() const { return reset_; }
 
+protected:
+    bool eventFilter(QObject* obj, QEvent* event) override;
+
 private:
+    void wireToView(QWebEngineView* view);
+
     QAction* in_    = nullptr;
     QAction* out_   = nullptr;
     QAction* reset_ = nullptr;
     QMetaObject::Connection inConn_, outConn_, resetConn_;
+    QWebEngineView* activeView_ = nullptr;
 };
 
 }  // namespace app_shell
