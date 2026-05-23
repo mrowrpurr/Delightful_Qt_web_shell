@@ -10,6 +10,11 @@ int main(int argc, char* argv[]) {
 
     app_shell::App app(argc, argv);
 
+    // ── Dev ports (from xmake defines, must match vite.config.ts) ────
+#ifdef WEB_APP_DEV_PORT_APP
+    app.registerDevPort("app", WEB_APP_DEV_PORT_APP);
+#endif
+
     new app_shell::Theming(app, "default-dark");
 
     MainWindow window(app);

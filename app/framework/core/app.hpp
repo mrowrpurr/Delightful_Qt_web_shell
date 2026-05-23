@@ -9,6 +9,7 @@
 #include <utility>
 
 #include <QApplication>
+#include <QHash>
 #include <QUrl>
 
 #include "bridge_registry.hpp"
@@ -45,6 +46,7 @@ public:
     StyleManager* styleManager() const;
     DockManager* dockManager() const { return dockManager_; }
 
+    void registerDevPort(const QString& appName, int port);
     QUrl appUrl(const QString& appName) const;
 
     // The web app name used by MainWindow/DockManager when no URL is specified.
@@ -82,6 +84,7 @@ private:
     BridgeRegistry registry_;
     ReadySignal* lifecycle_ = nullptr;
     DockManager* dockManager_ = nullptr;
+    QHash<QString, int> devPorts_;
 };
 
 }  // namespace app_shell

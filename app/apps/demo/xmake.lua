@@ -8,8 +8,13 @@ local _APP_VERSION = APP_VERSION
 
 -- ── Web apps to build and embed ──────────────────────────────────────
 -- Each entry becomes a separate Vite build + Qt resource bundle.
+-- The port is the Vite dev server port — must match vite.config.ts.
 -- Add/remove entries here to control which web apps ship in the binary.
-local WEB_APPS = {"demo", "settings", "app"}
+local WEB_APPS = {
+    {name = "demo",     port = 5173},
+    {name = "settings", port = 5174},
+    {name = "app",      port = 5175},
+}
 
 target("demo")
     set_kind("binary")
@@ -26,6 +31,9 @@ target("demo")
     add_defines('APP_SLUG="' .. APP_SLUG:gsub('"', '\\"') .. '"')
     add_defines('APP_ORG="' .. APP_ORG:gsub('"', '\\"') .. '"')
     add_defines('APP_VERSION="' .. APP_VERSION:gsub('"', '\\"') .. '"')
+    for _, wa in ipairs(WEB_APPS) do
+        add_defines("WEB_APP_DEV_PORT_" .. wa.name:upper() .. "=" .. wa.port)
+    end
     if is_plat("windows") then
         set_filename(APP_SLUG .. "-demo.exe")
         add_files("resources/app.rc")
@@ -67,7 +75,8 @@ target("demo")
 
             os.execv("bun", {"install"}, {curdir = web_dir})
 
-            for _, app_name in ipairs(WEB_APPS) do
+            for _, wa in ipairs(WEB_APPS) do
+                local app_name = wa.name
                 local app_dir = path.join(web_dir, "apps", app_name)
                 local dist_dir = path.join(app_dir, "dist")
 

@@ -33,6 +33,17 @@ int main(int argc, char* argv[]) {
     app_shell::App app(argc, argv);
     app.setDefaultWebApp("demo");
 
+    // ── Dev ports (from xmake defines, must match vite.config.ts) ────
+#ifdef WEB_APP_DEV_PORT_DEMO
+    app.registerDevPort("demo", WEB_APP_DEV_PORT_DEMO);
+#endif
+#ifdef WEB_APP_DEV_PORT_SETTINGS
+    app.registerDevPort("settings", WEB_APP_DEV_PORT_SETTINGS);
+#endif
+#ifdef WEB_APP_DEV_PORT_APP
+    app.registerDevPort("app", WEB_APP_DEV_PORT_APP);
+#endif
+
     // ── Bridges ──────────────────────────────────────────────────────────
     app.addBridge<TodoBridge>("todos");
     app.addBridge<SystemBridge>("system");

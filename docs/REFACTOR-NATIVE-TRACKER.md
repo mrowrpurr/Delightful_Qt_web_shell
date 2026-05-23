@@ -89,9 +89,9 @@ Tick a sub-box when its commit lands green (`xmake build desktop` + `xmake build
 
 ## Open Questions
 
-### `app.cpp` hardcodes demo dev port
+### ~~`app.cpp` hardcodes demo dev port~~ ✅ Fixed
 
-`app/framework/core/app.cpp:112` has `{"demo", 5173}` in the framework's `appUrl()` dev port map. Demo-specific config baked into framework code — breaks the "no demo in framework" principle. Consider making dev ports registerable by each app target.
+Dev ports now flow from xmake `WEB_APPS` tables as compile-time defines (`WEB_APP_DEV_PORT_<NAME>`). Each app's `main.cpp` calls `app.registerDevPort()` with the defines. Framework has zero knowledge of "demo" or any specific app name.
 
 ### QRC generators use absolute paths
 

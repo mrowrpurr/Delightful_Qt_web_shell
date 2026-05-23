@@ -106,14 +106,13 @@ bool App::event(QEvent* event) {
     return QApplication::event(event);
 }
 
+void App::registerDevPort(const QString& appName, int port) {
+    devPorts_.insert(appName, port);
+}
+
 QUrl App::appUrl(const QString& appName) const {
-    if (devMode_) {
-        static const QHash<QString, int> devPorts = {
-            {"demo", 5173},
-            {"settings", 5174},
-            {"app", 5175},
-        };
-        int port = devPorts.value(appName, 5175);
+    if (devMode_ && devPorts_.contains(appName)) {
+        int port = devPorts_.value(appName);
         return QUrl(QString("http://localhost:%1").arg(port));
     }
     return QUrl(QString("app://%1/").arg(appName));

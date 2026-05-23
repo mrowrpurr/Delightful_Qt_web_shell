@@ -8,7 +8,10 @@ local _APP_ORG     = APP_ORG
 local _APP_VERSION = APP_VERSION
 
 -- Web apps to embed in this binary.
-local WEB_APPS = {"app"}
+-- The port is the Vite dev server port — must match vite.config.ts.
+local WEB_APPS = {
+    {name = "app", port = 5175},
+}
 
 target("desktop")
     set_kind("binary")
@@ -23,6 +26,9 @@ target("desktop")
     add_defines('APP_SLUG="' .. APP_SLUG:gsub('"', '\\"') .. '"')
     add_defines('APP_ORG="' .. APP_ORG:gsub('"', '\\"') .. '"')
     add_defines('APP_VERSION="' .. APP_VERSION:gsub('"', '\\"') .. '"')
+    for _, wa in ipairs(WEB_APPS) do
+        add_defines("WEB_APP_DEV_PORT_" .. wa.name:upper() .. "=" .. wa.port)
+    end
     if is_plat("windows") then
         set_filename(APP_NAME .. ".exe")
     elseif is_plat("macosx") then
@@ -53,7 +59,8 @@ target("desktop")
 
             os.execv("bun", {"install"}, {curdir = web_dir})
 
-            for _, app_name in ipairs(WEB_APPS) do
+            for _, wa in ipairs(WEB_APPS) do
+                local app_name = wa.name
                 local app_dir = path.join(web_dir, "apps", app_name)
                 local dist_dir = path.join(app_dir, "dist")
 
