@@ -38,7 +38,7 @@ target("desktop")
     end
     
     before_build(function(target)
-        import("build_helpers").compile_styles_qrc(target)
+        import("build_helpers").compile_styles_qrc(target, _TEMPLATE_ROOT)
 
         -- ── Build web apps ───────────────────────────────────────
         local base = os.scriptdir()

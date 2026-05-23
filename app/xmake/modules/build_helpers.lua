@@ -1,5 +1,5 @@
-function compile_styles_qrc(target)
-    local styles_dir = path.join(TEMPLATE_ROOT, "framework", "styles")
+function compile_styles_qrc(target, template_root)
+    local styles_dir = path.join(template_root, "framework", "styles")
     local compiled_dir = path.join(styles_dir, "compiled")
     local qrc_path = path.join(styles_dir, "styles.qrc")
     local cpp_path = path.join(styles_dir, "styles_resources.cpp")
