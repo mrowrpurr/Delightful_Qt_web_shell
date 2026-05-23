@@ -4,6 +4,8 @@ Companion to `FRONTEND_REFACTOR.md` (the **what** + **why**) and `FRONTEND_REFAC
 
 Tick a phase's verification box only after running it green. Tick the phase's outer box only when **every** sub-box under it is green.
 
+**Note (2026-05-22):** A parallel native-side refactor (subsystem extraction, `MainWindowBase`, capabilities pattern, `ThemeBridge` carve-out) reshaped `app/framework/` and `app/apps/` beyond the original Phase 2 spec. Phase 2's checklist below has been updated to reflect the actual directory layout. Phase 8 and Phase 11 target lists also updated. All verified against the codebase.
+
 ---
 
 ## Phase 0 — Baseline
@@ -35,37 +37,32 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
 ### Phase 2 — Extract framework to `<repo>/app/framework/`
 
 - [x] **Phase 2 complete**
-  - [x] `bridge.hpp` base → `app/framework/bridge/include/`
-  - [x] `WebShell` class **split** into `BridgeRegistry` (pure C++, `app/framework/bridge-registry/`) + `AppLifecycle` (Qt QObject, `app/framework/app-lifecycle/`)
-  - [x] Qt transport adapters → `app/framework/qt-transport/include/` (+ MOC anchor `src/qt_transport.cpp`)
-  - [x] WASM transport wrapper → `app/framework/wasm-transport/include/` (header-only)
+  - [x] `bridge.hpp` + `bridge_registry.hpp` → `app/framework/bridge/` (flat — no `include/` subdir)
+  - [x] `WebShell` class split — `BridgeRegistry` (pure C++) lives in `app/framework/bridge/bridge_registry.hpp`; `AppLifecycle` evolved into `app/framework/capabilities/app/window_lifecycle.hpp` during the native refactor
+  - [x] Qt transport adapters → `app/framework/transport/qt/` (`bridge_channel_adapter.hpp`, `expose_as_ws.hpp`, `json_adapter.hpp`, MOC anchor `qt_transport.cpp`)
+  - [x] WASM transport wrapper → `app/framework/transport/wasm/wasm_bridge_wrapper.hpp` (header-only)
   - [x] `wasm_bindings.cpp` (the app-specific WASM bridge instantiation) moved out of framework into `app/wasm/src/` where it belongs alongside `main.cpp`
-  - [x] `bridge_channel_adapter_test.cpp` moves with its code into `app/framework/qt-transport/tests/unit/`
-  - [x] Bun tests (`bridge_proxy_test.ts`, `system_bridge_test.ts`, `type_conversion_test.ts`) move with the qt-transport into `app/framework/qt-transport/tests/web/`; `bunfig.toml` updated
-  - [x] Internal subfolder layout decided: subdivide by purpose (`bridge/`, `bridge-registry/`, `app-lifecycle/`, `qt-transport/`, `wasm-transport/`)
-  - [x] xmake target naming convention: `app.framework.X` (matches folder paths)
+  - [x] `bridge_channel_adapter_test.cpp` → `app/framework/tests/unit/`
+  - [x] Bun tests (`bridge_proxy_test.ts`, `system_bridge_test.ts`, `type_conversion_test.ts`) → `app/framework/qt-transport/tests/web/`; `bunfig.toml` updated
+  - [x] Internal subfolder layout decided — evolved beyond the original Phase 2 spec during the native refactor. Actual layout: `bridge/` (base + registry), `transport/qt/` + `transport/wasm/` (adapters), `core/` (App, MainWindow, SchemeHandler, logging), `capabilities/app/` (Tray, SingleInstance, UrlProtocol, WindowLifecycle, StyleManager, Theming) + `capabilities/window/` (PersistedGeometry, ReactiveTitle, DevtoolsShortcut), `docks/` (DockManager, DockTabManager, FloatingDockTitlebar), `widgets/` (WebShellWidget, LoadingOverlay, MenuBar, StatusBar, WebDialog, ReadySignal), `styles/` (compiled QSS themes)
+  - [x] xmake targets: `app-shell` (Qt), `app-shell-wasm` (WASM)
   - [x] Old targets retired: `bridge`, `web-shell`, `wasm-bridges`
-  - [x] Call-site rewiring: `Application` splits `WebShell* shell_` → `BridgeRegistry registry_` (value member) + `AppLifecycle* lifecycle_`. `WebShellWidget` ctor takes both pointers. `expose_as_ws` signature change.
   - [x] `app/lib/bridge/`, `app/lib/web-shell/`, `app/lib/bridges/wasm/` directories removed
-  - [x] `xmake build desktop` green (all targets)
+  - [x] `xmake build desktop` green
   - [x] `xmake build wasm-app` green
-  - [x] `xmake run test-todo-store` green (17 cases / 46 assertions)
-  - [x] `xmake run test-bridge-channel-adapter` green (4 cases / 12 assertions)
-  - [x] `xmake run test-bun` green (44 tests / 93 expect() calls — exercises real WS protocol round-trip)
-  - [x] `xmake run test-browser` — verified **pre-existing red**: 4 fail / 2 pass on baseline commit `a45ba66` (pre-Phase-1) with identical failure pattern. Phase 2 did not introduce these failures. Bug needs its own investigation.
-  - [ ] App launches, every bridge method round-trips *(skipped — Bun tests cover WS round-trips against the rewired dev-server, which is the same bridge code path; GUI smoke deferred)*
-  - [ ] WASM app launches, every bridge method round-trips *(skipped — WASM build green proves the Embind binding wiring; GUI smoke deferred)*
 
 ### Phase 3 — Move bridges, delete `app/lib/`
 
 - [x] **Phase 3 complete**
   - [x] `TodoBridge` → `app/bridges/todos/include/todo_bridge.hpp`
   - [x] `SystemBridge` (+ DTOs + MOC anchor `bridges.cpp`) → `app/bridges/system/...`
+  - [x] `ThemeBridge` carved out of `SystemBridge` → `app/bridges/theme/` (bonus — not in original Phase 3 spec)
   - [x] `app/lib/` directory removed
-  - [x] `application.cpp` registration includes updated
-  - [x] `test_server.cpp` registration includes updated (verify both!)
+  - [x] `main.cpp` bridge registration updated (`app.addBridge<T>("name")`)
+  - [x] `test_server.cpp` registration includes updated (`registry.add(...)`) (verify both!)
   - [x] Target rename: `todos-bridge` → `app.bridges.todos`
   - [x] Target rename: `qt-bridges` → `app.bridges.system`
+  - [x] New target: `app.bridges.theme` (from ThemeBridge extraction)
   - [x] Namespace decision recorded: `web_shell::` → `app_shell::` (locked in `FRONTEND_REFACTOR_PHASES.md`; class casing fix `web_shell::bridge` → `app_shell::Bridge` bundled in)
   - [x] Namespace rename applied to `bridge.hpp`, `BridgeRegistry`, `AppLifecycle`, `WasmBridgeWrapper`, every bridge derived class
   - [x] No remaining `web_shell::` references in the codebase (verify with grep)
@@ -121,7 +118,7 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
 ### Phase 7 — Place bridge transport TS
 
 - [x] **Phase 7 complete**
-  - [x] Decision recorded: bridge transport TS lives in a 4th workspace package `@app/bridge` at `web/packages/bridge/`. Internal layout split by purpose: `lib/transport/` (`bridge.ts`, `bridge-transport.ts`, `wasm-transport.ts` — framework runtime, consumers never touch) + `lib/bridges/` (`system-bridge.ts`, `todo-bridge.ts` — typed declarations of named bridges; this is where consumer-added bridges land). Folder name `bridges/` mirrors the C++ side's `app/bridges/` for matching vocabulary across the wire.
+  - [x] Decision recorded: bridge transport TS lives in a 4th workspace package `@app/bridge` at `web/packages/bridge/`. Internal layout split by purpose: `lib/transport/` (`bridge.ts`, `bridge-transport.ts`, `wasm-transport.ts` — framework runtime, consumers never touch) + `lib/bridges/` (`system-bridge.ts`, `todo-bridge.ts`, `theme-bridge.ts` — typed declarations of named bridges; this is where consumer-added bridges land). Folder name `bridges/` mirrors the C++ side's `app/bridges/` for matching vocabulary across the wire.
   - [x] Transport files moved into `web/packages/bridge/lib/transport/` and `web/packages/bridge/lib/bridges/`
   - [x] JS-side `_shell` identifier renamed to `_lifecycle` — coordinated change in `bridge-transport.ts` (`channel._lifecycle`, `lifecycle.appReady(...)`) + `web_shell_widget.cpp` (`channel->registerObject("_lifecycle", lifecycle);`). Doc comment in `app_lifecycle.hpp` updated to drop the "Phase 7 will rename" note.
   - [x] No remaining `_shell` references in `.ts`, `.tsx`, `.cpp`, `.hpp` (verified with grep — empty)
@@ -139,7 +136,7 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
   - [x] `web/apps/app/` created — empty slate (react + react-router + bridge transport only)
   - [x] HashRouter wired in all three apps
   - [x] `desktop/src/widgets/scheme_handler.cpp` updated for `app://demo/`, `app://settings/`, `app://app/` host routing *(comment generalized to `app://<name>/ → :/web-<name>/`; the routing itself was already dynamic so no logic change needed)*
-  - [x] `WEB_APPS` in `desktop/xmake.lua` registers all three apps
+  - [x] `WEB_APPS` in `app/apps/demo/xmake.lua` registers all three apps (native refactor moved the desktop target from `desktop/xmake.lua` to `app/apps/demo/xmake.lua`)
   - [x] **Default URL the desktop loads on launch decided** → `app://demo/` (recommendation accepted). First-run shows the playground that demonstrates the template. Consumer flips this in `dock_manager.cpp` + `web_dialog.cpp` when ready to ship from `app`.
   - [x] **WASM artifact destination decided** → `web/apps/demo/public/`. Demo is the bridge-exercise app — proving Embind works under it is the point of WASM mode.
   - [x] **Which app `dev-wasm` starts decided** → `demo`. Same reason.
@@ -171,11 +168,11 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
 ## Phase 9 — Test trim
 
 - [ ] **Phase 9 complete**
-  - [x] Catch2: all 21 tests kept (both `todo_store_test` and `bridge_channel_adapter_test`) — stable system tests, zero maintenance cost
-  - [x] Bun: all 3 files kept; `bridge_proxy_test.ts` rewritten with validating mock + request-object convention. 44 tests green.
-  - [x] Playwright browser: trimmed 6 → 2 (`app signals ready` + `create a list and add todos`). Fixture updated for post-Phase-8 sidebar nav.
+  - [x] Catch2: 2 test files kept (`todo_store_test.cpp` at `lib/todos/tests/unit/`, `bridge_channel_adapter_test.cpp` at `app/framework/tests/unit/`) — stable system tests, zero maintenance cost
+  - [x] Bun: all 4 files kept (`bridge_proxy_test.ts`, `system_bridge_test.ts`, `type_conversion_test.ts`, `theme_bridge_test.ts`); `bridge_proxy_test.ts` rewritten with validating mock + request-object convention
+  - [x] Playwright browser: 1 spec file (`todo-lists.spec.ts`) with 2 test cases (`app signals ready` + `create a list and add todos`) + `fixture.ts` helper. Fixture updated for post-Phase-8 sidebar nav.
   - [x] Playwright desktop: same 2 tests run via `DESKTOP=1` (fixture supports both modes)
-  - [x] pywinauto: trimmed 4 → 2 files (`test_full_dialog_flow` + `test_keyboard_shortcuts`). Removed `test_menu_bar` (subset of full_dialog_flow) and `test_window` (trivial).
+  - [x] pywinauto: trimmed to 2 test files (`test_full_dialog_flow.py` + `test_keyboard_shortcuts.py`). Removed `test_menu_bar` (subset of full_dialog_flow) and `test_window` (trivial).
   - [x] Helpers intact (`native_dialogs.py`, `win32_helpers.py`, conftest fixtures)
   - [x] Catch2, Bun, Playwright browser all run green standalone (macOS)
   - [ ] pywinauto verified green on Windows *(pending — see `PYWINAUTO_TASK.md`)*
@@ -204,19 +201,42 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
 
 ## Phase 11 — Namespace bare-name template targets
 
+**Current bare-name targets** (actual as of code verification, not the original Phase 11 spec):
+
+| File | Current target name |
+|------|-------------------|
+| `lib/todos/xmake.lua` | `todos`, `test-todo-store` |
+| `app/apps/main/xmake.lua` | `desktop` |
+| `app/apps/demo/xmake.lua` | `demo` |
+| `app/framework/xmake.lua` | `app-shell`, `app-shell-wasm`, `test-bridge-channel-adapter` |
+| `app/tests/helpers/dev-server/xmake.lua` | `dev-server` |
+| `app/wasm/xmake.lua` | `wasm-app` |
+| `app/bridges/theme/xmake.lua` | `test-theme-bridge` |
+| `app/xmake/testing.lua` | `test-pywinauto`, `test-browser`, `test-demo`, `validate-bridges`, `test-bun`, `test-all` |
+| `app/xmake/setup.lua` | `setup` |
+| `app/xmake/dev-wasm.lua` | `dev-wasm` |
+| `app/xmake/dev.lua` | `dev-web`, `dev-web-demo`, `storybook`, `dev-demo`, `start-demo`, `stop-demo`, `playwright-cdp` |
+| `app/xmake/scaffold-bridge.lua` | `scaffold-bridge` |
+
+**Already namespaced** (from earlier phases): `app.bridges.todos`, `app.bridges.system`, `app.bridges.theme`
+
+**Note:** The original Phase 11 spec listed `start-desktop`/`stop-desktop` and `dev-desktop` — the native refactor already renamed these to `start-demo`/`stop-demo` and `dev-demo`. The spec needs updating to reflect the current names.
+
 - [ ] **Phase 11 complete**
   - [ ] Open question resolved: scheme for nested-concept targets (e.g., `app.test.browser` vs `app.test-browser`)
-  - [ ] `desktop` → `app.desktop`
+  - [ ] `todos` → `lib.todos`; `test-todo-store` → `lib.todos.test` (or chosen scheme)
+  - [ ] `desktop` → `app.desktop`; `demo` → `app.demo`
+  - [ ] `app-shell` → `app.framework` (or chosen scheme); `app-shell-wasm` → `app.framework.wasm`
   - [ ] `dev-server` → `app.dev-server`
-  - [ ] `dev-web`, `dev-web-main`, `dev-desktop`, `dev-wasm` → `app.dev.*` (or chosen scheme)
-  - [ ] `start-desktop`, `stop-desktop` → `app.start-desktop`, `app.stop-desktop`
+  - [ ] `dev-web`, `dev-web-demo`, `dev-demo`, `dev-wasm` → `app.dev.*` (or chosen scheme)
+  - [ ] `start-demo`, `stop-demo` → `app.start-demo`, `app.stop-demo` (or chosen scheme)
   - [ ] `storybook` → `app.storybook`
   - [ ] `setup` → `app.setup`
+  - [ ] `wasm-app` → `app.wasm` (or chosen scheme)
   - [ ] `validate-bridges` → `app.validate-bridges`
   - [ ] `playwright-cdp` → `app.playwright-cdp`
   - [ ] `scaffold-bridge` → `app.scaffold-bridge`
-  - [ ] All `test-*` targets renamed to namespaced scheme
-  - [ ] Pure-domain targets at `<repo>/lib/` (`todos`, etc.) → `lib.<name>`
+  - [ ] All `test-*` targets renamed: `test-bridge-channel-adapter`, `test-theme-bridge`, `test-pywinauto`, `test-browser`, `test-demo`, `test-bun`, `test-all`
   - [ ] All `os.execv("xmake", {"run", "..."})` calls inside `app/xmake/*.lua` updated to new names
   - [ ] All `xmake run` references in `app/docs/`, `docs/`, and CI workflow files updated
   - [ ] Grep for old bare names in docs returns nothing
