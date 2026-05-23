@@ -101,6 +101,6 @@ All three QRC generators (`build_helpers.lua`, `app/apps/demo/xmake.lua`, `app/a
 
 The native refactor moved menu construction into the consumer. `DemoWindow::DemoWindow()` builds its own menu bar with direct `menuBar()->addMenu()` calls — no title matching, no `findChildren`.
 
-### CI builds only the demo target
+### ~~CI builds only the demo target~~ ✅ Fixed
 
-The three CI workflows (`ci.yml`, `nightly.yml`, `release.yml`) build `demo` but not `desktop` (the slate). Both targets should be verified in CI.
+All three CI workflows now build both `demo` and `desktop`.

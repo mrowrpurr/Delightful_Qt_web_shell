@@ -60,6 +60,9 @@ jobs:
       - name: Build demo app
         run: xmake build demo
 
+      - name: Build desktop app (consumer slate)
+        run: xmake build desktop
+
       - name: Build dev-server
         run: xmake build dev-server
 
