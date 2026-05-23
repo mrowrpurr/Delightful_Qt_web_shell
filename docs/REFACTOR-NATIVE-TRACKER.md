@@ -97,9 +97,9 @@ Dev ports now flow from xmake `WEB_APPS` tables as compile-time defines (`WEB_AP
 
 All three QRC generators (`build_helpers.lua`, `app/apps/demo/xmake.lua`, `app/apps/main/xmake.lua`) now use `path.relative()` instead of `path.absolute()`. Generated `.qrc` files are machine-independent.
 
-### Demo menu items wired via title matching
+### ~~Demo menu items wired via title matching~~ ✅ No longer applicable
 
-The demo's `main.cpp` finds "Windows" and "Help" menus by iterating `findChildren<QMenu*>()` and matching on `menu->title().contains("Windows")`. Fragile — if someone renames the menu title, demo items silently disappear. Alternative: `buildMenuBar()` could set `objectName()` on each menu, or return menus in `MenuActions`.
+The native refactor moved menu construction into the consumer. `DemoWindow::DemoWindow()` builds its own menu bar with direct `menuBar()->addMenu()` calls — no title matching, no `findChildren`.
 
 ### CI builds only the demo target
 
