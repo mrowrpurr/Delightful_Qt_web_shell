@@ -1,8 +1,8 @@
-// DevToolsShortcut — window-scoped subsystem for F12 developer tools toggle.
+// DevToolsShortcut — window-scoped capability for F12 developer tools toggle.
 //
 // Creates its own QAction, adds it to the given menu (if provided),
-// and wires it to invoke toggleDevTools() on the active dock's content
-// widget via QMetaObject (content-agnostic — doesn't know WebShellWidget).
+// and wires to activeDockChanged to toggle devtools on the active dock's
+// content widget via QMetaObject (content-agnostic — doesn't know WebShellWidget).
 
 #pragma once
 
@@ -12,6 +12,7 @@
 #include <QObject>
 
 class QMenu;
+class MainWindow;
 
 class DevToolsShortcut : public QObject {
     Q_OBJECT
@@ -21,16 +22,7 @@ public:
 
     QAction* action() const { return action_; }
 
-    // Call when the active dock changes — rewires the action to the new dock.
-    void setActiveDock(QDockWidget* dock) {
-        action_->disconnect();
-        if (!dock || !dock->widget()) return;
-        auto* widget = dock->widget();
-        connect(action_, &QAction::triggered, widget, [widget]() {
-            QMetaObject::invokeMethod(widget, "toggleDevTools");
-        });
-    }
-
 private:
+    void wireToDock(QDockWidget* dock);
     QAction* action_;
 };

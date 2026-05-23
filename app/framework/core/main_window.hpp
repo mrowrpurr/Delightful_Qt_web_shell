@@ -48,6 +48,11 @@ public:
     // This window's unique ID (used as key in settings).
     QString windowId() const { return objectName(); }
 
+signals:
+    // Emitted when the active dock changes — capabilities connect to this
+    // to rewire their actions to the new dock's content.
+    void activeDockChanged(QDockWidget* dock);
+
 protected:
     void closeEvent(QCloseEvent* event) override;
     void changeEvent(QEvent* event) override;
@@ -55,7 +60,7 @@ protected:
 
 private:
     QWebEngineView* activeView() const;
-    void wireToActiveDock();
+    void setActiveDock(QDockWidget* dock);
     void wireTabBar();
 
     // Resolve a tab index to its QDockWidget without string matching.

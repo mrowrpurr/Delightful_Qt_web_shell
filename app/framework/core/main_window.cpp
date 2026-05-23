@@ -5,8 +5,6 @@
 // are constructed by the consumer and placed into whatever menus they choose.
 
 #include "main_window.hpp"
-#include "zoom_actions.hpp"
-#include "devtools_shortcut.hpp"
 #include "persisted_geometry.hpp"
 #include "reactive_title.hpp"
 #include "app.hpp"
@@ -71,9 +69,6 @@ MainWindow::MainWindow(app_shell::App& app, const QString& windowId, QWidget* pa
     }
 
     activeDock_ = docks_.first();
-
-    // ── Initial capability wiring ─────────────────────────────
-    wireToActiveDock();
 }
 
 // ── Dock hosting ─────────────────────────────────────────────
@@ -91,17 +86,11 @@ void MainWindow::addDock(QDockWidget* dock) {
 
     // ── Track active dock ────────────────────────────────────
     connect(dock, &QDockWidget::topLevelChanged, this, [this, dock](bool) {
-        if (activeDock_ != dock) {
-            activeDock_ = dock;
-            wireToActiveDock();
-        }
+        setActiveDock(dock);
     });
 
     connect(dock, &QDockWidget::visibilityChanged, this, [this, dock](bool visible) {
-        if (visible && activeDock_ != dock) {
-            activeDock_ = dock;
-            wireToActiveDock();
-        }
+        if (visible) setActiveDock(dock);
     });
 
     // ── Reactive dock title from document.title ──────────────
@@ -116,8 +105,8 @@ void MainWindow::removeDock(QDockWidget* dock) {
     docks_.removeOne(dock);
 
     if (activeDock_ == dock) {
-        activeDock_ = docks_.isEmpty() ? nullptr : docks_.last();
-        wireToActiveDock();
+        activeDock_ = nullptr;  // clear before setActiveDock so the guard doesn't skip
+        setActiveDock(docks_.isEmpty() ? nullptr : docks_.last());
     }
 }
 
@@ -149,49 +138,30 @@ void MainWindow::wireTabBar() {
             });
 
             connect(tabBar, &QTabBar::currentChanged, this, [this, tabBar](int index) {
-                auto* dock = dockForTab(tabBar, index);
-                if (dock && activeDock_ != dock) {
-                    activeDock_ = dock;
-                    wireToActiveDock();
-                }
+                if (auto* dock = dockForTab(tabBar, index))
+                    setActiveDock(dock);
             });
         }
     }
 }
 
-// ── Active dock wiring ───────────────────────────────────────
+// ── Active dock management ────────────────────────────────────
 
-void MainWindow::wireToActiveDock() {
-    auto* view = activeView();
-    if (!view) return;
-
-    // ── Zoom ─────────────────────────────────────────────────
-    if (auto* zoom = findChild<app_shell::ZoomActions*>()) {
-        zoom->inAction()->disconnect();
-        zoom->outAction()->disconnect();
-        zoom->resetAction()->disconnect();
-
-        connect(zoom->inAction(), &QAction::triggered, view, [view]() {
-            view->setZoomFactor(qMin(view->zoomFactor() + 0.1, 5.0));
-        });
-        connect(zoom->outAction(), &QAction::triggered, view, [view]() {
-            view->setZoomFactor(qMax(view->zoomFactor() - 0.1, 0.25));
-        });
-        connect(zoom->resetAction(), &QAction::triggered, view, [view]() {
-            view->setZoomFactor(1.0);
-        });
-    }
-
-    // ── DevTools ─────────────────────────────────────────────
-    if (auto* dt = findChild<DevToolsShortcut*>())
-        dt->setActiveDock(activeDock_);
+void MainWindow::setActiveDock(QDockWidget* dock) {
+    if (activeDock_ == dock) return;
+    activeDock_ = dock;
 
     // ── Status bar zoom display ──────────────────────────────
-    auto updateZoom = [this, view]() {
-        statusBar_->setZoomLevel(qRound(view->zoomFactor() * 100));
-    };
-    connect(view->page(), &QWebEnginePage::zoomFactorChanged, this, updateZoom);
-    updateZoom();
+    auto* view = activeView();
+    if (view) {
+        auto updateZoom = [this, view]() {
+            statusBar_->setZoomLevel(qRound(view->zoomFactor() * 100));
+        };
+        connect(view->page(), &QWebEnginePage::zoomFactorChanged, this, updateZoom);
+        updateZoom();
+    }
+
+    emit activeDockChanged(dock);
 }
 
 QWebEngineView* MainWindow::activeView() const {
@@ -206,10 +176,8 @@ bool MainWindow::eventFilter(QObject* obj, QEvent* event) {
     // Floating dock activation — track which dock the user is interacting with.
     if (event->type() == QEvent::WindowActivate) {
         auto* dock = qobject_cast<QDockWidget*>(obj);
-        if (dock && dock->isFloating() && activeDock_ != dock && docks_.contains(dock)) {
-            activeDock_ = dock;
-            wireToActiveDock();
-        }
+        if (dock && dock->isFloating() && docks_.contains(dock))
+            setActiveDock(dock);
     }
 
     // Dock close — user clicked the X on a dock (floating or tabified).
@@ -307,10 +275,7 @@ void MainWindow::changeEvent(QEvent* event) {
     if (event->type() == QEvent::ActivationChange && isActiveWindow()) {
         for (auto* dock : docks_) {
             if (!dock->isFloating() && dock->isVisible() && !dock->visibleRegion().isEmpty()) {
-                if (activeDock_ != dock) {
-                    activeDock_ = dock;
-                    wireToActiveDock();
-                }
+                setActiveDock(dock);
                 break;
             }
         }
