@@ -93,9 +93,9 @@ Tick a sub-box when its commit lands green (`xmake build desktop` + `xmake build
 
 Dev ports now flow from xmake `WEB_APPS` tables as compile-time defines (`WEB_APP_DEV_PORT_<NAME>`). Each app's `main.cpp` calls `app.registerDevPort()` with the defines. Framework has zero knowledge of "demo" or any specific app name.
 
-### QRC generators use absolute paths
+### ~~QRC generators use absolute paths~~ ✅ Fixed
 
-`build_helpers.lua` and the web dist QRC generators in `app/apps/{demo,main}/xmake.lua` write absolute paths into generated `.qrc` files. This makes them machine-specific and non-portable. The QRC format supports relative paths — switching would make the QRCs portable and remove the need to gitignore them.
+All three QRC generators (`build_helpers.lua`, `app/apps/demo/xmake.lua`, `app/apps/main/xmake.lua`) now use `path.relative()` instead of `path.absolute()`. Generated `.qrc` files are machine-independent.
 
 ### Demo menu items wired via title matching
 
