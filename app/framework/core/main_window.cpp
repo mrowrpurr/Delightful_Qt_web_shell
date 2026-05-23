@@ -1,20 +1,17 @@
-// MainWindow — wires together menu bar, tool bar, status bar, and dock widgets.
+// MainWindow — preset window with status bar, tabified docks, and subsystems.
 //
-// This file should stay short. If you're adding logic here, ask yourself:
-//   - App-level concern? → app_shell::App
-//   - Dock lifecycle/persistence? → DockManager
-//   - Menu/toolbar action? → menus/menu_bar.cpp
-//   - Reusable widget? → widgets/
-//   - Business logic? → lib/
+// Does NOT build menus or toolbars — consumers (or subclasses) own those.
+// Framework capabilities (ZoomActions, DockActions, DevToolsShortcut)
+// are constructed by the consumer and placed into whatever menus they choose.
 
 #include "main_window.hpp"
+#include "zoom_actions.hpp"
 #include "devtools_shortcut.hpp"
 #include "persisted_geometry.hpp"
 #include "reactive_title.hpp"
 #include "app.hpp"
 #include "window_lifecycle.hpp"
 #include "dock_manager.hpp"
-#include "menu_bar.hpp"
 #include "dock_tab_manager.hpp"
 #include "status_bar.hpp"
 
@@ -47,11 +44,6 @@ MainWindow::MainWindow(app_shell::App& app, const QString& windowId, QWidget* pa
     new PersistedGeometry(this, objectName());
     reactiveTitle_ = new ReactiveTitle(this, APP_NAME);
 
-    // ── Menu bar + toolbar ───────────────────────────────────
-    actions_ = new MenuActions(buildMenuBar(app, this));
-    buildToolBar(app, this, *actions_);
-    devTools_ = new DevToolsShortcut(actions_->devTools, this);
-
     // ── Status bar ───────────────────────────────────────────
     statusBar_ = new StatusBar(this);
     setStatusBar(statusBar_);
@@ -80,24 +72,7 @@ MainWindow::MainWindow(app_shell::App& app, const QString& windowId, QWidget* pa
 
     activeDock_ = docks_.first();
 
-    // ── Wire window + dock actions ───────────────────────────
-    connect(actions_->newWindow, &QAction::triggered, this, [this]() {
-        auto* win = new MainWindow(this->app());
-        win->show();
-    });
-
-    connect(actions_->newTab, &QAction::triggered, this, [this, dm]() {
-        auto* dock = dm->createDock({}, this);
-        dock->raise();
-        dock->setFocus();
-    });
-
-    connect(actions_->closeTab, &QAction::triggered, this, [this, dm]() {
-        if (activeDock_)
-            dm->closeDock(activeDock_);
-    });
-
-    // ── Initial zoom/devtools wiring ─────────────────────────
+    // ── Initial capability wiring ─────────────────────────────
     wireToActiveDock();
 }
 
@@ -190,22 +165,28 @@ void MainWindow::wireToActiveDock() {
     auto* view = activeView();
     if (!view) return;
 
-    actions_->zoomIn->disconnect();
-    actions_->zoomOut->disconnect();
-    actions_->zoomReset->disconnect();
+    // ── Zoom ─────────────────────────────────────────────────
+    if (auto* zoom = findChild<app_shell::ZoomActions*>()) {
+        zoom->inAction()->disconnect();
+        zoom->outAction()->disconnect();
+        zoom->resetAction()->disconnect();
 
-    connect(actions_->zoomIn, &QAction::triggered, view, [view]() {
-        view->setZoomFactor(qMin(view->zoomFactor() + 0.1, 5.0));
-    });
-    connect(actions_->zoomOut, &QAction::triggered, view, [view]() {
-        view->setZoomFactor(qMax(view->zoomFactor() - 0.1, 0.25));
-    });
-    connect(actions_->zoomReset, &QAction::triggered, view, [view]() {
-        view->setZoomFactor(1.0);
-    });
+        connect(zoom->inAction(), &QAction::triggered, view, [view]() {
+            view->setZoomFactor(qMin(view->zoomFactor() + 0.1, 5.0));
+        });
+        connect(zoom->outAction(), &QAction::triggered, view, [view]() {
+            view->setZoomFactor(qMax(view->zoomFactor() - 0.1, 0.25));
+        });
+        connect(zoom->resetAction(), &QAction::triggered, view, [view]() {
+            view->setZoomFactor(1.0);
+        });
+    }
 
-    devTools_->setActiveDock(activeDock_);
+    // ── DevTools ─────────────────────────────────────────────
+    if (auto* dt = findChild<DevToolsShortcut*>())
+        dt->setActiveDock(activeDock_);
 
+    // ── Status bar zoom display ──────────────────────────────
     auto updateZoom = [this, view]() {
         statusBar_->setZoomLevel(qRound(view->zoomFactor() * 100));
     };

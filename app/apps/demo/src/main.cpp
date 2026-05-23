@@ -1,4 +1,4 @@
-// Qt desktop shell — the entry point.
+// Demo app — the entry point.
 // Everything interesting lives in the classes this file wires together.
 
 #include "dock_manager.hpp"
@@ -12,14 +12,11 @@
 #include "system_bridge.hpp"
 #include "todo_bridge.hpp"
 #include "scheme_handler.hpp"
-#include "main_window.hpp"
+#include "demo_window.hpp"
 #include "web_dialog.hpp"
-#include "dialogs/about_dialog.hpp"
-#include "dialogs/demo_widget_dialog.hpp"
 
 #include <QAction>
 #include <QMenu>
-#include <QMenuBar>
 #include <QMessageBox>
 #include <QTimer>
 
@@ -53,33 +50,20 @@ int main(int argc, char* argv[]) {
     new app_shell::Theming(app, "default-dark");
 
     // ── Single-instance guard ───────────────────────────────────────────
-    // If another instance is already running, the ctor forwards this
-    // process's args / activation to it and isPrimary() returns false —
-    // we exit cleanly and the user sees the existing window raise.
     auto* singleInstance = new app_shell::SingleInstance(&app);
     if (!singleInstance->isPrimary()) return 0;
 
     // ── URL protocol ────────────────────────────────────────────────────
-    // Lets users open the app from a browser via <slug>:// links. The prompt
-    // shows once on first launch unless the user opted out previously.
     auto* urlProtocol = new app_shell::UrlProtocol(&app);
     urlProtocol->promptIfNeeded();
 
     // Restore saved windows, or create one default window.
     auto* windowLifecycle = new app_shell::WindowLifecycle(&app);
-    auto windows = windowLifecycle->restoreWindows();
+    auto windows = windowLifecycle->restoreWindows<DemoWindow>();
     if (windows.isEmpty())
-        windows.append(new MainWindow(app));
+        windows.append(new DemoWindow(app));
 
-    // Shared "raise / activate the visible main window" handler — invoked
-    // by both SingleInstance::activationRequested (second-instance launch)
-    // and Tray::activated (tray-icon click or Show Window menu item).
-    //
-    // Reads from QApplication::topLevelWidgets() rather than capturing the
-    // startup `windows` list — that list contains raw pointers that go
-    // dangling as MainWindows are deleted on close. Qt manages the
-    // top-level widget list itself, so this stays correct as windows
-    // come and go.
+    // Shared "raise / activate the visible main window" handler.
     auto raise = []() {
         MainWindow* fallback = nullptr;
         for (auto* w : QApplication::topLevelWidgets()) {
@@ -103,7 +87,6 @@ int main(int argc, char* argv[]) {
                      windows.first(), raise);
 
     // Forward args to the SystemBridge so React can see them.
-    // Handles: first launch args, second-instance args, and URL protocol activations.
     auto* systemBridge = app.bridge<SystemBridge>();
     if (systemBridge) {
         QObject::connect(singleInstance, &app_shell::SingleInstance::argsReceived,
@@ -111,54 +94,12 @@ int main(int argc, char* argv[]) {
             systemBridge->handleAppLaunchArgs(args);
         });
 
-        // Pass the primary instance's own args on first launch
         QStringList args = app.arguments().mid(1);
         if (!args.isEmpty())
             systemBridge->handleAppLaunchArgs(args);
-    }
 
-    // ── Demo menu items ─────────────────────────────────────────────────
-    // These are demo-only — the framework's menu bar has the standard items,
-    // the demo app adds its showcase items on top.
-    for (auto* win : windows) {
-        auto* windowsMenu = win->menuBar()->findChild<QMenu*>("windowsMenu");
-        if (!windowsMenu) {
-            // Find "Windows" menu by title if objectName isn't set
-            for (auto* menu : win->menuBar()->findChildren<QMenu*>()) {
-                if (menu->title().contains("Windows")) { windowsMenu = menu; break; }
-            }
-        }
-        if (windowsMenu) {
-            windowsMenu->addSeparator();
-            auto* webDialogAction = windowsMenu->addAction("&React Dialog...");
-            QObject::connect(webDialogAction, &QAction::triggered, win, [&app, win]() {
-                WebDialog dlg(app, win);
-                dlg.exec();
-            });
-            auto* demoAction = windowsMenu->addAction("&Demo Widget...");
-            QObject::connect(demoAction, &QAction::triggered, win, []() {
-                auto* demo = new DemoWidgetDialog(nullptr);
-                demo->setAttribute(Qt::WA_DeleteOnClose);
-                demo->show();
-            });
-        }
-
-        auto* helpMenu = win->menuBar()->findChild<QMenu*>("helpMenu");
-        if (!helpMenu) {
-            for (auto* menu : win->menuBar()->findChildren<QMenu*>()) {
-                if (menu->title().contains("Help")) { helpMenu = menu; break; }
-            }
-        }
-        if (helpMenu) {
-            auto* aboutAction = helpMenu->addAction("&About");
-            QObject::connect(aboutAction, &QAction::triggered, win, [&app, win]() {
-                AboutDialog dlg(app.brandingImagePath(), win);
-                dlg.exec();
-            });
-        }
-
-        // Wire SystemBridge openDialogRequested → WebDialog for this window.
-        if (systemBridge) {
+        // Wire SystemBridge openDialogRequested → WebDialog for each window.
+        for (auto* win : windows) {
             systemBridge->on_signal("openDialogRequested", [win, &app](const nlohmann::json&) {
                 QTimer::singleShot(0, win, [win, &app]() {
                     WebDialog dlg(app, win);
@@ -169,9 +110,6 @@ int main(int argc, char* argv[]) {
     }
 
     // ── System tray ─────────────────────────────────────────────────────
-    // The framework's Tray subsystem is a thin QObject wrapper around
-    // QSystemTrayIcon + a top-level QMenu. Everything below is demo content
-    // — replace with your own when forking this template.
     auto* tray = new app_shell::Tray(&app);
     QObject::connect(tray, &app_shell::Tray::activated, &app, raise);
 

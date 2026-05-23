@@ -26,7 +26,7 @@ else
             "widgets/*.cpp", "widgets/*.hpp",
             "transport/qt/*.cpp", "transport/qt/*.hpp",
             "capabilities/app/*.cpp", "capabilities/app/*.hpp",
-            "capabilities/window/*.hpp"
+            "capabilities/window/*.cpp", "capabilities/window/*.hpp"
         )
 
         -- Platform-conditional sources

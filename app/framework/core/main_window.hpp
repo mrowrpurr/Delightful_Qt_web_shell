@@ -1,7 +1,11 @@
 // MainWindow — the standard preset window.
 //
-// Inherits MainWindowBase (bare) and installs the full set of standard
-// subsystems: menu bar, tool bar, status bar, tabified docks.
+// Inherits MainWindowBase (bare) and installs the core subsystems:
+// status bar, tabified docks, persisted geometry, reactive title.
+//
+// Does NOT build menus or toolbars — consumers (or subclasses) own those.
+// Framework capabilities (ZoomActions, DockActions, DevToolsShortcut)
+// are constructed by the consumer and placed into whatever menus they choose.
 //
 // Consumers who want different behavior can inherit MainWindowBase directly
 // and compose their own setup. This class is a recipe, not a requirement.
@@ -13,14 +17,12 @@
 #include <QList>
 #include <QUrl>
 
-class DevToolsShortcut;
 class DockTabManager;
 class QDockWidget;
 class QTabBar;
 class QWebEngineView;
 class ReactiveTitle;
 class StatusBar;
-struct MenuActions;
 
 class MainWindow : public MainWindowBase {
     Q_OBJECT
@@ -40,6 +42,9 @@ public:
     // Docks currently hosted in this window.
     const QList<QDockWidget*>& docks() const { return docks_; }
 
+    // The currently active dock (the one zoom/devtools/close-tab target).
+    QDockWidget* activeDock() const { return activeDock_; }
+
     // This window's unique ID (used as key in settings).
     QString windowId() const { return objectName(); }
 
@@ -54,16 +59,11 @@ private:
     void wireTabBar();
 
     // Resolve a tab index to its QDockWidget without string matching.
-    // Qt stamps tabData() with reinterpret_cast<quintptr>(dock) when it builds
-    // the tab bar; we compare against our own live pointers in docks_ rather
-    // than dereferencing whatever Qt handed us.
     QDockWidget* dockForTab(QTabBar* tabBar, int index) const;
 
     QList<QDockWidget*> docks_;
     QDockWidget* activeDock_ = nullptr;
     StatusBar* statusBar_ = nullptr;
-    MenuActions* actions_ = nullptr;
     DockTabManager* tabManager_ = nullptr;
-    DevToolsShortcut* devTools_ = nullptr;
     ReactiveTitle* reactiveTitle_ = nullptr;
 };
