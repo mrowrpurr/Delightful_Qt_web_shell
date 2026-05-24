@@ -3,12 +3,12 @@ local _APP_NAME = APP_NAME
 local _TEMPLATE_ROOT = TEMPLATE_ROOT
 
 -- ── C++ unit tests (Catch2, no Qt) ──────────────────────────────────
--- test-todo-store now lives with the pure-domain library at <repo>/lib/todos/xmake.lua
--- test-bridge-channel-adapter now lives with the qt-transport at app/framework/qt-transport/xmake.lua
+-- lib.todos.test now lives with the pure-domain library at <repo>/lib/todos/xmake.lua
+-- app.framework.test now lives with the qt-transport at app/framework/qt-transport/xmake.lua
 
 -- ── pywinauto tests (native Qt window) ─────────────────────────────
 
-target("test-pywinauto")
+target("app.test.automation")
     set_kind("phony")
     set_default(false)
     on_run(function()
@@ -19,7 +19,7 @@ target("test-pywinauto")
 
 -- ── Playwright e2e tests (browser) ──────────────────────────────────
 
-target("test-browser")
+target("app.test.browser")
     set_kind("phony")
     set_default(false)
     on_run(function()
@@ -30,7 +30,7 @@ target("test-browser")
 
 -- ── Playwright e2e tests (real Qt desktop app) ──────────────────────
 
-target("test-demo")
+target("app.test.desktop")
     set_kind("phony")
     set_default(false)
     on_run(function()
@@ -43,17 +43,17 @@ target("test-demo")
 -- Checks that TypeScript bridge interfaces match C++ Q_INVOKABLE methods.
 -- Catches drift between C++ and TS at dev time instead of runtime.
 
-target("validate-bridges")
+target("app.bridge.validate")
     set_kind("phony")
     set_default(false)
-    add_deps("dev-server")
+    add_deps("app.dev.server")
     on_run(function(target)
         local base = _TEMPLATE_ROOT
         local port = 19876  -- use a different port to avoid conflicts
 
         -- Start dev-server in background
         print(">>> Starting dev-server on port " .. port .. "...")
-        local dev_server = target:dep("dev-server")
+        local dev_server = target:dep("app.dev.server")
         local proc = os.runv(dev_server:targetfile(), {"--port", tostring(port)}, {detach = true})
 
         -- Wait for it to come online
@@ -85,7 +85,7 @@ target("validate-bridges")
 
 -- ── Bun unit tests ──────────────────────────────────────────────────
 
-target("test-bun")
+target("app.test.web")
     set_kind("phony")
     set_default(false)
     on_run(function()
@@ -94,36 +94,3 @@ target("test-bun")
         os.execv("bun", {"test"}, {curdir = base})
     end)
 
--- ── Run all tests ───────────────────────────────────────────────────
--- Runs everything: Catch2 + Bun + Playwright browser + pywinauto.
--- Launches the demo app for pywinauto and always cleans up,
--- even if tests fail (try/finally around start/stop-demo).
-
-target("test-all")
-    set_kind("phony")
-    set_default(false)
-    add_deps("demo")
-    on_run(function()
-        print(">>> Catch2: TodoStore unit tests")
-        os.execv("xmake", {"run", "test-todo-store"})
-        print("")
-        print(">>> Bun: bridge proxy unit tests")
-        os.execv("xmake", {"run", "test-bun"})
-        print("")
-        print(">>> Playwright: e2e tests (browser + C++ backend)")
-        os.execv("xmake", {"run", "test-browser"})
-        print("")
-        print(">>> pywinauto: native Qt tests (launching demo app...)")
-        os.execv("xmake", {"run", "start-demo"})
-        local ok, err = try {
-            function()
-                os.execv("xmake", {"run", "test-pywinauto"})
-                return true
-            end,
-            catch { function(e) return false, e end }
-        }
-        os.execv("xmake", {"run", "stop-demo"})
-        if not ok then
-            raise("pywinauto tests failed: " .. tostring(err))
-        end
-    end)

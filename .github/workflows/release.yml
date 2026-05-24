@@ -58,19 +58,19 @@ jobs:
         run: xmake config -y
 
       - name: Build demo app
-        run: xmake build demo
+        run: xmake build app.demo
 
       - name: Build desktop app (consumer slate)
-        run: xmake build desktop
+        run: xmake build app.desktop
 
       - name: Build dev-server
-        run: xmake build dev-server
+        run: xmake build app.dev.server
 
       - name: Run C++ unit tests
-        run: xmake run test-todo-store
+        run: xmake run lib.todos.test
 
       - name: Run TypeScript unit tests
-        run: xmake run test-bun
+        run: xmake run app.test.web
 
       - name: Get Playwright version and cache paths
         shell: bash

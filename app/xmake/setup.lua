@@ -3,7 +3,7 @@ local _TEMPLATE_ROOT = TEMPLATE_ROOT
 
 -- ── Setup (install all dependencies) ──────────────────────────────────
 
-target("setup")
+target("app.setup")
     set_kind("phony")
     set_default(false)
     on_run(function()

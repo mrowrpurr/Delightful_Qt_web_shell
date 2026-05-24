@@ -13,10 +13,10 @@ local WEB_APPS = {
     {name = "app", port = 5175},
 }
 
-target("desktop")
+target("app.desktop")
     set_kind("binary")
     add_rules("qt.widgetapp")
-    add_deps("app-shell", "app.bridges.system")
+    add_deps("app.framework", "app.bridge.system")
     add_files("src/**.cpp")
     add_files(
         "web_dist_resources.cpp",

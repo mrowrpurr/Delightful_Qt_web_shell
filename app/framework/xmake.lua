@@ -7,7 +7,7 @@
 if is_plat("wasm") then
 
     -- WASM: headeronly bridge + transport only (no Qt, no desktop framework)
-    target("app-shell-wasm")
+    target("app.framework.wasm")
         set_kind("headeronly")
         add_includedirs("bridge", "transport/wasm", {public = true})
         add_packages("def_type", {public = true})
@@ -15,7 +15,7 @@ if is_plat("wasm") then
 else
 
     -- Desktop: the full framework
-    target("app-shell")
+    target("app.framework")
         set_kind("static")
         add_rules("qt.static")
 
@@ -54,7 +54,7 @@ else
         -- ── Dependencies ────────────────────────────────────────
         -- SystemBridge: used by WebShellWidget (drag-drop) and MenuBar (save).
         -- ThemeBridge: used by Theming subsystem.
-        add_deps("app.bridges.system", "app.bridges.theme", {public = true})
+        add_deps("app.bridge.system", "app.bridge.theme", {public = true})
         add_packages("def_type", "qlementine-icons", "libsass", {public = true})
 
         -- ── Qt frameworks ───────────────────────────────────────
@@ -87,11 +87,11 @@ else
 
     -- ── Test targets ────────────────────────────────────────────
 
-    target("test-bridge-channel-adapter")
+    target("app.framework.test")
         set_kind("binary")
         set_default(false)
         add_rules("qt.console")
-        add_deps("app-shell")
+        add_deps("app.framework")
         add_files("tests/unit/bridge_channel_adapter_test.cpp")
         add_frameworks("QtCore", "QtTest")
         add_packages("catch2")

@@ -3,14 +3,14 @@ local _TEMPLATE_ROOT = TEMPLATE_ROOT
 
 -- ── Scaffold a new bridge ────────────────────────────────────────────
 --
--- xmake run scaffold-bridge notes
+-- xmake run app.bridge.scaffold notes
 --
 -- Creates a pure C++ bridge (extending app_shell::Bridge) with def_type
 -- DTOs, wires it into main.cpp, test_server.cpp, xmake targets, and
 -- creates a TS interface stub. Does NOT write into <repo>/lib/ — that's
 -- consumer territory for pure domain logic.
 
-target("scaffold-bridge")
+target("app.bridge.scaffold")
     set_kind("phony")
     set_default(false)
     on_run(function()
@@ -20,7 +20,7 @@ target("scaffold-bridge")
         local args = option.get("arguments") or {}
         local name = args[1]
         if not name or name == "" then
-            raise("Usage: xmake run scaffold-bridge <name>\n  e.g. xmake run scaffold-bridge notes")
+            raise("Usage: xmake run app.bridge.scaffold <name>\n  e.g. xmake run app.bridge.scaffold notes")
         end
 
         -- ── Derive names ────────────────────────────────────────
@@ -32,7 +32,7 @@ target("scaffold-bridge")
         local dtos_name = snake .. "_dtos"                      -- notes_dtos
         local class_name = slug:gsub("(%a)([%w]*)",             -- NotesBridge
             function(a, b) return a:upper() .. b end):gsub("-", "") .. "Bridge"
-        local target_name = "app.bridges." .. slug              -- app.bridges.notes
+        local target_name = "app.bridge." .. slug              -- app.bridge.notes
 
         local root = _TEMPLATE_ROOT
         local bridge_dir = path.join(root, "bridges", slug, "include")
@@ -116,7 +116,7 @@ target("scaffold-bridge")
         local demo_content = io.readfile(demo_xmake)
         if not demo_content:find(target_name, 1, true) then
             demo_content = demo_content:gsub(
-                '(add_deps%("app%.bridges%.system")',
+                '(add_deps%("app%.bridge%.system")',
                 '%1, "' .. target_name .. '"')
             io.writefile(demo_xmake, demo_content)
         end
@@ -126,7 +126,7 @@ target("scaffold-bridge")
         local devserver_content = io.readfile(devserver_xmake)
         if not devserver_content:find(target_name, 1, true) then
             devserver_content = devserver_content:gsub(
-                '(add_deps%("app%.bridges%.system")',
+                '(add_deps%("app%.bridge%.system")',
                 '%1, "' .. target_name .. '"')
             io.writefile(devserver_xmake, devserver_content)
         end

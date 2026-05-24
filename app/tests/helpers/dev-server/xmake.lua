@@ -1,11 +1,11 @@
 -- Capture at parse time — globals aren't available inside after_build closures
 local _TEMPLATE_ROOT = TEMPLATE_ROOT
 
-target("dev-server")
+target("app.dev.server")
     set_kind("binary")
     set_default(false)
     add_rules("qt.console")
-    add_deps("app-shell", "app.bridges.system")
+    add_deps("app.framework", "app.bridge.system")
     add_files("src/test_server.cpp")
 
     -- Write the binary path so Playwright can run it directly.

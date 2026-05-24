@@ -6,14 +6,14 @@
 -- the bridge layer works under Embind is the point of WASM mode.
 --
 -- Usage:
---   xmake f -p wasm && xmake build wasm-app
+--   xmake f -p wasm && xmake build app.wasm
 --   xmake f -p windows --qt=...   (switch back — dev-wasm is a phony target)
---   xmake run dev-wasm
+--   xmake run app.dev.wasm
 
 local _APP_NAME = APP_NAME
 local _TEMPLATE_ROOT = TEMPLATE_ROOT
 
-target("dev-wasm")
+target("app.dev.wasm")
     set_kind("phony")
     set_default(false)
     on_run(function()
@@ -21,10 +21,10 @@ target("dev-wasm")
         local public_dir = path.join(_TEMPLATE_ROOT, "web", "apps", "demo", "public")
 
         -- Verify WASM was built
-        local js_file = path.join(wasm_build, "wasm-app.js")
-        local wasm_file = path.join(wasm_build, "wasm-app.wasm")
+        local js_file = path.join(wasm_build, "app.wasm.js")
+        local wasm_file = path.join(wasm_build, "app.wasm.wasm")
         if not os.isfile(js_file) or not os.isfile(wasm_file) then
-            raise("WASM not built. Run: xmake f -p wasm && xmake build wasm-app")
+            raise("WASM not built. Run: xmake f -p wasm && xmake build app.wasm")
         end
 
         -- Copy artifacts to web/apps/demo/public/ so Vite serves them

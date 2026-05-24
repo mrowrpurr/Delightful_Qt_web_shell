@@ -7,7 +7,7 @@ local _TEMPLATE_ROOT = TEMPLATE_ROOT
 -- ── Vite dev servers ────────────────────────────────────────────────
 -- One target per web app. Each runs Vite on its own port.
 
-target("dev-web")
+target("app.dev.web")
     set_kind("phony")
     set_default(false)
     on_run(function()
@@ -18,7 +18,7 @@ target("dev-web")
         os.execv("bun", {"run", "dev:demo"}, {curdir = web_dir, envs = envs})
     end)
 
-target("dev-web-demo")
+target("app.dev.web-demo")
     set_kind("phony")
     set_default(false)
     on_run(function()
@@ -30,7 +30,7 @@ target("dev-web-demo")
 
 -- ── Storybook ──────────────────────────────────────────────────────────
 
-target("storybook")
+target("app.dev.storybook")
     set_kind("phony")
     set_default(false)
     on_run(function()
@@ -40,12 +40,12 @@ target("storybook")
 
 -- ── Desktop with DevTools ────────────────────────────────────────────
 
-target("dev-demo")
+target("app.dev.demo")
     set_kind("phony")
     set_default(false)
-    add_deps("demo")
+    add_deps("app.demo")
     on_run(function(target)
-        local demo = target:dep("demo")
+        local demo = target:dep("app.demo")
         local envs = os.getenvs()
         envs["QTWEBENGINE_REMOTE_DEBUGGING"] = "9222"
         os.execv(demo:targetfile(), {"--dev"}, {envs = envs})
@@ -53,19 +53,19 @@ target("dev-demo")
 
 -- ── Background demo launch (for agents) ────────────────────────────
 --
--- xmake run start-demo   → launches the app in background with CDP on :9222
--- xmake run stop-demo    → kills the background app
+-- xmake run app.demo.start   → launches the app in background with CDP on :9222
+-- xmake run app.demo.stop    → kills the background app
 --
 -- NOTE: runs in PRODUCTION mode (embedded resources, no Vite HMR).
--- For dev mode with HMR, use: xmake run dev-demo
+-- For dev mode with HMR, use: xmake run app.dev.demo
 -- Agents: use these to launch/quit the app without a human.
 
-target("start-demo")
+target("app.demo.start")
     set_kind("phony")
     set_default(false)
-    add_deps("demo")
+    add_deps("app.demo")
     on_run(function(target)
-        local demo = target:dep("demo")
+        local demo = target:dep("app.demo")
         local exe = demo:targetfile()
         local pidfile = path.join(os.projectdir(), "build", ".desktop-pid.txt")
 
@@ -160,7 +160,7 @@ target("start-demo")
         print("WARNING: app launched but CDP not responding after 30s")
     end)
 
-target("stop-demo")
+target("app.demo.stop")
     set_kind("phony")
     set_default(false)
     on_run(function()
@@ -189,7 +189,7 @@ target("stop-demo")
 -- npx tsx tools/playwright-cdp/cli.ts snapshot
 -- ── Generate TypeScript DTOs from C++ def_type structs ─────────────
 
-target("generate-dtos")
+target("app.dev.generate-dtos")
     set_kind("phony")
     set_default(false)
     on_run(function()
@@ -199,7 +199,7 @@ target("generate-dtos")
 
 -- See: npx tsx tools/playwright-cdp/cli.ts --help
 
-target("playwright-cdp")
+target("app.dev.playwright-cdp")
     set_kind("phony")
     set_default(false)
     on_run(function()

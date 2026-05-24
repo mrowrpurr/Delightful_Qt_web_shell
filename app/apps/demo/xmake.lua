@@ -16,10 +16,10 @@ local WEB_APPS = {
     {name = "app",      port = 5175},
 }
 
-target("demo")
+target("app.demo")
     set_kind("binary")
     add_rules("qt.widgetapp")
-    add_deps("app-shell", "app.bridges.system", "app.bridges.todos")
+    add_deps("app.framework", "app.bridge.system", "app.bridge.todos")
     add_files("src/**.cpp", "src/**.hpp")
     add_files(
         "resources/resources.qrc",
