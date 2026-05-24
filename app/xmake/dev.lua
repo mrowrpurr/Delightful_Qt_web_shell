@@ -187,6 +187,16 @@ target("stop-demo")
 --
 -- echo 'console.log(await snapshot())' | npx tsx tools/playwright-cdp/run.ts
 -- npx tsx tools/playwright-cdp/cli.ts snapshot
+-- ── Generate TypeScript DTOs from C++ def_type structs ─────────────
+
+target("generate-dtos")
+    set_kind("phony")
+    set_default(false)
+    on_run(function()
+        local base = _TEMPLATE_ROOT
+        os.execv("bun", {"run", "tools/generate-dtos.ts"}, {curdir = base})
+    end)
+
 -- See: npx tsx tools/playwright-cdp/cli.ts --help
 
 target("playwright-cdp")
