@@ -33,9 +33,9 @@ Quick status for the shadcn-template migration. Detailed plan + rationale lives 
   - **Already landed in `ea7f5f7`:** `App.css` `#1a1a1a` hex leak → `var(--color-muted)`; `theme.css` + `App.css` `@theme` blocks merged into single `@theme inline`; duplicate `DEFAULT_DARK`/`DEFAULT_LIGHT` palettes removed; `Default` theme populated in `themes.json`.
   - **Still open:** `--radius` per-theme decision (spot-check first whether it actually varies); update `docs/DelightfulQtWebShell/for-agents/` with a "Component patterns" doc matching the post-Phase-3 reality.
 
-## Bridge TS interfaces need shared DTOs
+## ~~Bridge TS interfaces need shared DTOs~~ ✅ Done
 
-The three bridge TS files (`system-bridge.ts`, `todo-bridge.ts`, `theme-bridge.ts`) inline all their request/response types. The C++ side uses `def_type` DTOs — the TS side should mirror them with shared interfaces instead of anonymous `{ field: type }` objects repeated at every call site. As-is, a shape change requires updating every method signature individually.
+`xmake run generate-dtos` generates TS interfaces from C++ `def_type` structs into `web/packages/bridge/lib/dtos/`. All three bridge files import from there.
 
 ## Out-of-band findings to carry forward
 
