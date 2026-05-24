@@ -32,16 +32,16 @@ The app has three layers you touch:
 
 And two layers you don't touch:
 
-- **Framework** (`<repo>/app/framework/`) — `app_shell::Bridge` base, `BridgeRegistry` (pure C++) + `AppLifecycle` (Qt QObject), Qt and WASM transport adapters. You call `registry.addBridge("name", bridge)` and never think about it again.
+- **Framework** (`<repo>/app/framework/`) — `app_shell::Bridge` base, `BridgeRegistry` (pure C++) + `ReadySignal` (Qt QObject), Qt and WASM transport adapters. You call `app.addBridge<T>("name")` and never think about it again.
 - **Transport** (`@app/bridge/lib/transport/`) — Auto-detects QWebChannel vs WebSocket vs Embind. You never touch this.
 
 ## Three Transports, Same Code
 
 | Mode | Transport | Bridge adapter | When |
 |------|-----------|----------------|------|
-| **Desktop prod** | QWebChannel (in-process) | `BridgeChannelAdapter` (QObject with `dispatch()`) | `xmake run desktop` |
-| **Desktop dev/test** | WebSocket JSON-RPC | `expose_as_ws.hpp` | `xmake run dev-server`, Playwright, Bun tests |
-| **Browser (WASM)** | Direct Embind calls | `WasmBridgeWrapper` (generic) | `xmake run dev-wasm` |
+| **Desktop prod** | QWebChannel (in-process) | `BridgeChannelAdapter` (QObject with `dispatch()`) | `xmake run app.demo` |
+| **Desktop dev/test** | WebSocket JSON-RPC | `expose_as_ws.hpp` | `xmake run app.dev.server`, Playwright, Bun tests |
+| **Browser (WASM)** | Direct Embind calls | `WasmBridgeWrapper` (generic) | `xmake run app.dev.wasm` |
 
 React auto-detects: `VITE_TRANSPORT=wasm` → Embind. `window.qt?.webChannelTransport` → QWebChannel. Otherwise → WebSocket to `localhost:9876`.
 

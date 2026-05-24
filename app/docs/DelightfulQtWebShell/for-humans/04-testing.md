@@ -15,22 +15,21 @@ Five test layers, from instant unit tests to native Qt window automation.
 
 | Layer | Command | Speed | What it proves |
 |-------|---------|-------|----------------|
-| C++ unit (Catch2) | `xmake run test-todo-store` | instant | Domain logic works |
-| Bridge protocol (Bun) | `xmake run test-bun` | < 1s | WS protocol + type conversion |
-| Browser e2e (Playwright) | `xmake run test-browser` | ~5s | UI + backend integration |
-| Desktop e2e (Playwright) | `xmake run test-desktop` | ~15s | Same tests in real Qt app |
-| Native Qt (pywinauto) | `xmake run test-pywinauto` | ~5s | Menus, dialogs, shortcuts |
-| All layers | `xmake run test-all` | ~30s | Catch2 + Bun + browser e2e + pywinauto |
-| Bridge validation | `xmake run validate-bridges` | ~3s | TS↔C++ interface match |
+| C++ unit (Catch2) | `xmake run lib.todos.test` | instant | Domain logic works |
+| Bridge protocol (Bun) | `xmake run app.test.web` | < 1s | WS protocol + type conversion |
+| Browser e2e (Playwright) | `xmake run app.test.browser` | ~5s | UI + backend integration |
+| Desktop e2e (Playwright) | `xmake run app.test.desktop` | ~15s | Same tests in real Qt app |
+| Native Qt (pywinauto) | `xmake run app.test.automation` | ~5s | Menus, dialogs, shortcuts |
+| Bridge validation | `xmake run app.bridge.validate` | ~3s | TS↔C++ interface match |
 
-`test-all` runs Catch2 + Bun + browser e2e + pywinauto. It launches and stops the desktop app automatically for native tests. Desktop e2e (Playwright in Qt) is the only layer excluded — it's slower and can be flaky due to GPU/window manager timing.
+Run each test layer individually. The automation tests launch and stop the desktop app automatically for native tests. Desktop e2e (Playwright in Qt) is the slowest layer and can be flaky due to GPU/window manager timing.
 
-> ⚠️ **`test-all` takes over your desktop.** It launches the Qt app and drives it with pywinauto — your mouse and keyboard are hijacked for ~30 seconds. If you're working with an agent and don't want to lose control, ask them to run the invisible layers first: `test-todo-store`, `test-bun`, and `test-browser`. Those catch most issues without touching your desktop. Only run `test-all` (or `test-pywinauto`) when you're ready to hand over the screen.
+> ⚠️ **`app.test.automation` takes over your desktop.** It launches the Qt app and drives it with pywinauto — your mouse and keyboard are hijacked for ~30 seconds. If you're working with an agent and don't want to lose control, ask them to run the invisible layers first: `lib.todos.test`, `app.test.web`, and `app.test.browser`. Those catch most issues without touching your desktop. Only run `app.test.automation` when you're ready to hand over the screen.
 
 ## Setup (One Time)
 
 ```bash
-xmake run setup    # all deps: uv sync, bun install, playwright-cdp, playwright chromium
+xmake run app.setup    # all deps: uv sync, bun install, playwright-cdp, playwright chromium
 ```
 
 ## What Changed → What to Test
@@ -62,9 +61,9 @@ xmake run setup    # all deps: uv sync, bun install, playwright-cdp, playwright 
 |---|---|
 | Catch2 won't compile | Syntax error in `todo_store.hpp` or `todo_bridge.hpp` |
 | Bun tests timeout | Port 9876 in use? Or dev-server binary not built. |
-| E2e won't start | Run `xmake build dev-server` |
+| E2e won't start | Run `xmake build app.dev.server` |
 | E2e "locator not found" | A `data-testid` changed in React |
-| Desktop tests fail | Run `xmake build desktop` first |
+| Desktop tests fail | Run `xmake build app.demo` first |
 | Desktop tests flaky | GPU/window manager — inherently less stable |
 | App frozen with spinner | `signalReady()` missing or broken. See `web/apps/demo/src/App.tsx`. |
 
@@ -151,20 +150,19 @@ def test_save_dialog(app):
 Agents share your computer. Some test commands are invisible; others steal your desktop.
 
 **Invisible (safe anytime — agent can run without asking):**
-- `test-todo-store` — pure C++ unit tests, no GUI
-- `test-bun` — bridge protocol tests, no GUI
-- `test-browser` — headless Chromium, no visible window
-- `validate-bridges` — static check, no GUI
+- `lib.todos.test` — pure C++ unit tests, no GUI
+- `app.test.web` — bridge protocol tests, no GUI
+- `app.test.browser` — headless Chromium, no visible window
+- `app.bridge.validate` — static check, no GUI
 
 **Takes over your desktop (agent should ask first):**
-- `test-all` — includes pywinauto, which drives your mouse/keyboard for ~30s
-- `test-pywinauto` — same as above
-- `test-desktop` — launches Qt app with Playwright, can be flaky
+- `app.test.automation` — pywinauto, which drives your mouse/keyboard for ~30s
+- `app.test.desktop` — launches Qt app with Playwright, can be flaky
 
 **What you can tell your agent:**
-- *"Run the invisible tests first, only run test-all when I say so"*
+- *"Run the invisible tests first, only run app.test.automation when I say so"*
 - *"Run the WASM app headlessly"* — agent uses `PLAYWRIGHT_URL=http://localhost:5173` with playwright-cdp, completely invisible to you
 - *"Open the browser so I can see it"* — agent uses `playwright-cdp open` to launch a visible browser you both can see
-- *"Go ahead and run everything"* — gives the agent permission to run `test-all`
+- *"Go ahead and run everything"* — gives the agent permission to run all test layers including `app.test.automation`
 
 The agent docs explain this from the other side — agents are instructed to ask before running desktop-hijacking tests.

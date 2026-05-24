@@ -1,6 +1,6 @@
 # Tutorial — Your First Feature in 5 Minutes
 
-> **Shortcut:** `xmake run scaffold-bridge <name>` scaffolds a new bridge end-to-end. This tutorial walks through the pattern manually so you understand what's happening under the hood.
+> **Shortcut:** `xmake run app.bridge.scaffold <name>` scaffolds a new bridge end-to-end. This tutorial walks through the pattern manually so you understand what's happening under the hood.
 
 We'll add an `addItem` method — from C++ domain logic to React UI — and see how the three-file pattern works (domain logic + bridge + TypeScript interface).
 
@@ -128,10 +128,10 @@ The framework picks JSON shapes from your C++ return type:
 When you need a new domain area (not just a method on `todos`):
 
 ```bash
-xmake run scaffold-bridge notes
+xmake run app.bridge.scaffold notes
 ```
 
-This creates the bridge class, request DTOs header, and TypeScript interface stub, and wires registration into both entry points (`application.cpp` and `test_server.cpp`). No xmake.lua edits needed — the targets use glob discovery.
+This creates the bridge class, request DTOs header, and TypeScript interface stub, and wires registration into both entry points (`apps/demo/src/main.cpp` and `test_server.cpp`). No xmake.lua edits needed — the targets use glob discovery.
 
 Then add your methods to the bridge class and mirror them in the TS interface.
 
@@ -176,7 +176,9 @@ useEffect(() => {
 ## Validate Your Work
 
 ```bash
-xmake run test-all            # run all test layers
+xmake run lib.todos.test      # C++ unit tests
+xmake run app.test.web        # bridge protocol tests
+xmake run app.test.browser    # browser e2e tests
 ```
 
 The desktop and WASM builds catch DTO/method mismatches at compile time — if your request struct doesn't match what the bridge method expects, the code won't compile.

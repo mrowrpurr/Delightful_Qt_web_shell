@@ -11,7 +11,7 @@ The web content runs in a Chromium-based engine. Press **F12** or use **Windows 
 Python library for testing native Windows UI — menus, dialogs, keyboard shortcuts. Useful for verifying that your Qt widgets work correctly without manual clicking.
 
 ```bash
-xmake run start-desktop              # launch the app
+xmake run app.demo.start              # launch the app
 uv run pytest tests/pywinauto/ -v    # run the tests
 ```
 

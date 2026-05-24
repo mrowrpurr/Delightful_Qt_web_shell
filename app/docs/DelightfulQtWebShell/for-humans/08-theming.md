@@ -44,7 +44,7 @@ The toggle also calls `QStyleHints::setColorScheme()` to update the platform chr
 
 The StyleManager checks three locations, in order:
 
-1. **Dev path** — `desktop/styles/` in the repo (set via `STYLES_DEV_PATH` compile-time define, only outside CI)
+1. **Dev path** — `app/framework/styles/` in the repo (set via `STYLES_DEV_PATH` compile-time define, only outside CI)
 2. **User override** — `AppData/Local/<app>/styles/` (create this folder to customize)
 3. **QRC embedded** — compiled into the binary, always available
 
@@ -64,7 +64,7 @@ Create `%LOCALAPPDATA%/MyOrganization/Delightful Qt Web Shell/styles/` and drop 
 
 ### Option 2: QSS Only (Qt Side)
 
-Drop a file named `<slug>-dark.qss` in `desktop/styles/compiled/`. It appears in the Qt theme dropdown immediately (with live reload) or after a rebuild (for QRC).
+Drop a file named `<slug>-dark.qss` in `app/framework/styles/compiled/`. It appears in the Qt theme dropdown immediately (with live reload) or after a rebuild (for QRC).
 
 ### Option 3: Edit in the App
 
@@ -72,7 +72,7 @@ Use the live theme editor (Editor tab → 🎨 Edit Current Theme) to modify an 
 
 ## The Widget Template
 
-`desktop/styles/shared/widgets.qss.template` defines how theme colors map to Qt widgets. It uses `$variable` placeholders:
+`app/framework/styles/shared/widgets.qss.template` defines how theme colors map to Qt widgets. It uses `$variable` placeholders:
 
 ```css
 QMenuBar {
@@ -105,11 +105,11 @@ The QSS template targets these with `[class~="destructive"]`. Built-in classes: 
 | File | Purpose |
 |------|---------|
 | `web/packages/theming/data/themes.json` | Source of truth — 1000+ themes with light/dark CSS variables |
-| `desktop/styles/shared/widgets.qss.template` | How theme colors map to Qt widgets |
-| `desktop/styles/compiled/` | Generated QSS files (committed, regenerate with the generator) |
-| `desktop/styles/compiled/theme-names.json` | Slug ↔ display name mapping for Qt/React sync |
+| `app/framework/styles/shared/widgets.qss.template` | How theme colors map to Qt widgets |
+| `app/framework/styles/compiled/` | Generated QSS files (committed, regenerate with the generator) |
+| `app/framework/styles/compiled/theme-names.json` | Slug ↔ display name mapping for Qt/React sync |
 | `tools/generate-qss-themes.ts` | The generator script |
-| `desktop/src/style_manager.hpp` | C++ theme loader and live reload engine |
+| `app/framework/capabilities/app/style_manager.hpp` | C++ theme loader and live reload engine |
 | `@app/theming/lib/themes.ts` | React-side theme application |
 | `@app/theming/lib/qt-sync.ts` | `setupQtThemeListener()` — keeps React in sync with Qt theme changes |
 

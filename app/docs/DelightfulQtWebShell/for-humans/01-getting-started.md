@@ -42,7 +42,7 @@ APP_ORG     = "YourOrganization"
 APP_VERSION = "0.1.0"
 ```
 
-This propagates everywhere automatically: window title, binary name, Windows exe metadata, HTML `<title>`, loading screen, and platform settings/data directories (`QSettings`, `AppLocalDataLocation`). Replace `desktop/resources/icon.ico` and `icon.png` with your own icons.
+This propagates everywhere automatically: window title, binary name, Windows exe metadata, HTML `<title>`, loading screen, and platform settings/data directories (`QSettings`, `AppLocalDataLocation`). Replace `app/apps/demo/resources/icon.ico` and `icon.png` with your own icons.
 
 ## Build & Run
 
@@ -54,10 +54,10 @@ xmake f --qt=/path/to/qt   # e.g. C:/Qt/6.10.2/msvc2022_64
 # xmake f -m release -p windows -a x64 --qt="C:/qt/6.10.2/msvc2022_64" -c -y
 
 # Build the desktop app (builds React via Vite, then C++)
-xmake build desktop
+xmake build app.demo
 
 # Run it
-xmake run desktop
+xmake run app.demo
 ```
 
 Every build runs Vite (~30s) then compiles C++ (~10s). Use `SKIP_VITE=1` below when you're only changing C++.
@@ -67,9 +67,9 @@ Every build runs Vite (~30s) then compiles C++ (~10s). Use `SKIP_VITE=1` below w
 If you're only working on C++, skip the Vite build entirely:
 
 ```bash
-SKIP_VITE=1 xmake build desktop       # ~2s instead of ~40s
-SKIP_VITE=1 xmake run desktop         # build + run, no Vite
-SKIP_VITE=1 xmake run start-desktop   # background launch, no Vite
+SKIP_VITE=1 xmake build app.demo       # ~2s instead of ~40s
+SKIP_VITE=1 xmake run app.demo         # build + run, no Vite
+SKIP_VITE=1 xmake run app.demo.start   # background launch, no Vite
 ```
 
 This reuses the previous web bundle. If there's no previous build, it warns and builds normally.
@@ -80,10 +80,10 @@ This reuses the previous web bundle. If there's no previous build, it warns and 
 
 ```bash
 # Terminal 1: Vite dev server with hot reload
-xmake run dev-web
+xmake run app.dev.web
 
 # Terminal 2: Qt app loading from Vite + CDP debugging on :9222
-xmake run dev-desktop
+xmake run app.dev.demo
 ```
 
 Edit a React component, save, see changes instantly inside the native Qt window.
@@ -92,10 +92,10 @@ Edit a React component, save, see changes instantly inside the native Qt window.
 
 ```bash
 # Terminal 1: C++ backend over WebSocket
-xmake run dev-server
+xmake run app.dev.server
 
 # Terminal 2: Vite dev server
-xmake run dev-web
+xmake run app.dev.web
 
 # Open http://localhost:5173 in any browser
 ```
@@ -106,25 +106,25 @@ The dev-server is a headless C++ process that serves your bridges over WebSocket
 
 ```bash
 # One-time: build the WASM target
-xmake f -p wasm && xmake build wasm-app
+xmake f -p wasm && xmake build app.wasm
 
 # Switch back to desktop config (WASM artifacts persist in build/)
 xmake f -p windows --qt=/path/to/qt
 
 # Run the WASM app in browser
-xmake run dev-wasm
+xmake run app.dev.wasm
 ```
 
 `dev-wasm` copies the WASM build artifacts to `web/public/` and starts Vite with `VITE_TRANSPORT=wasm`. Same React UI, same method names — but the C++ runs as WebAssembly in the browser. No backend process needed.
 
-**React HMR works.** C++ changes require rebuilding WASM (`xmake f -p wasm && xmake build wasm-app`) and refreshing the browser.
+**React HMR works.** C++ changes require rebuilding WASM (`xmake f -p wasm && xmake build app.wasm`) and refreshing the browser.
 
 > **Note:** After `xmake f -p wasm`, switching back to desktop with `xmake f -p windows` loses the `--qt=` path. Always pass it explicitly.
 
 ### Storybook (component library)
 
 ```bash
-xmake run storybook   # opens on http://localhost:6006
+xmake run app.dev.storybook   # opens on http://localhost:6006
 ```
 
 Browse and test shared UI components (Button, Card, Select, Tabs) in isolation. No backend needed.
@@ -153,7 +153,7 @@ Two roots: `<repo>/lib/` for portable pure C++ (consumer can lift it to other pr
     ├── bridges/                      # Bridge classes — wrap a domain, extend app_shell::Bridge
     │   ├── todos/                    #   TodoBridge — wraps <repo>/lib/todos
     │   └── system/                   #   SystemBridge — file I/O, clipboard, dialogs
-    ├── desktop/src/                  # Qt desktop binary
+    ├── apps/main/src/                # Qt desktop binary
     │   ├── main.cpp                  #   Entry point — scheme registration, app, window, show
     │   ├── shell/                    #   App class — QApplication, registry, lifecycle, tray
     │   ├── windows/                  #   QMainWindow subclass
@@ -183,13 +183,17 @@ Two roots: `<repo>/lib/` for portable pure C++ (consumer can lift it to other pr
 ## Quick Test
 
 ```bash
-xmake run setup               # install all dependencies
-xmake run test-all            # all layers: Catch2 + Bun + Playwright + pywinauto
+xmake run app.setup            # install all dependencies
+xmake run lib.todos.test      # C++ unit tests
+xmake run app.test.web        # bridge protocol tests
+xmake run app.test.browser    # browser e2e tests
+xmake run app.test.desktop    # desktop e2e tests
+xmake run app.test.automation # native Qt tests (pywinauto)
 ```
 
 If that's green, everything works.
 
-> ⚠️ **Heads up:** `test-all` includes pywinauto tests that launch the Qt app and drive your mouse/keyboard for ~30 seconds. You won't be able to use your computer during that time. If you're working with an agent, you can ask them to run individual test layers first (Catch2, Bun, browser e2e) — those are completely invisible. See [Testing](04-testing.md) for details.
+> ⚠️ **Heads up:** `app.test.automation` launches the Qt app and drives your mouse/keyboard for ~30 seconds. You won't be able to use your computer during that time. If you're working with an agent, you can ask them to run individual test layers first (Catch2, Bun, browser e2e) — those are completely invisible. See [Testing](04-testing.md) for details.
 
 ## What's in the Box
 
