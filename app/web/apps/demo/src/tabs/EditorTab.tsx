@@ -23,7 +23,7 @@ const getEffectiveEditorFont = (): string | null => {
 import { toast } from 'sonner'
 import { Button } from '@app/ui/components/button'
 import { getSystemBridge } from '@app/bridge/lib/bridges/system-bridge'
-import { getThemeBridge } from '@app/bridge/lib/bridges/theme-bridge'
+import { getThemeBridge, type GetQtThemeFilePathResponse } from '@app/bridge/lib/bridges/theme-bridge'
 
 // Lazy-init bridges
 let systemBridge: Awaited<ReturnType<typeof getSystemBridge>> | null = null
@@ -112,13 +112,13 @@ export default function EditorTab() {
   const loadThemeFile = useCallback(async () => {
     if (!themeBridge || !systemBridge) return
     try {
-      const fileInfo = await themeBridge.getQtThemeFilePath()
-      if ('embedded' in fileInfo) {
+      const fileInfo: GetQtThemeFilePathResponse = await themeBridge.getQtThemeFilePath()
+      if (fileInfo.embedded) {
         setEditingTheme(false)
         setThemeFilePath(null)
         return
       }
-      const filePath = (fileInfo as { path: string }).path
+      const filePath = fileInfo.path
       if (!filePath) {
         setEditingTheme(false)
         setThemeFilePath(null)

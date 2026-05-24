@@ -81,7 +81,7 @@ export interface SystemBridge {
 
   // ── File drop ──────────────────────────────────────────
   getDroppedFiles(): Promise<string[]>
-  filesDropped(callback: (data?: any) => void): () => void
+  filesDropped(callback: (data: StringListResponse) => void): () => void
 
   // ── Save ──────────────────────────────────────────────────
   saveRequested(callback: () => void): () => void
