@@ -77,13 +77,9 @@ Tick a sub-box when its commit lands green (`xmake build desktop` + `xmake build
 
 ## Phase 7 — Sweep
 
-- [ ] **Phase 7 complete**
+- [x] **Phase 7 complete**
   - [x] **22. Unify `kBackground`** — three duplicates collapsed into `app_shell::kDefaultBackground` in `framework/core/colors.hpp` (`#242424`, matching `index.html`); `loading_overlay.cpp` fixed from wrong `#09090b` to correct value
-  - [ ] **23. Update agent + human docs** — stale references found across 8+ doc files:
-    - `Application::` old class name → `app_shell::App` (1 hit: `for-agents/02-architecture.md`)
-    - `application.cpp` deleted file (8 hits across 5 files: `03-adding-features`, `06-gotchas`, `07-desktop-capabilities`, `for-humans/03-tutorial`, `for-humans/06-gotchas`)
-    - `desktop/src/` old paths (5 hits across 4 files: `01-getting-started`, `03-adding-features`, `08-theming`, `for-humans/01-getting-started`, `for-humans/08-theming`)
-    - `app/README.md` links point at `docs/DelightfulQtWebShell/` but actual path is `app/docs/DelightfulQtWebShell/`
+  - [x] **23. Update agent + human docs** — all 16 doc files (8 for-agents + 8 for-humans) swept for stale references: `application.cpp` → `main.cpp`, `desktop/src/` → `app/apps/`, `desktop/styles/` → `app/framework/styles/`, `AppLifecycle` → `ReadySignal`, all xmake targets namespaced, `test-all` removed
 
 ---
 

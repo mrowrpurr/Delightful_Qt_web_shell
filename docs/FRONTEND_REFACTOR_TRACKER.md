@@ -221,4 +221,4 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
   - [x] All `add_deps()` and `os.execv("xmake", {"run", "..."})` calls updated
   - [x] CI workflows updated (ci.yml, nightly.yml, release.yml)
   - [x] `xmake build app.demo`, `xmake build app.desktop`, `xmake build app.dev.server`, `xmake run lib.todos.test` all verified green
-  - [ ] Docs sweep for old bare names (deferred — overlaps with native Phase 7.23)
+  - [x] Docs sweep — all 16 for-agents + for-humans docs updated with new target names, paths, class names
