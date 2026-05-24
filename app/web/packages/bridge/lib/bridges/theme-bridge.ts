@@ -3,7 +3,6 @@ import { getBridge } from '../transport/bridge'
 // TypeScript interface for the ThemeBridge C++ bridge.
 // Coordinates React ↔ Qt theme state (display name, dark/light mode, QSS file path).
 
-// @internal-signals qtThemeRequested
 export interface ThemeBridge {
   setQtTheme(req: { displayName: string; isDark: boolean }): Promise<{ ok: boolean }>
   getQtTheme(): Promise<{ displayName: string; isDark: boolean }>
