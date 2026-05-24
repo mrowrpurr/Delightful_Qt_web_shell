@@ -201,43 +201,24 @@ Tick a phase's verification box only after running it green. Tick the phase's ou
 
 ## Phase 11 — Namespace bare-name template targets
 
-**Current bare-name targets** (actual as of code verification, not the original Phase 11 spec):
-
-| File | Current target name |
-|------|-------------------|
-| `lib/todos/xmake.lua` | `todos`, `test-todo-store` |
-| `app/apps/main/xmake.lua` | `desktop` |
-| `app/apps/demo/xmake.lua` | `demo` |
-| `app/framework/xmake.lua` | `app-shell`, `app-shell-wasm`, `test-bridge-channel-adapter` |
-| `app/tests/helpers/dev-server/xmake.lua` | `dev-server` |
-| `app/wasm/xmake.lua` | `wasm-app` |
-| `app/bridges/theme/xmake.lua` | `test-theme-bridge` |
-| `app/xmake/testing.lua` | `test-pywinauto`, `test-browser`, `test-demo`, `validate-bridges`, `test-bun`, `test-all` |
-| `app/xmake/setup.lua` | `setup` |
-| `app/xmake/dev-wasm.lua` | `dev-wasm` |
-| `app/xmake/dev.lua` | `dev-web`, `dev-web-demo`, `storybook`, `dev-demo`, `start-demo`, `stop-demo`, `playwright-cdp` |
-| `app/xmake/scaffold-bridge.lua` | `scaffold-bridge` |
-
-**Already namespaced** (from earlier phases): `app.bridges.todos`, `app.bridges.system`, `app.bridges.theme`
-
-**Note:** The original Phase 11 spec listed `start-desktop`/`stop-desktop` and `dev-desktop` — the native refactor already renamed these to `start-demo`/`stop-demo` and `dev-demo`. The spec needs updating to reflect the current names.
-
-- [ ] **Phase 11 complete**
-  - [ ] Open question resolved: scheme for nested-concept targets (e.g., `app.test.browser` vs `app.test-browser`)
-  - [ ] `todos` → `lib.todos`; `test-todo-store` → `lib.todos.test` (or chosen scheme)
-  - [ ] `desktop` → `app.desktop`; `demo` → `app.demo`
-  - [ ] `app-shell` → `app.framework` (or chosen scheme); `app-shell-wasm` → `app.framework.wasm`
-  - [ ] `dev-server` → `app.dev-server`
-  - [ ] `dev-web`, `dev-web-demo`, `dev-demo`, `dev-wasm` → `app.dev.*` (or chosen scheme)
-  - [ ] `start-demo`, `stop-demo` → `app.start-demo`, `app.stop-demo` (or chosen scheme)
-  - [ ] `storybook` → `app.storybook`
-  - [ ] `setup` → `app.setup`
-  - [ ] `wasm-app` → `app.wasm` (or chosen scheme)
-  - [ ] `validate-bridges` → `app.validate-bridges`
-  - [ ] `playwright-cdp` → `app.playwright-cdp`
-  - [ ] `scaffold-bridge` → `app.scaffold-bridge`
-  - [ ] All `test-*` targets renamed: `test-bridge-channel-adapter`, `test-theme-bridge`, `test-pywinauto`, `test-browser`, `test-demo`, `test-bun`, `test-all`
-  - [ ] All `os.execv("xmake", {"run", "..."})` calls inside `app/xmake/*.lua` updated to new names
-  - [ ] All `xmake run` references in `app/docs/`, `docs/`, and CI workflow files updated
-  - [ ] Grep for old bare names in docs returns nothing
-  - [ ] `xmake build` runs through every namespaced target green
+- [x] **Phase 11 complete**
+  - [x] Scheme decided: dots for ownership hierarchy (`app.test.browser`), dashes within a concept (`app.dev.web-demo`). Tests belonging to a target sit under it (`lib.todos.test`). Suite runners under `app.test.*`. Dev tools under `app.dev.*`. Bridge tools under `app.bridge.*`.
+  - [x] `todos` → `lib.todos`; `test-todo-store` → `lib.todos.test`
+  - [x] `desktop` → `app.desktop`; `demo` → `app.demo`
+  - [x] `app-shell` → `app.framework`; `app-shell-wasm` → `app.framework.wasm`; `test-bridge-channel-adapter` → `app.framework.test`
+  - [x] `app.bridges.*` → `app.bridge.*` (singularized to match everything else)
+  - [x] `test-theme-bridge` → `app.bridge.theme.test`
+  - [x] `dev-server` → `app.dev.server`
+  - [x] `dev-web` → `app.dev.web`; `dev-web-demo` → `app.dev.web-demo`; `dev-demo` → `app.dev.demo`; `dev-wasm` → `app.dev.wasm`
+  - [x] `start-demo` → `app.demo.start`; `stop-demo` → `app.demo.stop`
+  - [x] `storybook` → `app.dev.storybook`
+  - [x] `setup` → `app.setup`
+  - [x] `wasm-app` → `app.wasm`
+  - [x] `validate-bridges` → `app.bridge.validate`; `scaffold-bridge` → `app.bridge.scaffold`
+  - [x] `playwright-cdp` → `app.dev.playwright-cdp`; `generate-dtos` → `app.dev.generate-dtos`
+  - [x] `test-bun` → `app.test.web`; `test-browser` → `app.test.browser`; `test-demo` → `app.test.desktop`; `test-pywinauto` → `app.test.automation`
+  - [x] `test-all` removed — no actual use case
+  - [x] All `add_deps()` and `os.execv("xmake", {"run", "..."})` calls updated
+  - [x] CI workflows updated (ci.yml, nightly.yml, release.yml)
+  - [x] `xmake build app.demo`, `xmake build app.desktop`, `xmake build app.dev.server`, `xmake run lib.todos.test` all verified green
+  - [ ] Docs sweep for old bare names (deferred — overlaps with native Phase 7.23)
