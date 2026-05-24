@@ -8,6 +8,7 @@ export interface ThemeBridge {
   getQtTheme(): Promise<{ displayName: string; isDark: boolean }>
   getQtThemeFilePath(): Promise<{ path: string; embedded: boolean }>
   qtThemeChanged(callback: (data?: any) => void): () => void
+  qtThemeRequested(callback: (data: { displayName: string; isDark: boolean }) => void): () => void
 }
 
 export async function getThemeBridge(): Promise<ThemeBridge> {
