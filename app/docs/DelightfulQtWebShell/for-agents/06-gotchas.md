@@ -6,26 +6,26 @@ This is a concise index of traps. Details live in the doc where you're doing the
 
 | What you forgot | What happens | Where it's explained |
 |---|---|---|
-| Register bridge in `application.cpp` and `test_server.cpp` | Bridge silently doesn't exist | [03-adding-features.md](03-adding-features.md) |
+| Register bridge in `main.cpp` and `test_server.cpp` | Bridge silently doesn't exist | [03-adding-features.md](03-adding-features.md) |
 | Remove `signalReady()` from `App.tsx` | App hangs with spinner forever, error after 15s | [02-architecture.md, signalReady](02-architecture.md) |
 | Use Bun instead of Node for playwright-cdp | `connectOverCDP` hangs forever — no error, no timeout | [05-tools.md, Critical: Node Not Bun](05-tools.md) |
 | `ERR_MODULE_NOT_FOUND` running playwright-cdp | Deps not installed in `tools/playwright-cdp/`. Run `cd tools/playwright-cdp && npm install` | [05-tools.md, Troubleshooting](05-tools.md) |
-| `browserType.connectOverCDP: Timeout 30000ms exceeded` | CDP endpoint stuck. **Ask the human to restart the desktop app** (`xmake run stop-desktop && xmake run start-desktop`) | [05-tools.md, Troubleshooting](05-tools.md) |
+| `browserType.connectOverCDP: Timeout 30000ms exceeded` | CDP endpoint stuck. **Ask the human to restart the desktop app** (`xmake run app.demo.stop && xmake run app.demo.start`) | [05-tools.md, Troubleshooting](05-tools.md) |
 | Bridge method opens modal dialog synchronously | Dialog's QWebChannel can't init — loading overlay forever | [03-adding-features.md, Hash Routes](03-adding-features.md) |
 | Drag & drop handler on WebShellWidget | QWebEngineView's focusProxy swallows all drag events | [07-desktop-capabilities.md](07-desktop-capabilities.md) |
-| Native `<select>` element in QWebEngine | Expanding white rectangle appears while dropdown is open | Use a custom dropdown component instead — see `shared/components/ui/select.tsx` |
+| Native `<select>` element in QWebEngine | Expanding white rectangle appears while dropdown is open | Use a custom dropdown component instead — see `@app/ui/components/select.tsx` |
 | `fetch()` with `app://` scheme | Fetch API cannot load `app://` URLs. Use Vite JSON import at build time instead. | [07-desktop-capabilities.md](07-desktop-capabilities.md) |
 | Vite asset inlining | SVGs < 4KB get inlined as data URIs which break in QWebEngine. Set `assetsInlineLimit: 0` in `vite.config.ts` | [06-gotchas.md](#theming-gotchas) |
 
-> Register bridges manually in both `application.cpp` and `test_server.cpp` with `shell.addBridge("name", bridge)`. Bridges extend `app_shell::Bridge` — no QObject, no MOC setup needed.
+> Register bridges manually in both your app's `main.cpp` and `test_server.cpp` with `app.addBridge<MyBridge>("name")`. Bridges extend `app_shell::Bridge` — no QObject, no MOC setup needed.
 
 ## Build Gotchas
 
 **Every build runs Vite** (~30s) then compiles C++ (~10s).
 
-**Skip Vite for C++ iteration:** `SKIP_VITE=1 xmake build desktop` reuses the previous web bundle (~2s instead of ~40s). Works with `run desktop` and `run start-desktop` too.
+**Skip Vite for C++ iteration:** `SKIP_VITE=1 xmake build app.demo` reuses the previous web bundle (~2s instead of ~40s). Works with `run desktop` and `run start-desktop` too.
 
-**`xmake build desktop` before desktop tests:** Desktop e2e and pywinauto tests need the app binary. Build first.
+**`xmake build app.demo` before desktop tests:** Desktop e2e and pywinauto tests need the app binary. Build first.
 
 ## playwright-core Patch
 
@@ -47,7 +47,7 @@ QtWebEngine doesn't support `Browser.setDownloadBehavior` — Playwright crashes
 
 **Embind bindings missing (TodoBridge is not a constructor):** The `bridges/wasm` library must use `set_kind("object")` in xmake.lua, not `set_kind("static")`. Static libraries get dead-stripped by the linker because `main.cpp` doesn't reference the `EMSCRIPTEN_BINDINGS` block (it's a static initializer). Object libraries include all `.o` files unconditionally.
 
-**Vite blocks import() of /public files:** You can't `import('/wasm-app.js')` in Vite — it refuses to transform JS files inside `/public`. The WASM transport uses a blob URL + `<script type="module">` to load the Emscripten module. Don't try to "fix" this with `@vite-ignore` — it doesn't work. See `wasm-transport.ts` for the working pattern.
+**Vite blocks import() of /public files:** You can't `import('/app.wasm.js')` in Vite — it refuses to transform JS files inside `/public`. The WASM transport uses a blob URL + `<script type="module">` to load the Emscripten module. Don't try to "fix" this with `@vite-ignore` — it doesn't work. See `wasm-transport.ts` for the working pattern.
 
 **Platform switch resets Qt path:** After `xmake f -p wasm`, switching back with `xmake f -p windows` loses the `--qt=` setting. Always pass it explicitly: `xmake f -p windows --qt=C:/qt/6.10.2/msvc2022_64`.
 

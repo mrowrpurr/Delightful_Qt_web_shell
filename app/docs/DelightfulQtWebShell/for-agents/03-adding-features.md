@@ -1,6 +1,6 @@
 # Adding Features
 
-> **Shortcut:** `xmake run scaffold-bridge <name>` scaffolds a new bridge end-to-end. The manual steps below show what's happening under the hood.
+> **Shortcut:** `xmake run app.bridge.scaffold <name>` scaffolds a new bridge end-to-end. The manual steps below show what's happening under the hood.
 
 ## Adding a Method to an Existing Bridge
 
@@ -58,7 +58,7 @@ That's it on the C++ side. `def_type::from_json` deserializes the request automa
 ```typescript
 export interface TodoBridge {
   // ... existing methods ...
-  addItem(req: { list_id: string; text: string }): Promise<TodoItem>
+  addItem(req: AddItemRequest): Promise<TodoItem>
 }
 ```
 
@@ -96,16 +96,16 @@ Done. The proxy connects them automatically.
 When you need a new domain area (not just a new method on `todos`):
 
 ```bash
-xmake run scaffold-bridge notes
+xmake run app.bridge.scaffold notes
 ```
 
 This creates a new bridge class with def_type DTOs:
 1. Creates `app/bridges/notes/include/notes_bridge.hpp` — bridge class extending `app_shell::Bridge` with method/signal registration skeleton
 2. Creates a DTOs header for request/response structs
 3. Creates `web/packages/bridge/lib/bridges/notes-bridge.ts` — TypeScript interface stub
-4. Wires `#include` + `addBridge()` into both `desktop/src/application.cpp` and `tests/helpers/dev-server/src/test_server.cpp`
+4. Wires `#include` + `addBridge()` into both `apps/demo/src/main.cpp` and `tests/helpers/dev-server/src/test_server.cpp`
 
-No xmake.lua edits needed — the bridge targets use glob discovery.
+Creates an xmake.lua target and wires it into the build.
 
 ### After scaffolding
 
@@ -123,7 +123,7 @@ No WASM-specific bridge needed. The generic `WasmBridgeWrapper` handles any `app
 - [ ] Domain logic in `lib/` — pure C++, no framework deps
 - [ ] Request DTOs — plain C++ structs (auto-serialized by PFR)
 - [ ] Bridge class extending `app_shell::Bridge` — methods registered with `method("name", &fn)`
-- [ ] Bridge registered in `application.cpp` and `test_server.cpp`: `shell.addBridge("name", bridge)`
+- [ ] Bridge registered in `main.cpp` and `test_server.cpp`: `app.addBridge<MyBridge>("name")`
 - [ ] TypeScript interface with request objects matching the DTOs
 - [ ] Compiles — compile-time type safety catches DTO mismatches
 
@@ -204,8 +204,8 @@ The web layer supports multiple Vite apps under `web/apps/`. Each composes share
 2. Edit its `vite.config.ts` — set a unique dev port, keep `assetsInlineLimit: 0`
 3. Edit `web/apps/yourapp/package.json` — set the workspace `name` to `@app/yourapp`
 4. Add scripts to `web/package.json`: `"build:yourapp": "cd apps/yourapp && vite build"`, `"dev:yourapp": "cd apps/yourapp && vite"` — and chain the build script into the root `build` target
-5. Add `"yourapp"` to the `WEB_APPS` list in `desktop/xmake.lua` so it gets built and embedded in the qrc with prefix `/web-yourapp`
-6. Register the dev port in `App::appUrl` (`desktop/src/shell/app.cpp`) so dev mode routes `app://yourapp/` to `http://localhost:<port>`
+5. Add `"yourapp"` to the `WEB_APPS` list in `apps/demo/xmake.lua` so it gets built and embedded in the qrc with prefix `/web-yourapp`
+6. Register the dev port in your app's `main.cpp` via `app.registerDevPort()` so dev mode routes `app://yourapp/` to `http://localhost:<port>`
 7. Create a `WebShellWidget` pointed at `app->appUrl("yourapp")` wherever you want it (e.g., new dock)
 
 The new app automatically gets all shared bridges — `getBridge<TodoBridge>('todos')` works the same way. Compose `@app/ui`, `@app/theming`, and `@app/monaco` in as needed.
@@ -240,7 +240,8 @@ url.setFragment("/dialog");  // HashRouter resolves to the /dialog route → Dia
 ## Validate Your Work
 
 ```bash
-xmake run test-all            # run all tests
+xmake run app.test.bridges    # run bridge tests
+xmake run app.test.e2e        # run end-to-end tests
 ```
 
 Compile-time type safety catches DTO mismatches between your request structs and bridge method signatures. If the types don't match, the code won't compile — no separate validation step needed.

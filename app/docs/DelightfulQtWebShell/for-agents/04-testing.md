@@ -15,19 +15,18 @@ Four layers, from instant unit tests to native Qt window automation.
 
 | Layer | Command | Speed | What it proves |
 |-------|---------|-------|----------------|
-| C++ unit (Catch2) | `xmake run test-todo-store` | instant | Domain logic works |
-| Bridge protocol (Bun) | `xmake run test-bun` | < 1s | Bridge dispatch + type conversion |
-| Browser e2e (Playwright) | `xmake run test-browser` | ~5s | UI + backend integration |
-| Desktop e2e (Playwright) | `xmake run test-desktop` | ~15s | Same tests in real Qt app |
-| Native Qt (pywinauto) | `xmake run test-pywinauto` | ~5s | Menus, dialogs, shortcuts |
-| All layers | `xmake run test-all` | ~30s | Catch2 + Bun + browser e2e + pywinauto |
+| C++ unit (Catch2) | `xmake run lib.todos.test` | instant | Domain logic works |
+| Bridge protocol (Bun) | `xmake run app.test.web` | < 1s | Bridge dispatch + type conversion |
+| Browser e2e (Playwright) | `xmake run app.test.browser` | ~5s | UI + backend integration |
+| Desktop e2e (Playwright) | `xmake run app.test.desktop` | ~15s | Same tests in real Qt app |
+| Native Qt (pywinauto) | `xmake run app.test.automation` | ~5s | Menus, dialogs, shortcuts |
 
-**`test-all` takes over the desktop.** It launches the Qt app and drives it with pywinauto — your human loses mouse/keyboard control for ~30 seconds. **Ask before running it.** If you just need to validate logic and UI, run `test-todo-store`, `test-bun`, and `test-browser` first — they're invisible. Only run `test-all` or `test-pywinauto` when you need to verify native Qt features (menus, dialogs, shortcuts). See [Sharing the Desktop](05-tools.md#sharing-the-desktop-with-your-human).
+**`app.test.automation` takes over the desktop.** It launches the Qt app and drives it with pywinauto — your human loses mouse/keyboard control for ~5 seconds. **Ask before running it.** If you just need to validate logic and UI, run `lib.todos.test`, `app.test.web`, and `app.test.browser` first — they're invisible. Only run `app.test.automation` when you need to verify native Qt features (menus, dialogs, shortcuts). See [Sharing the Desktop](05-tools.md#sharing-the-desktop-with-your-human).
 
 ## Setup (One Time)
 
 ```bash
-xmake run setup    # all deps: uv sync, bun install, playwright-cdp, playwright chromium
+xmake run app.setup    # all deps: uv sync, bun install, playwright-cdp, playwright chromium
 ```
 
 ## What Changed -> What to Test
@@ -61,9 +60,9 @@ xmake run setup    # all deps: uv sync, bun install, playwright-cdp, playwright 
 |---|---|
 | Catch2 won't compile | Syntax error in `todo_store.hpp` or `todo_bridge.hpp` |
 | Bun tests timeout | Port 9876 in use? Or dev-server binary not built. |
-| E2e won't start | Run `xmake build dev-server` |
+| E2e won't start | Run `xmake build app.dev.server` |
 | E2e "locator not found" | A `data-testid` changed in React |
-| Desktop tests fail | Run `xmake build desktop` first |
+| Desktop tests fail | Run `xmake build app.demo` first |
 | Desktop tests flaky | GPU/window manager — inherently less stable |
 | App frozen with spinner | `signalReady()` missing or broken. See `App.tsx`. |
 | DTO compile error | Request struct fields don't match what the bridge method expects. Fix the struct. |
@@ -88,7 +87,7 @@ TEST_CASE("delete_list removes the list and its items") {
 }
 ```
 
-Run: `xmake run test-todo-store`
+Run: `xmake run lib.todos.test`
 
 ### Playwright — UI flows
 
@@ -108,7 +107,7 @@ test('delete a list', async ({ page }) => {
 })
 ```
 
-Run: `xmake run test-browser`
+Run: `xmake run app.test.browser`
 
 ### pywinauto — native Qt features
 
@@ -142,7 +141,7 @@ def test_save_dialog(app):
         dlg.cancel()                # BM_CLICK on the Cancel button
 ```
 
-Run: `xmake run start-desktop && xmake run test-pywinauto`
+Run: `xmake run app.demo.start && xmake run app.test.automation`
 
 ### Bun — bridge dispatch + type conversion
 
@@ -156,7 +155,7 @@ test('addList creates a list and returns it', async () => {
 })
 ```
 
-Run: `xmake run test-bun`
+Run: `xmake run app.test.web`
 
 ## Test Files
 
@@ -166,8 +165,6 @@ Run: `xmake run test-bun`
 | `app/framework/qt-transport/tests/web/bridge_proxy_test.ts` | WS protocol (mock server) |
 | `app/framework/qt-transport/tests/web/type_conversion_test.ts` | Bridge dispatch + type conversion (real C++ backend) |
 | `tests/playwright/todo-lists.spec.ts` | React UI + backend e2e |
-| `tests/pywinauto/test_window.py` | Window visibility, title, size |
-| `tests/pywinauto/test_menu_bar.py` | Menu items, About dialog, Export dialog |
 | `tests/pywinauto/test_keyboard_shortcuts.py` | Ctrl+E, F12 |
 | `tests/pywinauto/test_full_dialog_flow.py` | Full dialog driving: navigate, file types, save |
 | `tests/pywinauto/native_dialogs.py` | `FileDialog`, `QtMessageBox`, `open_modal` helpers |
