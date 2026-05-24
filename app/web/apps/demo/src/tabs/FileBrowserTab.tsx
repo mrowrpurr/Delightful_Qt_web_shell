@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { getSystemBridge, type SystemBridge } from '@app/bridge/lib/bridges/system-bridge'
+import { getSystemBridge, type SystemBridge, type FolderEntry } from '@app/bridge/lib/bridges/system-bridge'
 import { Button } from '@app/ui/components/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@app/ui/components/card'
 import { Input } from '@app/ui/components/input'
@@ -19,7 +19,7 @@ const imageExts = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 's
 
 export default function FileBrowserTab() {
   const [browseFolder, setBrowseFolder] = useState<string | null>(null)
-  const [browseEntries, setBrowseEntries] = useState<Array<{ name: string; isDir: boolean; size: number }>>([])
+  const [browseEntries, setBrowseEntries] = useState<FolderEntry[]>([])
   const [filePreview, setFilePreview] = useState<{ name: string; text: string; method: string } | null>(null)
   const [imagePreview, setImagePreview] = useState<{ name: string; dataUrl: string } | null>(null)
   const [globPattern, setGlobPattern] = useState('')
