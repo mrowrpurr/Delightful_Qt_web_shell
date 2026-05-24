@@ -23,7 +23,7 @@ This is a concise index of traps. Details live in the doc where you're doing the
 
 **Every build runs Vite** (~30s) then compiles C++ (~10s).
 
-**Skip Vite for C++ iteration:** `SKIP_VITE=1 xmake build app.demo` reuses the previous web bundle (~2s instead of ~40s). Works with `run desktop` and `run start-desktop` too.
+**Skip Vite for C++ iteration:** `SKIP_VITE=1 xmake build app.demo` reuses the previous web bundle (~2s instead of ~40s). Works with `run app.demo` and `run app.demo.start` too.
 
 **`xmake build app.demo` before desktop tests:** Desktop e2e and pywinauto tests need the app binary. Build first.
 

@@ -24,17 +24,17 @@ Bridge keeps them in sync:
 | File | What it does |
 |------|-------------|
 | `web/packages/theming/data/themes.json` | 1000+ themes with light + dark CSS variables |
-| `desktop/styles/shared/widgets.qss.template` | QSS widget map — how themes apply to Qt widgets |
-| `desktop/styles/compiled/` | Generated QSS files (one per theme × mode) |
-| `desktop/styles/compiled/theme-names.json` | Slug → display name mapping for bridge sync |
+| `app/framework/styles/shared/widgets.qss.template` | QSS widget map — how themes apply to Qt widgets |
+| `app/framework/styles/compiled/` | Generated QSS files (one per theme × mode) |
+| `app/framework/styles/compiled/theme-names.json` | Slug → display name mapping for bridge sync |
 | `tools/generate-qss-themes.ts` | Generator: themes.json → QSS files |
-| `desktop/src/style_manager.hpp/.cpp` | C++ theme loader, live reload, SCSS compilation |
+| `app/framework/capabilities/app/style_manager.hpp/.cpp` | C++ theme loader, live reload, SCSS compilation |
 
 ## StyleManager
 
 Loads and applies QSS themes. Three sources, checked in order:
 
-1. **`STYLES_DEV_PATH`** (compile-time define, dev only) — points at `desktop/styles/` in the repo. Set automatically by xmake when not in CI.
+1. **`STYLES_DEV_PATH`** (compile-time define, dev only) — points at `app/framework/styles/` in the repo. Set automatically by xmake when not in CI.
 2. **AppData/Local/\<app\>/styles/** — power user override folder. Create this folder and drop QSS/SCSS files in it to customize themes at runtime.
 3. **QRC embedded** — `:/styles/<theme>.qss`. Pre-compiled, always available, fastest.
 
@@ -100,9 +100,9 @@ bun run tools/generate-qss-themes.ts
 ```
 
 Reads `themes.json`, applies the `widgets.qss.template`, outputs:
-- `desktop/styles/compiled/<slug>-dark.qss` — one per theme
-- `desktop/styles/compiled/<slug>-light.qss`
-- `desktop/styles/compiled/theme-names.json` — slug↔name mapping
+- `app/framework/styles/compiled/<slug>-dark.qss` — one per theme
+- `app/framework/styles/compiled/<slug>-light.qss`
+- `app/framework/styles/compiled/theme-names.json` — slug↔name mapping
 
 The compiled files are committed to the repo — no generator step needed after cloning. Re-run when:
 - You edit `widgets.qss.template` (changes how colors map to widgets)
@@ -110,7 +110,7 @@ The compiled files are committed to the repo — no generator step needed after 
 
 ## The Widget Template
 
-`desktop/styles/shared/widgets.qss.template` maps shadcn color tokens to Qt widget selectors. It uses `$variable` placeholders that the generator replaces with actual colors:
+`app/framework/styles/shared/widgets.qss.template` maps shadcn color tokens to Qt widget selectors. It uses `$variable` placeholders that the generator replaces with actual colors:
 
 ```css
 QMenuBar {
@@ -163,7 +163,7 @@ The save action is context-aware: Ctrl+S and the toolbar Save button trigger the
 2. Run `bun run tools/generate-qss-themes.ts`
 3. Both React and Qt pick it up — React from the imported JSON, Qt from the compiled QSS
 
-Or for a Qt-only theme: drop a `.qss` file in `desktop/styles/compiled/` named `<slug>-dark.qss`. The StyleManager finds it automatically.
+Or for a Qt-only theme: drop a `.qss` file in `app/framework/styles/compiled/` named `<slug>-dark.qss`. The StyleManager finds it automatically.
 
 ## libsass
 

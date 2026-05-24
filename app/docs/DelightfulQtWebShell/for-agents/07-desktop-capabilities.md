@@ -54,7 +54,7 @@ See [08-theming.md](08-theming.md) for the full theming architecture.
 
 ### Native Dialogs
 
-`system.openDialog()` emits a signal — `MainWindow` connects to it and opens whatever dialog it wants. The bridge stays decoupled from UI classes. See `main_window.cpp` for the wiring.
+`system.openDialog()` emits a signal — `MainWindow` connects to it and opens whatever dialog it wants. The bridge stays decoupled from UI classes. The dialog wiring lives in the consumer's window class (e.g., `demo_window.cpp` in the demo app).
 
 ## Desktop Shell Features
 
@@ -62,19 +62,19 @@ These are Qt-level features of the window and app. You get them for free.
 
 ### Tabs
 
-`QTabWidget` wraps the main app. Ctrl+T new tab, Ctrl+W close, middle-click close. Tab bar hidden with 1 tab. Tab titles are reactive — set `document.title` in React. Zoom and DevTools follow the active tab. Code: `main_window.cpp`.
+`QTabWidget` wraps the main app. Ctrl+T new tab, Ctrl+W close, middle-click close. Tab bar hidden with 1 tab. Tab titles are reactive — set `document.title` in React. Zoom and DevTools follow the active tab. Code: your app's `MainWindow` subclass (e.g., `DemoWindow` in the demo app).
 
 ### Multiple Windows
 
-Ctrl+N opens a new `MainWindow`. All windows share the same bridges — one source of truth, signals reach everywhere. Close-to-tray only on the last visible window; secondary windows close normally. Code: `main_window.cpp`, `menu_bar.cpp`.
+Ctrl+N opens a new `MainWindow`. All windows share the same bridges — one source of truth, signals reach everywhere. Close-to-tray only on the last visible window; secondary windows close normally. Code: the consumer's window class (e.g., `demo_window.cpp` in the demo app).
 
 ### System Tray
 
-Last window hides to tray instead of quitting. Quit via File > Quit, Ctrl+Q, or tray context menu. Code: `application.cpp` → `setupSystemTray()`.
+Last window hides to tray instead of quitting. Quit via File > Quit, Ctrl+Q, or tray context menu. Code: Tray subsystem in `app/framework/capabilities/app/tray.cpp`, wired in your app's `main.cpp`.
 
 ### Menu Bar
 
-File (Save, Open Folder, New Window, New Tab, Close Tab, Quit), View (Zoom), Windows (DevTools, React Dialog), Tools (URL Protocol), Help (About). The toolbar reuses the same `QAction` objects — one action, two places, synced automatically. Code: `menu_bar.cpp`.
+File (Save, Open Folder, New Window, New Tab, Close Tab, Quit), View (Zoom), Windows (DevTools, React Dialog), Tools (URL Protocol), Help (About). The toolbar reuses the same `QAction` objects — one action, two places, synced automatically. Code: `demo_window.cpp` (the demo builds its own menu bar).
 
 ## Theming, Fonts & Monaco Editor
 

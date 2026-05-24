@@ -34,7 +34,7 @@ One React UI, one domain library, two deployment targets:
 
 ## Two Layers You Don't Touch
 
-- **BridgeRegistry + AppLifecycle** (`app/framework/bridge-registry/`, `app/framework/app-lifecycle/`) — Bridge registration, `appReady` lifecycle signal. You call `registry.addBridge("name", bridge)` and never think about it again. *(Desktop only — WASM doesn't use AppLifecycle.)*
+- **BridgeRegistry + ReadySignal** (`app/framework/bridge/`, `app/framework/widgets/`) — Bridge registration and the `appReady` lifecycle signal. Bridges are registered in your app's `main.cpp` with `app.addBridge<T>("name")`. *(Desktop only — WASM doesn't use ReadySignal.)*
 
 - **Transport** (`@app/bridge/lib/transport/bridge-transport.ts`, `wasm-transport.ts`) — The React app auto-detects which transport to use. You never touch this.
 
@@ -56,9 +56,9 @@ web/
   package.json      <- single deps, per-app scripts (build:demo, build:settings, build:app)
 ```
 
-Each app has its own `vite.config.ts`. The SchemeHandler routes by host — `app://demo/` serves the demo app, `app://settings/` the settings app, `app://app/` the empty slate. `Application::appUrl("demo")` returns the right URL for dev (port 5173) or production (`app://demo/`).
+Each app has its own `vite.config.ts`. The SchemeHandler routes by host — `app://demo/` serves the demo app, `app://settings/` the settings app, `app://app/` the empty slate. `app.appUrl("demo")` returns the right URL for dev (port 5173) or production (`app://demo/`).
 
-To add a new app, copy `web/apps/app/` (the smallest template), add it to `WEB_APPS` in `desktop/xmake.lua`, and add `build:<name>`/`dev:<name>` scripts to `web/package.json`. See [Adding Features](03-adding-features.md) for the recipe.
+To add a new app, copy `web/apps/app/` (the smallest template), add it to `WEB_APPS` in `apps/demo/xmake.lua`, and add `build:<name>`/`dev:<name>` scripts to `web/package.json`. See [Adding Features](03-adding-features.md) for the recipe.
 
 ## The Bridge System
 
@@ -132,9 +132,9 @@ await todos.addList("Groceries")  // will fail
 
 | Mode | Transport | Bridge adapter | When |
 |------|-----------|----------------|------|
-| **Desktop prod** | QWebChannel (in-process) | `BridgeChannelAdapter` (QObject with `dispatch()`) | `xmake run desktop` |
-| **Desktop dev/test** | WebSocket JSON-RPC | `expose_as_ws.hpp` | `xmake run dev-server`, Playwright, Bun tests |
-| **Browser (WASM)** | Direct Embind calls | `WasmBridgeWrapper` (generic) | `xmake run dev-wasm` |
+| **Desktop prod** | QWebChannel (in-process) | `BridgeChannelAdapter` (QObject with `dispatch()`) | `xmake run app.demo` |
+| **Desktop dev/test** | WebSocket JSON-RPC | `expose_as_ws.hpp` | `xmake run app.dev.server`, Playwright, Bun tests |
+| **Browser (WASM)** | Direct Embind calls | `WasmBridgeWrapper` (generic) | `xmake run app.dev.wasm` |
 
 React auto-detects: `VITE_TRANSPORT=wasm` -> Embind. `window.qt?.webChannelTransport` -> QWebChannel. Otherwise -> WebSocket to `localhost:9876`. Your React components don't know or care which transport is active.
 
@@ -172,6 +172,6 @@ All transports use the same serialization — `detail::serialize_response()` in 
 
 ## signalReady() Contract (Desktop Only)
 
-React calls `signalReady()` after mounting. This fires `AppLifecycle::ready()` on the C++ side, which fades out the loading overlay. If it never fires (bridge broken, JS error), a 15-second timeout shows an error message.
+React calls `signalReady()` after mounting. This fires `ReadySignal::ready()` on the C++ side, which fades out the loading overlay. If it never fires (bridge broken, JS error), a 15-second timeout shows an error message.
 
 **Never remove the `signalReady()` call in App.tsx.** Move it if you refactor, but it must run after your app mounts. In WASM mode, `signalReady()` is a no-op — there's no loading overlay to dismiss.

@@ -33,20 +33,20 @@ A TypeScript library + CLI for driving the app via Playwright. Works with both t
 
 | Mode | How | When |
 |------|-----|------|
-| **Qt desktop** (default) | Connects to CDP on `:9222` | `xmake run start-desktop` first |
+| **Qt desktop** (default) | Connects to CDP on `:9222` | `xmake run app.demo.start` first |
 | **Browser headless** | `PLAYWRIGHT_URL=http://...` | Agent driving WASM app solo |
 | **Browser persistent** | `cli.ts open <url>` / `close` | Human+agent pairing — browser stays open |
 
 ### Setup
 
 ```bash
-xmake run setup            # all deps (one time)
+xmake run app.setup            # all deps (one time)
 
 # Desktop mode:
-xmake run start-desktop    # launches app, CDP on :9222
+xmake run app.demo.start    # launches app, CDP on :9222
 
 # WASM mode:
-xmake run dev-wasm         # starts Vite with WASM transport on :5173
+xmake run app.dev.wasm         # starts Vite with WASM transport on :5173
 ```
 
 ### Three Ways to Use It
@@ -172,9 +172,9 @@ npx tsx tools/playwright-cdp/cli.ts close
 
 **After rebuilding WASM:**
 ```bash
-xmake f -p wasm && xmake build wasm-app
+xmake f -p wasm && xmake build app.wasm
 # dev-wasm auto-copies artifacts, or manually:
-cp build/wasm/wasm32/release/wasm-app.* web/public/
+cp build/wasm/wasm32/release/app.wasm.* web/public/
 # Then reload the page:
 PLAYWRIGHT_URL=http://localhost:5173 npx tsx tools/playwright-cdp/cli.ts reload
 ```
@@ -195,7 +195,7 @@ Dependencies inside `tools/playwright-cdp/` aren't installed. This is a separate
 cd tools/playwright-cdp && npm install
 ```
 
-Then retry. `xmake run setup` does this too if you want the full one-shot.
+Then retry. `xmake run app.setup` does this too if you want the full one-shot.
 
 **`browserType.connectOverCDP: Timeout 30000ms exceeded`**
 
@@ -203,7 +203,7 @@ The desktop app's CDP endpoint on `:9222` is stuck or unreachable — most often
 
 **Ask your human to restart the desktop app:**
 
-> "playwright-cdp is timing out on `connectOverCDP`. That usually means the CDP endpoint is stuck — can you restart the desktop app? `xmake run stop-desktop && xmake run start-desktop` should do it."
+> "playwright-cdp is timing out on `connectOverCDP`. That usually means the CDP endpoint is stuck — can you restart the desktop app? `xmake run app.demo.stop && xmake run app.demo.start` should do it."
 
 After restart, retry. If it still times out, then start looking deeper (port conflict on `:9222`, app never actually launched, firewall, etc.) — but the restart fixes it the vast majority of the time.
 
@@ -221,7 +221,7 @@ uv pip install pywinauto assertpy
 
 The app must be running:
 ```bash
-xmake run start-desktop
+xmake run app.demo.start
 ```
 
 ### Quick Start
@@ -324,7 +324,7 @@ each test, preventing cascading failures.
 
 Run tests:
 ```bash
-xmake run start-desktop && xmake run test-pywinauto
+xmake run app.demo.start && xmake run app.test.automation
 # or directly:
 uv run pytest tests/pywinauto/ -v
 ```
@@ -451,13 +451,13 @@ You share a computer with a human. Be mindful of what takes over their screen.
 
 **What hijacks their desktop (ask first):**
 - **pywinauto** — moves their mouse, opens dialogs, presses keys. They can't use their computer.
-- **`xmake run test-all`** — includes pywinauto tests, which launch the Qt desktop app and drive it for ~30s. Your human loses control of their desktop during this time.
-- **`xmake run test-pywinauto`** / **`xmake run test-desktop`** — same problem
+- **`app.test.automation`** — includes pywinauto tests, which launch the Qt desktop app and drive it for ~30s. Your human loses control of their desktop during this time.
+- **`xmake run app.test.automation`** / **`xmake run app.test.desktop`** — same problem
 - **playwright-cdp `open`** (persistent headed browser) — opens a visible window but doesn't steal focus or mouse. Less intrusive, but still visible.
 
 **Best practices:**
-- **Ask before running `test-all`** — "I need to run the full test suite, which includes desktop tests that'll take over your screen for about 30 seconds. Good time?"
+- **Ask before running `app.test.automation`** — "I need to run the full test suite, which includes desktop tests that'll take over your screen for about 30 seconds. Good time?"
 - Prefer **headless browser mode** for WASM work — it's completely invisible
-- For desktop tests, consider running non-pywinauto layers first (`test-todo-store`, `test-bun`, `test-browser`) to catch most issues without taking over the desktop
+- For desktop tests, consider running non-pywinauto layers first (`lib.todos.test`, `app.test.web`, `app.test.browser`) to catch most issues without taking over the desktop
 - If the human says "run everything", go ahead — they've given permission
 - Work in focused bursts with pywinauto — do your automation, then release
