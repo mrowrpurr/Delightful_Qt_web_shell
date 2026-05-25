@@ -1,10 +1,12 @@
 """Shared fixtures for pywinauto tests.
 
 These tests require the desktop app to be running:
-    xmake run start-desktop
+    xmake run app.demo.start
 
 Run with:
     uv run pytest tests/pywinauto/
+    # or
+    xmake run app.test.automation
 """
 
 import io
@@ -26,8 +28,7 @@ for _stream_name in ("stdout", "stderr"):
         _stream.reconfigure(encoding="utf-8", errors="replace")
 
 
-APP_TITLE = "Delightful Qt Web Shell"
-APP_CLASS = "MainWindow"
+APP_CLASS = "DemoWindow"
 
 
 @pytest.fixture
@@ -39,12 +40,12 @@ def desktop():
 def app(desktop):
     """Find the running Qt app window. Fails if the app isn't running."""
     try:
-        window = desktop.window(title=APP_TITLE, class_name=APP_CLASS)
+        window = desktop.window(class_name=APP_CLASS)
         window.wait("visible", timeout=5)
         return window
     except Exception:
         pytest.fail(
-            f"App not found. Is it running? Start it with: xmake run start-desktop"
+            f"App not found (class_name={APP_CLASS}). Is it running? Start it with: xmake run app.demo.start"
         )
 
 
