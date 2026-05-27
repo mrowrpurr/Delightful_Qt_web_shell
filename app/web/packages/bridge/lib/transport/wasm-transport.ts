@@ -20,7 +20,7 @@ function loadEmscriptenModule(): Promise<WasmModule> {
   return new Promise((resolve, reject) => {
     const script = document.createElement('script')
     script.type = 'module'
-    const wasmUrl = new URL('/wasm-app.js', window.location.origin).href
+    const wasmUrl = new URL('/app.wasm.js', window.location.origin).href
     const blob = new Blob(
       [`import factory from '${wasmUrl}'; globalThis.__wasmFactory = factory`],
       { type: 'text/javascript' },
@@ -37,7 +37,7 @@ function loadEmscriptenModule(): Promise<WasmModule> {
         reject(e)
       }
     }
-    script.onerror = () => reject(new Error('Failed to load wasm-app.js'))
+    script.onerror = () => reject(new Error('Failed to load app.wasm.js'))
     document.head.appendChild(script)
   })
 }
